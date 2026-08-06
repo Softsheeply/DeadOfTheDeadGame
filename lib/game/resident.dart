@@ -143,7 +143,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     const margin = 70.0;
     final usableWidth = max(1.0, bounds.x - margin * 2);
     final x = margin + _random.nextDouble() * usableWidth;
-    final y = bounds.y * 0.58 + _random.nextDouble() * (bounds.y * 0.32);
+    // Keep feet on the painted plaza cobbles (lower band of the backdrop).
+    final y = bounds.y * 0.68 + _random.nextDouble() * (bounds.y * 0.22);
     walkTo(Vector2(x, y));
   }
 
@@ -291,14 +292,14 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   double _groundY() {
     final bounds = worldBounds;
     if (bounds == null) return position.y;
-    return bounds.y * 0.92;
+    return bounds.y * 0.90;
   }
 
   void _clampToWorld({bool softTop = false}) {
     final bounds = worldBounds;
     if (bounds == null) return;
     position.x = position.x.clamp(48, bounds.x - 48);
-    final minY = softTop ? bounds.y * 0.2 : bounds.y * 0.55;
+    final minY = softTop ? bounds.y * 0.25 : bounds.y * 0.62;
     position.y = position.y.clamp(minY, bounds.y * 0.95);
   }
 

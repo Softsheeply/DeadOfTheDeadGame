@@ -70,6 +70,7 @@ flutter:
     - assets/images/pepita/character.json
     - assets/images/abuela_rosa/idle/down/
     - assets/images/abuela_rosa/character.json
+    - assets/images/village/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

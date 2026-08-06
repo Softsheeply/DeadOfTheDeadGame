@@ -24,11 +24,11 @@ class SpiritVillageGame extends FlameGame {
 
     await _spawnResident(
       assetPath: 'assets/images/pepita/character.json',
-      position: Vector2(size.x * 0.42, size.y * 0.72),
+      position: Vector2(size.x * 0.38, size.y * 0.78),
     );
     await _spawnResident(
       assetPath: 'assets/images/abuela_rosa/character.json',
-      position: Vector2(size.x * 0.62, size.y * 0.76),
+      position: Vector2(size.x * 0.58, size.y * 0.82),
     );
 
     _residentsReady = true;
