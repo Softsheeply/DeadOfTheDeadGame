@@ -1,58 +1,53 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 
 import '../data/character_config.dart';
 
-/// A resident's animated sprite + basic movement/wandering, data-driven
-/// from its character.json -- Dart port of the JS prototype's
-/// CharacterAnimationController (src/animation.js) plus the movement half
-/// of resident.js and the weighted-pick half of behaviour.js.
-///
-/// Deliberately *not* using Flame's `SpriteAnimationGroupComponent` (which
-/// needs a fixed enum of states) -- character.json's animation set is
-/// arbitrary per character (Pepita has ~20 named animations, Xolo has far
-/// fewer, future characters will differ again), so a plain string-keyed
-/// map keeps this genuinely reusable across the roster without a
-/// hardcoded enum needing to grow for every character's quirks. This
-/// mirrors the JS version's data-driven design on purpose.
-///
-/// No obstacle avoidance or pathfinding yet -- matches the JS prototype's
-/// own build order, where residents wandered randomly for a long while
-/// before src/navigation.js (obstacles) and the later grid-BFS pathfinder
-/// existed at all. That's the next Flutter pass, not this one.
-class Resident extends PositionComponent {
+/// A resident's animated sprite + movement/wandering + Pocket God style
+/// tap / drag / fling interactions. Data-driven from character.json.
+class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   final CharacterConfig config;
   String direction;
 
   /// Set by the game after this resident is added, so _moveRandomly has
-  /// somewhere to wander within. Using the play area size, not the exact
-  /// obstacle-aware nav band the JS version eventually grew -- that's
-  /// still ahead of this phase.
+  /// somewhere to wander within.
   Vector2? worldBounds;
+
+  /// Optional juice hook -- SpiritVillageGame wires this to PetalBurst.
+  void Function(Vector2 position, {int count})? onPetalBurst;
 
   Vector2? _target;
   bool _busy = false;
+  bool _held = false;
+  bool _airborne = false;
+  Vector2 _velocity = Vector2.zero();
+  Vector2 _dragVelocity = Vector2.zero();
+  double _squash = 1;
+  double _dizzyTimer = 0;
   final Random _random = Random();
   double _behaviourTimer = 0;
 
   final Map<String, SpriteAnimation> _animations = {};
-  // Nullable rather than `late` on purpose: play()/movement/behaviour logic
-  // should be safely unit-testable without going through Flame's full
-  // asset-loading component lifecycle (Sprite.load needs a real or faked
-  // asset bundle). A Resident that hasn't had onLoad() run yet just has no
-  // visual to update -- play() becomes a no-op instead of throwing.
   SpriteAnimationComponent? _visual;
   String _currentAnimationName = '';
 
   Resident({required this.config, required Vector2 position})
       : direction = config.defaultDirection,
-        super(position: position, size: Vector2(128, 128), anchor: Anchor.bottomCenter) {
+        super(
+          position: position,
+          size: Vector2(128, 128),
+          anchor: Anchor.bottomCenter,
+        ) {
     _behaviourTimer = _nextDelay();
   }
 
   String get currentAnimationName => _currentAnimationName;
   bool get busy => _busy;
+  bool get held => _held;
+  bool get airborne => _airborne;
+  Vector2 get velocity => _velocity.clone();
 
   @override
   Future<void> onLoad() async {
@@ -82,6 +77,24 @@ class Resident extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    priority = position.y.round();
+
+    if (_dizzyTimer > 0) {
+      _dizzyTimer -= dt;
+    }
+
+    if (_squash != 1) {
+      _squash += (1 - _squash) * min(1, dt * 10);
+      _visual?.scale = Vector2(2 - _squash, _squash);
+    }
+
+    if (_held) return;
+
+    if (_airborne) {
+      _updateAirborne(dt);
+      return;
+    }
+
     if (_target != null) {
       _updateMovement(dt);
     } else {
@@ -90,31 +103,33 @@ class Resident extends PositionComponent {
   }
 
   /// Plays the named animation if this resident actually has it. Falls back
-  /// to `${name}_down`, matching playAction's own fallback naming in the JS
-  /// version. Silently no-ops (doesn't throw) if neither exists -- same
-  /// "graceful degradation for a resident missing an animation" contract as
-  /// resident.js's playAction, so a minimal placeholder character can't
-  /// crash the game by lacking an action.
+  /// to `${name}_down`, then to any idle, matching the JS prototype's
+  /// graceful degradation for characters missing actions.
   void play(String name) {
-    final resolvedName = _animations.containsKey(name) ? name : '${name}_down';
+    final resolvedName = _resolveAnimation(name);
+    if (resolvedName == null) return;
     final animation = _animations[resolvedName];
     if (animation == null) return;
     _currentAnimationName = resolvedName;
     _visual?.animation = animation;
   }
 
-  // -- Autonomous behaviour: port of behaviour.js's weighted picker --------
-  // JS used 2000-6000ms; dt here is in seconds, so 2.0-6.0.
+  String? _resolveAnimation(String name) {
+    if (_animations.containsKey(name)) return name;
+    final down = '${name}_down';
+    if (_animations.containsKey(down)) return down;
+    if (_animations.containsKey('idle_$direction')) return 'idle_$direction';
+    if (_animations.containsKey('idle_down')) return 'idle_down';
+    return _animations.keys.isEmpty ? null : _animations.keys.first;
+  }
+
   double _nextDelay() => 2.0 + _random.nextDouble() * 4.0;
 
   void _updateBehaviour(double dt) {
-    if (_busy) return;
+    if (_busy || _dizzyTimer > 0) return;
     _behaviourTimer -= dt;
     if (_behaviourTimer > 0) return;
     _behaviourTimer = _nextDelay();
-    // idle_down/left/right/up + walk_down/left/right/up are all that's
-    // ported so far, so the weighted table is just idle vs. walk for now
-    // (skip/smell_flowers/etc. come back once their animations do).
     if (_random.nextDouble() < 0.5) {
       _setIdle();
     } else {
@@ -126,16 +141,14 @@ class Resident extends PositionComponent {
     final bounds = worldBounds;
     if (bounds == null) return;
     const margin = 70.0;
-    final x = margin + _random.nextDouble() * (bounds.x - margin * 2);
-    final y = bounds.y * 0.5 + _random.nextDouble() * (bounds.y * 0.35);
+    final usableWidth = max(1.0, bounds.x - margin * 2);
+    final x = margin + _random.nextDouble() * usableWidth;
+    final y = bounds.y * 0.58 + _random.nextDouble() * (bounds.y * 0.32);
     walkTo(Vector2(x, y));
   }
 
-  /// Sets a movement target -- the public seam for both autonomous
-  /// wandering (_moveRandomly) and, later, interactions/hotspots
-  /// commanding a resident to approach a specific point (mirrors
-  /// resident.js's beginInteractionApproach in the JS prototype).
   void walkTo(Vector2 destination) {
+    if (_held || _airborne) return;
     _target = destination;
     _busy = true;
     _updateDirection();
@@ -149,8 +162,6 @@ class Resident extends PositionComponent {
     final dy = target.y - position.y;
     direction = dx.abs() > dy.abs() ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
   }
-
-  // -- Movement: port of resident.js's updateMovement -----------------------
 
   void _updateMovement(double dt) {
     final target = _target!;
@@ -174,5 +185,142 @@ class Resident extends PositionComponent {
     _target = null;
     _busy = false;
     play('idle_$direction');
+  }
+
+  // -- Pocket God interactions --------------------------------------------
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    if (_held || _airborne) return;
+    _reactToPoke();
+  }
+
+  void _reactToPoke() {
+    _target = null;
+    _busy = true;
+    _squash = 0.72;
+    _dizzyTimer = 0.35;
+    play('idle_$direction');
+    onPetalBurst?.call(position.clone()..y -= 40, count: 14);
+    // Tiny hop so a tap feels alive even without special animations yet.
+    _velocity = Vector2((_random.nextDouble() - 0.5) * 40, -160);
+    _airborne = true;
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    _held = true;
+    _airborne = false;
+    _busy = true;
+    _target = null;
+    _velocity.setZero();
+    _dragVelocity.setZero();
+    _visual?.scale = Vector2.all(1.12);
+    play('idle_$direction');
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    final previous = position.clone();
+    position += event.localDelta;
+    _clampToWorld();
+    final now = position.clone();
+    _dragVelocity = (now - previous) * 60;
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    _releaseWithFling(_dragVelocity);
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    _releaseWithFling(Vector2.zero());
+  }
+
+  void _releaseWithFling(Vector2 fling) {
+    _held = false;
+    _visual?.scale = Vector2.all(1);
+    // Soften extreme flings so chaos stays cartoon, not mean.
+    final capped = Vector2(
+      fling.x.clamp(-520.0, 520.0),
+      fling.y.clamp(-620.0, 200.0),
+    );
+    if (capped.length > 80) {
+      _velocity = capped;
+      _airborne = true;
+      _busy = true;
+      onPetalBurst?.call(position.clone()..y -= 30, count: 14);
+    } else {
+      _land();
+    }
+  }
+
+  void _updateAirborne(double dt) {
+    _velocity.y += 980 * dt;
+    position += _velocity * dt;
+    _clampToWorld(softTop: true);
+
+    final groundY = _groundY();
+    if (position.y >= groundY && _velocity.y > 0) {
+      position.y = groundY;
+      if (_velocity.length > 220) {
+        // Cartoon bounce once, then settle.
+        _velocity.y = -_velocity.y * 0.35;
+        _velocity.x *= 0.7;
+        _squash = 0.65;
+        onPetalBurst?.call(position.clone()..y -= 20, count: 8);
+      } else {
+        _land();
+      }
+    }
+  }
+
+  void _land() {
+    _airborne = false;
+    _velocity.setZero();
+    _busy = false;
+    _dizzyTimer = 0.8;
+    _squash = 0.8;
+    _setIdle();
+  }
+
+  double _groundY() {
+    final bounds = worldBounds;
+    if (bounds == null) return position.y;
+    return bounds.y * 0.92;
+  }
+
+  void _clampToWorld({bool softTop = false}) {
+    final bounds = worldBounds;
+    if (bounds == null) return;
+    position.x = position.x.clamp(48, bounds.x - 48);
+    final minY = softTop ? bounds.y * 0.2 : bounds.y * 0.55;
+    position.y = position.y.clamp(minY, bounds.y * 0.95);
+  }
+
+  /// Test seam: start a fling without gesture events.
+  void debugFling(Vector2 velocity) {
+    _held = false;
+    _busy = true;
+    _target = null;
+    _velocity = velocity.clone();
+    _airborne = true;
+  }
+
+  /// Test seam: grab without gesture events.
+  void debugGrab() {
+    _held = true;
+    _busy = true;
+    _target = null;
+    _airborne = false;
+    _velocity.setZero();
+  }
+
+  void debugRelease() {
+    _releaseWithFling(Vector2.zero());
   }
 }

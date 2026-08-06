@@ -67,10 +67,9 @@ flutter:
     - assets/images/pepita/idle/right/
     - assets/images/pepita/idle/up/
     - assets/images/pepita/walk/down/
-    - assets/images/pepita/walk/left/
-    - assets/images/pepita/walk/right/
-    - assets/images/pepita/walk/up/
     - assets/images/pepita/character.json
+    - assets/images/abuela_rosa/idle/down/
+    - assets/images/abuela_rosa/character.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

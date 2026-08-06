@@ -4,41 +4,63 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../data/character_config.dart';
+import 'petal_burst.dart';
 import 'resident.dart';
+import 'village_backdrop.dart';
 
-/// The main game class -- Flutter/Flame equivalent of the JS prototype's
-/// src/village.js + src/app.js combined. Phase 2 scope: one character,
-/// real idle animation, autonomous wandering (walk to a random point,
-/// idle, repeat). No obstacles/pathfinding/multi-resident/interactions yet
-/// -- same order those were added in the JS build (see
-/// Softsheeply/DayoftheDead's docs/GAME_OVERVIEW.md for the full roadmap
-/// this is porting).
+/// Spirit Village -- living Día de los Muertos plaza with Pocket God style
+/// touch toys (tap / drag / fling). Residents keep wandering when idle.
 class SpiritVillageGame extends FlameGame {
-  late Resident pepita;
+  final List<Resident> residents = [];
+  VillageBackdrop? backdrop;
   bool _residentsReady = false;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    final jsonString = await rootBundle.loadString('assets/images/pepita/character.json');
-    final config = CharacterConfig.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+    backdrop = VillageBackdrop(size: size.clone());
+    await add(backdrop!);
 
-    pepita = Resident(config: config, position: Vector2(size.x / 2, size.y / 2))
-      ..worldBounds = size.clone();
-    add(pepita);
+    await _spawnResident(
+      assetPath: 'assets/images/pepita/character.json',
+      position: Vector2(size.x * 0.42, size.y * 0.72),
+    );
+    await _spawnResident(
+      assetPath: 'assets/images/abuela_rosa/character.json',
+      position: Vector2(size.x * 0.62, size.y * 0.76),
+    );
+
     _residentsReady = true;
+  }
+
+  Future<void> _spawnResident({
+    required String assetPath,
+    required Vector2 position,
+  }) async {
+    final jsonString = await rootBundle.loadString(assetPath);
+    final config = CharacterConfig.fromJson(
+      jsonDecode(jsonString) as Map<String, dynamic>,
+    );
+    final resident = Resident(config: config, position: position)
+      ..worldBounds = size.clone()
+      ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
+    residents.add(resident);
+    await add(resident);
+  }
+
+  void spawnPetals(Vector2 position, {int count = 14}) {
+    add(PetalBurst(position: position, count: count));
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
-    // Keep wandering bounds in sync with the actual canvas size -- direct
-    // callback for this in Flame, unlike the JS prototype which needed a
-    // debounced window-resize listener + defensive re-check (see that
-    // repo's README for the story behind why that mattered). Flame calls
-    // onGameResize before onLoad finishes on startup, so guard against
-    // touching `pepita` (a `late` field) before it's actually assigned.
-    if (_residentsReady) pepita.worldBounds = size.clone();
+    backdrop?.resizeTo(size);
+    if (_residentsReady) {
+      for (final resident in residents) {
+        resident.worldBounds = size.clone();
+      }
+    }
   }
 }

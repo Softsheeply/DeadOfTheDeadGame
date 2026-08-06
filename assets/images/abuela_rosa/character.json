@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "abuela_rosa",
+  "displayName": "Abuela Rosa",
+  "role": "marigold_keeper",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "defaultDirection": "down",
+  "movement": {
+    "walkSpeed": 35,
+    "skipSpeed": 45
+  },
+  "personality": {
+    "decisionIntervalMs": [3000, 7000],
+    "autonomousBehaviours": [
+      { "action": "idle", "weight": 0.65 },
+      { "action": "walk", "weight": 0.35 }
+    ]
+  },
+  "animations": {
+    "idle_down": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": ["idle/down/abuela_rosa_idle_down_00.png"]
+    }
+  }
+}
