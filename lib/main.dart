@@ -55,42 +55,38 @@ class VillageHud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: false,
-      child: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: _HintBanner(),
-              ),
+    return SafeArea(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const Positioned(
+            top: 12,
+            left: 16,
+            right: 72,
+            child: _HintBanner(),
+          ),
+          Positioned(
+            top: 8,
+            right: 12,
+            child: _CircleAction(
+              icon: Icons.wb_sunny_rounded,
+              color: const Color(0xFFF4C15A),
+              onTap: game.toggleDayNight,
             ),
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10, right: 12),
-                child: _DayNightButton(game: game),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                child: _ToyTray(game: game),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: _ToyStatus(game: game),
-              ),
-            ),
-          ],
-        ),
+          ),
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 16,
+            child: _ToyTray(game: game),
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 98,
+            child: _ToyStatus(game: game),
+          ),
+        ],
       ),
     );
   }
@@ -101,61 +97,51 @@ class _HintBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xCC2B163F),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0x66F39A3C)),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        child: Text(
-          'Tap · drag · fling  ·  toys below  ·  sun/moon above',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFFFFF1D1),
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.2,
-          ),
+      child: const Text(
+        'Tap · drag · fling  ·  toys below  ·  sun/moon above',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFFFFF1D1),
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 }
 
-class _DayNightButton extends StatelessWidget {
-  const _DayNightButton({required this.game});
+class _CircleAction extends StatelessWidget {
+  const _CircleAction({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
-  final SpiritVillageGame game;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: game.isNight,
-      builder: (context, night, _) {
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: game.toggleDayNight,
-            borderRadius: BorderRadius.circular(28),
-            child: Ink(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xEE2B163F),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xAAF39A3C), width: 1.6),
-              ),
-              child: Icon(
-                night ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
-                color: night ? const Color(0xFFF4C15A) : const Color(0xFFB8D4FF),
-                size: 30,
-              ),
-            ),
-          ),
-        );
-      },
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 54,
+        height: 54,
+        decoration: BoxDecoration(
+          color: const Color(0xF22B163F),
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xAAF39A3C), width: 1.6),
+        ),
+        child: Icon(icon, color: color, size: 28),
+      ),
     );
   }
 }
@@ -167,37 +153,44 @@ class _ToyTray extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const toys = [
-      (VillageToy.wind, Icons.air_rounded, 'Wind'),
-      (VillageToy.petals, Icons.local_florist_rounded, 'Petals'),
-      (VillageToy.music, Icons.music_note_rounded, 'Music'),
-      (VillageToy.panDulce, Icons.cookie_rounded, 'Pan dulce'),
-    ];
-
-    return Material(
-      color: Colors.transparent,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xF2241033),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0x88F39A3C), width: 1.4),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final toy in toys) ...[
-                _ToyButton(
-                  icon: toy.$2,
-                  label: toy.$3,
-                  onTap: () => game.useToy(toy.$1),
-                ),
-                if (toy != toys.last) const SizedBox(width: 6),
-              ],
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xF2241033),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0x88F39A3C), width: 1.4),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ToyButton(
+              icon: Icons.air_rounded,
+              label: 'Wind',
+              onTap: () => game.useToy(VillageToy.wind),
+            ),
           ),
-        ),
+          Expanded(
+            child: _ToyButton(
+              icon: Icons.local_florist_rounded,
+              label: 'Petals',
+              onTap: () => game.useToy(VillageToy.petals),
+            ),
+          ),
+          Expanded(
+            child: _ToyButton(
+              icon: Icons.music_note_rounded,
+              label: 'Music',
+              onTap: () => game.useToy(VillageToy.music),
+            ),
+          ),
+          Expanded(
+            child: _ToyButton(
+              icon: Icons.cookie_rounded,
+              label: 'Pan dulce',
+              onTap: () => game.useToy(VillageToy.panDulce),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -216,37 +209,34 @@ class _ToyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          width: 74,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3A1B55),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x66ED5791)),
-                ),
-                child: Icon(icon, color: const Color(0xFFFFF1D1), size: 25),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF3A1B55),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0x66ED5791)),
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFFE7D2FF),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Icon(icon, color: const Color(0xFFFFF1D1), size: 25),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFE7D2FF),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -264,15 +254,16 @@ class _ToyStatus extends StatelessWidget {
       valueListenable: game.toyStatus,
       builder: (context, text, _) {
         if (text.isEmpty) return const SizedBox.shrink();
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xCC1A0F2C),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Padding(
+        return Center(
+          child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xCC1A0F2C),
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Text(
               text,
+              textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFFFFF1D1), fontSize: 12),
             ),
           ),
