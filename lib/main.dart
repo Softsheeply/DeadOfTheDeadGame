@@ -75,15 +75,15 @@ class VillageHud extends StatelessWidget {
             ),
           ),
           Positioned(
+            top: 56,
             left: 12,
             right: 12,
-            bottom: 16,
             child: _ToyTray(game: game),
           ),
           Positioned(
+            top: 150,
             left: 24,
             right: 24,
-            bottom: 98,
             child: _ToyStatus(game: game),
           ),
         ],
@@ -105,7 +105,7 @@ class _HintBanner extends StatelessWidget {
         border: Border.all(color: const Color(0x66F39A3C)),
       ),
       child: const Text(
-        'Tap · drag · fling  ·  toys below  ·  sun/moon above',
+          'Tap · drag · fling the spirits  ·  use toys  ·  tap sun for day/night',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: Color(0xFFFFF1D1),
@@ -185,7 +185,7 @@ class _ToyTray extends StatelessWidget {
           ),
           Expanded(
             child: _ToyButton(
-              icon: Icons.cookie_rounded,
+              icon: Icons.cake_rounded,
               label: 'Pan dulce',
               onTap: () => game.useToy(VillageToy.panDulce),
             ),
