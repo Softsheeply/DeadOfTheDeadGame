@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "id": "pepita",
+  "displayName": "Pepita",
+  "role": "florist",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "defaultDirection": "down",
+  "visualReference": {
+    "status": "concept-only-not-included",
+    "description": "Cheerful chibi Dia de los Muertos skeleton florist with flower crown, braids, purple embroidered dress, brown shoes and flower basket.",
+    "palette": {
+      "outline": "#3b2146",
+      "cream": "#fff1d1",
+      "purple": "#733d91",
+      "pink": "#ed5791",
+      "orange": "#f39a3c",
+      "turquoise": "#47c4ba",
+      "brown": "#70422f",
+      "hair": "#2b2131"
+    },
+    "baselineY": 119,
+    "padding": 8,
+    "bakedShadow": false
+  },
+  "movement": {
+    "walkSpeed": 55,
+    "skipSpeed": 75
+  },
+  "anchors": {
+    "feet": [
+      64,
+      119
+    ],
+    "interaction": [
+      64,
+      126
+    ]
+  },
+  "collisionBox": {
+    "x": 42,
+    "y": 72,
+    "width": 44,
+    "height": 47
+  },
+  "states": [
+    "idle",
+    "walking",
+    "skipping",
+    "talking",
+    "dancing",
+    "performingAction",
+    "sitting",
+    "sleeping",
+    "falling",
+    "disabled"
+  ],
+  "statePriority": [
+    "disabled",
+    "falling",
+    "performingAction",
+    "talking",
+    "dancing",
+    "skipping",
+    "walking",
+    "sitting",
+    "sleeping",
+    "idle"
+  ],
+  "personality": {
+    "decisionIntervalMs": [
+      2000,
+      6000
+    ],
+    "autonomousBehaviours": [
+      {
+        "action": "idle",
+        "weight": 0.5
+      },
+      {
+        "action": "walk",
+        "weight": 0.25
+      },
+      {
+        "action": "skip",
+        "weight": 0.1
+      },
+      {
+        "action": "smell_flowers",
+        "weight": 0.05
+      },
+      {
+        "action": "arrange_bouquet",
+        "weight": 0.05
+      },
+      {
+        "action": "wave",
+        "weight": 0.05
+      }
+    ]
+  },
+  "interactionHooks": [
+    "playerTouch",
+    "flowers",
+    "flowerBeds",
+    "wateringCan",
+    "otherCharacters",
+    "xolo",
+    "festivalStage",
+    "benches",
+    "floristStall"
+  ],
+  "animations": {
+    "idle_down": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/down/pepita_idle_down_00.png"
+      ]
+    },
+    "idle_left": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/left/pepita_idle_left_00.png"
+      ]
+    },
+    "idle_right": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/right/pepita_idle_right_00.png"
+      ]
+    },
+    "idle_up": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/up/pepita_idle_up_00.png"
+      ]
+    },
+    "walk_down": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/down/pepita_walk_down_00.png",
+        "walk/down/pepita_walk_down_01.png",
+        "walk/down/pepita_walk_down_02.png",
+        "walk/down/pepita_walk_down_03.png",
+        "walk/down/pepita_walk_down_04.png",
+        "walk/down/pepita_walk_down_05.png",
+        "walk/down/pepita_walk_down_06.png",
+        "walk/down/pepita_walk_down_07.png"
+      ]
+    },
+    "walk_left": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/left/pepita_walk_left_00.png",
+        "walk/left/pepita_walk_left_01.png",
+        "walk/left/pepita_walk_left_02.png",
+        "walk/left/pepita_walk_left_03.png",
+        "walk/left/pepita_walk_left_04.png",
+        "walk/left/pepita_walk_left_05.png",
+        "walk/left/pepita_walk_left_06.png",
+        "walk/left/pepita_walk_left_07.png"
+      ]
+    },
+    "walk_right": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/right/pepita_walk_right_00.png",
+        "walk/right/pepita_walk_right_01.png",
+        "walk/right/pepita_walk_right_02.png",
+        "walk/right/pepita_walk_right_03.png",
+        "walk/right/pepita_walk_right_04.png",
+        "walk/right/pepita_walk_right_05.png",
+        "walk/right/pepita_walk_right_06.png",
+        "walk/right/pepita_walk_right_07.png"
+      ]
+    },
+    "walk_up": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/up/pepita_walk_up_00.png",
+        "walk/up/pepita_walk_up_01.png",
+        "walk/up/pepita_walk_up_02.png",
+        "walk/up/pepita_walk_up_03.png",
+        "walk/up/pepita_walk_up_04.png",
+        "walk/up/pepita_walk_up_05.png",
+        "walk/up/pepita_walk_up_06.png",
+        "walk/up/pepita_walk_up_07.png"
+      ]
+    }
+  }
+}
