@@ -11,10 +11,19 @@
     "skipSpeed": 45
   },
   "personality": {
-    "decisionIntervalMs": [3000, 7000],
+    "decisionIntervalMs": [
+      3000,
+      7000
+    ],
     "autonomousBehaviours": [
-      { "action": "idle", "weight": 0.65 },
-      { "action": "walk", "weight": 0.35 }
+      {
+        "action": "idle",
+        "weight": 0.65
+      },
+      {
+        "action": "walk",
+        "weight": 0.35
+      }
     ]
   },
   "animations": {
@@ -22,7 +31,85 @@
       "frames": 1,
       "fps": 1,
       "loop": true,
-      "paths": ["idle/down/abuela_rosa_idle_down_00.png"]
+      "paths": [
+        "idle/down/abuela_rosa_idle_down_00.png"
+      ]
+    },
+    "idle_left": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/left/abuela_rosa_idle_left_00.png"
+      ]
+    },
+    "idle_right": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/right/abuela_rosa_idle_right_00.png"
+      ]
+    },
+    "idle_up": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/up/abuela_rosa_idle_up_00.png"
+      ]
+    },
+    "walk_down": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/down/abuela_rosa_walk_down_00.png",
+        "walk/down/abuela_rosa_walk_down_01.png",
+        "walk/down/abuela_rosa_walk_down_02.png",
+        "walk/down/abuela_rosa_walk_down_03.png",
+        "walk/down/abuela_rosa_walk_down_04.png",
+        "walk/down/abuela_rosa_walk_down_05.png"
+      ]
+    },
+    "walk_left": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/left/abuela_rosa_walk_left_00.png",
+        "walk/left/abuela_rosa_walk_left_01.png",
+        "walk/left/abuela_rosa_walk_left_02.png",
+        "walk/left/abuela_rosa_walk_left_03.png",
+        "walk/left/abuela_rosa_walk_left_04.png",
+        "walk/left/abuela_rosa_walk_left_05.png"
+      ]
+    },
+    "walk_right": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/right/abuela_rosa_walk_right_00.png",
+        "walk/right/abuela_rosa_walk_right_01.png",
+        "walk/right/abuela_rosa_walk_right_02.png",
+        "walk/right/abuela_rosa_walk_right_03.png",
+        "walk/right/abuela_rosa_walk_right_04.png",
+        "walk/right/abuela_rosa_walk_right_05.png"
+      ]
+    },
+    "walk_up": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/up/abuela_rosa_walk_up_00.png",
+        "walk/up/abuela_rosa_walk_up_01.png",
+        "walk/up/abuela_rosa_walk_up_02.png",
+        "walk/up/abuela_rosa_walk_up_03.png",
+        "walk/up/abuela_rosa_walk_up_04.png",
+        "walk/up/abuela_rosa_walk_up_05.png"
+      ]
     }
   }
 }

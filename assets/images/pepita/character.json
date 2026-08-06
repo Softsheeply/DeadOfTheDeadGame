@@ -159,49 +159,42 @@
       ]
     },
     "walk_left": {
-      "frames": 8,
+      "frames": 6,
       "fps": 10,
       "loop": true,
       "paths": [
-        "walk/down/pepita_walk_down_00.png",
-        "walk/down/pepita_walk_down_01.png",
-        "walk/down/pepita_walk_down_02.png",
-        "walk/down/pepita_walk_down_03.png",
-        "walk/down/pepita_walk_down_04.png",
-        "walk/down/pepita_walk_down_05.png",
-        "walk/down/pepita_walk_down_06.png",
-        "walk/down/pepita_walk_down_07.png"
-      ],
-      "note": "Temporary: reuse walk_down until labeled left/right/up placeholders are replaced"
+        "walk/left/pepita_walk_left_00.png",
+        "walk/left/pepita_walk_left_01.png",
+        "walk/left/pepita_walk_left_02.png",
+        "walk/left/pepita_walk_left_03.png",
+        "walk/left/pepita_walk_left_04.png",
+        "walk/left/pepita_walk_left_05.png"
+      ]
     },
     "walk_right": {
-      "frames": 8,
+      "frames": 6,
       "fps": 10,
       "loop": true,
       "paths": [
-        "walk/down/pepita_walk_down_00.png",
-        "walk/down/pepita_walk_down_01.png",
-        "walk/down/pepita_walk_down_02.png",
-        "walk/down/pepita_walk_down_03.png",
-        "walk/down/pepita_walk_down_04.png",
-        "walk/down/pepita_walk_down_05.png",
-        "walk/down/pepita_walk_down_06.png",
-        "walk/down/pepita_walk_down_07.png"
+        "walk/right/pepita_walk_right_00.png",
+        "walk/right/pepita_walk_right_01.png",
+        "walk/right/pepita_walk_right_02.png",
+        "walk/right/pepita_walk_right_03.png",
+        "walk/right/pepita_walk_right_04.png",
+        "walk/right/pepita_walk_right_05.png"
       ]
     },
     "walk_up": {
-      "frames": 8,
+      "frames": 6,
       "fps": 10,
       "loop": true,
       "paths": [
-        "walk/down/pepita_walk_down_00.png",
-        "walk/down/pepita_walk_down_01.png",
-        "walk/down/pepita_walk_down_02.png",
-        "walk/down/pepita_walk_down_03.png",
-        "walk/down/pepita_walk_down_04.png",
-        "walk/down/pepita_walk_down_05.png",
-        "walk/down/pepita_walk_down_06.png",
-        "walk/down/pepita_walk_down_07.png"
+        "walk/up/pepita_walk_up_00.png",
+        "walk/up/pepita_walk_up_01.png",
+        "walk/up/pepita_walk_up_02.png",
+        "walk/up/pepita_walk_up_03.png",
+        "walk/up/pepita_walk_up_04.png",
+        "walk/up/pepita_walk_up_05.png"
       ]
     }
   }
