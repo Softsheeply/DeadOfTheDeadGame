@@ -37,46 +37,60 @@ class _SpiritVillageAppState extends State<SpiritVillageApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          GameWidget(game: _game),
-          SafeArea(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: _HintBanner(),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10, right: 12),
-                    child: _DayNightButton(game: _game),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                    child: _ToyTray(game: _game),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 100),
-                    child: _ToyStatus(game: _game),
-                  ),
-                ),
-              ],
+      body: GameWidget(
+        game: _game,
+        overlayBuilderMap: {
+          'hud': (context, game) => VillageHud(game: game as SpiritVillageGame),
+        },
+        initialActiveOverlays: const ['hud'],
+      ),
+    );
+  }
+}
+
+class VillageHud extends StatelessWidget {
+  const VillageHud({required this.game, super.key});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: false,
+      child: SafeArea(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: _HintBanner(),
+              ),
             ),
-          ),
-        ],
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, right: 12),
+                child: _DayNightButton(game: game),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                child: _ToyTray(game: game),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: _ToyStatus(game: game),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -126,20 +140,17 @@ class _DayNightButton extends StatelessWidget {
             onTap: game.toggleDayNight,
             borderRadius: BorderRadius.circular(28),
             child: Ink(
-              width: 52,
-              height: 52,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xDD2B163F),
+                color: const Color(0xEE2B163F),
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0x99F39A3C), width: 1.4),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2)),
-                ],
+                border: Border.all(color: const Color(0xAAF39A3C), width: 1.6),
               ),
               child: Icon(
                 night ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
                 color: night ? const Color(0xFFF4C15A) : const Color(0xFFB8D4FF),
-                size: 28,
+                size: 30,
               ),
             ),
           ),
@@ -163,24 +174,29 @@ class _ToyTray extends StatelessWidget {
       (VillageToy.panDulce, Icons.cookie_rounded, 'Pan dulce'),
     ];
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xEE241033),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0x66F39A3C)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            for (final toy in toys)
-              _ToyButton(
-                icon: toy.$2,
-                label: toy.$3,
-                onTap: () => game.useToy(toy.$1),
-              ),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xF2241033),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0x88F39A3C), width: 1.4),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final toy in toys) ...[
+                _ToyButton(
+                  icon: toy.$2,
+                  label: toy.$3,
+                  onTap: () => game.useToy(toy.$1),
+                ),
+                if (toy != toys.last) const SizedBox(width: 6),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -206,19 +222,19 @@ class _ToyButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(
-          width: 72,
+          width: 74,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: const Color(0xFF3A1B55),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x55ED5791)),
+                  border: Border.all(color: const Color(0x66ED5791)),
                 ),
-                child: Icon(icon, color: const Color(0xFFFFF1D1), size: 24),
+                child: Icon(icon, color: const Color(0xFFFFF1D1), size: 25),
               ),
               const SizedBox(height: 4),
               Text(
@@ -226,7 +242,7 @@ class _ToyButton extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFFE7D2FF),
                   fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -248,20 +264,16 @@ class _ToyStatus extends StatelessWidget {
       valueListenable: game.toyStatus,
       builder: (context, text, _) {
         if (text.isEmpty) return const SizedBox.shrink();
-        return AnimatedOpacity(
-          opacity: 1,
-          duration: const Duration(milliseconds: 200),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xAA1A0F2C),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                text,
-                style: const TextStyle(color: Color(0xFFFFF1D1), fontSize: 12),
-              ),
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xCC1A0F2C),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Text(
+              text,
+              style: const TextStyle(color: Color(0xFFFFF1D1), fontSize: 12),
             ),
           ),
         );
