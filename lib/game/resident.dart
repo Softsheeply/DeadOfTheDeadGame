@@ -66,7 +66,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     }
 
     final visual = SpriteAnimationComponent(
-      size: Vector2(128, 128),
+      size: size.clone(),
       anchor: Anchor.bottomCenter,
     );
     _visual = visual;
@@ -323,5 +323,37 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   void debugRelease() {
     _releaseWithFling(Vector2.zero());
+  }
+
+  // -- Toy reactions ------------------------------------------------------
+
+  /// Gust of wind flings the resident lightly sideways.
+  void applyWind({required double directionSign}) {
+    if (_held) return;
+    _target = null;
+    _busy = true;
+    _velocity = Vector2(directionSign * (220 + _random.nextDouble() * 160), -120);
+    _airborne = true;
+    _squash = 0.85;
+    onPetalBurst?.call(position.clone()..y -= 24, count: 6);
+  }
+
+  /// Brief celebratory hop / spin-feel squash for mariachi music.
+  void applyDancePulse() {
+    if (_held || _airborne) return;
+    _target = null;
+    _busy = true;
+    _dizzyTimer = 0.9;
+    _squash = 0.7;
+    _velocity = Vector2((_random.nextDouble() - 0.5) * 30, -140);
+    _airborne = true;
+    onPetalBurst?.call(position.clone()..y -= 36, count: 10);
+  }
+
+  /// Walk toward a treat / hotspot (used by pan dulce + Xolo chase).
+  void attractTo(Vector2 destination) {
+    if (_held || _airborne) return;
+    walkTo(destination);
+    _squash = 0.9;
   }
 }

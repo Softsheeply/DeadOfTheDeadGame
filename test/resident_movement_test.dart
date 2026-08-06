@@ -122,4 +122,20 @@ void main() {
     resident.walkTo(Vector2(300, 300));
     expect(resident.airborne, true);
   });
+
+  test('wind toy knocks a free resident airborne sideways', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 200))
+      ..worldBounds = Vector2(400, 400);
+    resident.applyWind(directionSign: 1);
+    expect(resident.airborne, true);
+    expect(resident.velocity.x, greaterThan(0));
+  });
+
+  test('attractTo starts a walk toward the treat', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(50, 200))
+      ..worldBounds = Vector2(400, 400);
+    resident.attractTo(Vector2(300, 220));
+    expect(resident.busy, true);
+    expect(resident.direction, 'right');
+  });
 }

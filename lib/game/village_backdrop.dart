@@ -4,27 +4,26 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/painting.dart';
 
-/// Full-bleed Spirit Village backdrop from the Day of the Dead reference art.
-///
-/// Uses cover-fit so the painted plaza always fills the screen. Day/night
-/// variants live under `assets/images/village/`.
+/// Full-bleed Spirit Village backdrop with day/night painted variants.
 class VillageBackdrop extends PositionComponent {
-  VillageBackdrop({
-    required Vector2 size,
-    this.assetPath = 'village/spirit_village_plaza_night.png',
-  }) : super(size: size, position: Vector2.zero(), priority: -100);
+  VillageBackdrop({required Vector2 size})
+      : super(size: size, position: Vector2.zero(), priority: -100);
 
-  /// Flame images path (relative to `assets/images/`).
-  final String assetPath;
+  static const String dayAsset = 'village/spirit_village_plaza_day.png';
+  static const String nightAsset = 'village/spirit_village_plaza_night.png';
 
-  Sprite? _sprite;
+  Sprite? _day;
+  Sprite? _night;
+  bool isNight = true;
+  double _blend = 1; // 0 = day, 1 = night
+  double _blendTarget = 1;
   Rect _drawRect = Rect.zero;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final image = await Flame.images.load(assetPath);
-    _sprite = Sprite(image);
+    _day = Sprite(await Flame.images.load(dayAsset));
+    _night = Sprite(await Flame.images.load(nightAsset));
     _recomputeDrawRect();
   }
 
@@ -33,9 +32,16 @@ class VillageBackdrop extends PositionComponent {
     _recomputeDrawRect();
   }
 
-  /// Cover-fit the art into the current game size (may crop edges).
+  /// Animate toward day (false) or night (true) over ~1.2s.
+  void setNight(bool night) {
+    isNight = night;
+    _blendTarget = night ? 1 : 0;
+  }
+
+  void toggleDayNight() => setNight(!isNight);
+
   void _recomputeDrawRect() {
-    final sprite = _sprite;
+    final sprite = _night ?? _day;
     if (sprite == null || size.x <= 0 || size.y <= 0) {
       _drawRect = Rect.zero;
       return;
@@ -43,20 +49,27 @@ class VillageBackdrop extends PositionComponent {
     final imgW = sprite.srcSize.x;
     final imgH = sprite.srcSize.y;
     final scale = max(size.x / imgW, size.y / imgH);
-    final drawW = imgW * scale;
-    final drawH = imgH * scale;
     _drawRect = Rect.fromCenter(
       center: Offset(size.x / 2, size.y / 2),
-      width: drawW,
-      height: drawH,
+      width: imgW * scale,
+      height: imgH * scale,
     );
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    if ((_blend - _blendTarget).abs() < 0.001) {
+      _blend = _blendTarget;
+      return;
+    }
+    final dir = _blendTarget > _blend ? 1.0 : -1.0;
+    _blend = (_blend + dir * dt / 1.2).clamp(0.0, 1.0);
+  }
+
+  @override
   void render(Canvas canvas) {
-    final sprite = _sprite;
-    if (sprite == null || _drawRect == Rect.zero) {
-      // Fallback so a failed load isn't a blank purple void forever.
+    if (_drawRect == Rect.zero) {
       canvas.drawRect(
         Rect.fromLTWH(0, 0, size.x, size.y),
         Paint()..color = const Color(0xFF1A0F3A),
@@ -64,17 +77,23 @@ class VillageBackdrop extends PositionComponent {
       return;
     }
 
-    sprite.renderRect(canvas, _drawRect);
+    if (_blend < 1 && _day != null) {
+      _day!.renderRect(canvas, _drawRect);
+    }
+    if (_blend > 0 && _night != null) {
+      final paint = Paint()..color = Color.fromRGBO(255, 255, 255, _blend);
+      _night!.renderRect(canvas, _drawRect, overridePaint: paint);
+    }
 
-    // Soft bottom vignette keeps characters readable on busy cobbles.
+    final vignetteStrength = 0.25 + 0.35 * _blend;
     final vignette = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: const [
-          Color(0x00000000),
-          Color(0x33000000),
-          Color(0x660C0618),
+        colors: [
+          const Color(0x00000000),
+          Color.fromRGBO(0, 0, 0, 0.18 * vignetteStrength),
+          Color.fromRGBO(12, 6, 24, vignetteStrength),
         ],
         stops: const [0.45, 0.75, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
