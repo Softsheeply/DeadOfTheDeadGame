@@ -51,8 +51,8 @@ class SpiritVillageGame extends FlameGame {
     );
     await _spawnResident(
       assetPath: 'assets/images/xolo/character.json',
-      position: Vector2(size.x * 0.48, size.y * 0.86),
-      displaySize: Vector2(96, 96),
+      position: Vector2(size.x * 0.48, size.y * 0.84),
+      displaySize: Vector2(110, 110),
     );
 
     _residentsReady = true;

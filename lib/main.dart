@@ -43,6 +43,7 @@ class _SpiritVillageAppState extends State<SpiritVillageApp> {
           GameWidget(game: _game),
           SafeArea(
             child: Stack(
+              fit: StackFit.expand,
               children: [
                 const Align(
                   alignment: Alignment.topCenter,
@@ -68,7 +69,7 @@ class _SpiritVillageAppState extends State<SpiritVillageApp> {
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 92),
+                    padding: const EdgeInsets.only(bottom: 100),
                     child: _ToyStatus(game: _game),
                   ),
                 ),
@@ -199,34 +200,37 @@ class _ToyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3A1B55),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x55ED5791)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          width: 72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3A1B55),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0x55ED5791)),
+                ),
+                child: Icon(icon, color: const Color(0xFFFFF1D1), size: 24),
               ),
-              child: Icon(icon, color: const Color(0xFFFFF1D1), size: 24),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFFE7D2FF),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFE7D2FF),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
