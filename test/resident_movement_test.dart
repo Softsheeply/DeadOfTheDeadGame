@@ -97,15 +97,22 @@ void main() {
   });
 
   test('release snaps landing onto walkClamp cobble', () {
-    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 120))
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 300))
       ..worldBounds = Vector2(400, 400)
-      ..walkClamp = (point, {bool softTop = false}) => Vector2(200, 280);
-    resident.debugFling(Vector2(0, -200));
-    for (var i = 0; i < 180; i++) {
+      ..roadBounds = const Rect.fromLTWH(40, 250, 320, 100)
+      ..walkClamp = (point, {bool softTop = false}) {
+        if (softTop) {
+          return Vector2(point.x.clamp(40, 360), point.y.clamp(80, 350));
+        }
+        return Vector2(200, 280);
+      };
+    resident.debugFling(Vector2(0, -280));
+    for (var i = 0; i < 240; i++) {
       resident.update(1 / 60);
     }
     expect(resident.airborne, false);
     expect(resident.position.y, closeTo(280, 0.5));
+    expect(resident.position.x, closeTo(200, 0.5));
   });
 
   test('grab and release hooks fire', () {
