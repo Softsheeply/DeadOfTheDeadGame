@@ -13,7 +13,8 @@ void main() {
     final fx = json['fx'] as List<dynamic>;
     expect(buildings.length, greaterThanOrEqualTo(5));
     expect(fx.any((e) => (e as Map)['type'] == 'water'), true);
-    expect(fx.any((e) => (e as Map)['type'] == 'candle'), true);
+    expect(fx.where((e) => (e as Map)['type'] == 'candle').length, greaterThanOrEqualTo(12));
+    expect(fx.any((e) => (e as Map)['type'] == 'lantern'), true);
     expect(fx.any((e) => (e as Map)['type'] == 'oven'), true);
   });
 }

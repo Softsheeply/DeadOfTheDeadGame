@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'village_backdrop.dart';
+import 'village_decor.dart';
 
 /// Living plaza overlays: water, candles, buildings, papel, smoke, fireflies.
 ///
@@ -68,29 +71,8 @@ class VillageAtmosphere extends PositionComponent {
       ),
     ];
 
-    _candles = [
-      for (var i = 0; i < 6; i++)
-        _Candle(
-          uv: Offset(0.06 + i * 0.035, 0.78 + (i.isEven ? 0.01 : -0.01)),
-          phase: i * 0.7,
-          strength: 0.9,
-        ),
-      for (var i = 0; i < 5; i++)
-        _Candle(
-          uv: Offset(0.50 + i * 0.03, 0.68 + (i % 2) * 0.02),
-          phase: 1.2 + i * 0.55,
-          strength: 1.05,
-        ),
-      _Candle(uv: const Offset(0.32, 0.72), phase: 0.4, strength: 0.85),
-      _Candle(uv: const Offset(0.38, 0.76), phase: 1.1, strength: 0.85),
-      _Candle(uv: const Offset(0.44, 0.70), phase: 2.0, strength: 0.85),
-      _Candle(uv: const Offset(0.70, 0.74), phase: 2.6, strength: 0.85),
-      _Candle(uv: const Offset(0.78, 0.70), phase: 3.3, strength: 0.85),
-      _Candle(uv: const Offset(0.84, 0.76), phase: 4.1, strength: 0.9),
-      _Candle(uv: const Offset(0.46, 0.42), phase: 0.2, strength: 1.2, radius: 18),
-      _Candle(uv: const Offset(0.50, 0.38), phase: 1.0, strength: 1.15, radius: 16),
-      _Candle(uv: const Offset(0.54, 0.44), phase: 1.8, strength: 1.2, radius: 17),
-    ];
+    // Night-only warm lights — positions live in decor_markers.json.
+    _candles = await _loadNightCandles();
 
     _lights = [
       _BuildingLight(
@@ -258,6 +240,53 @@ class VillageAtmosphere extends PositionComponent {
       size: 1.2 + _random.nextDouble() * 1.8,
       arc: arc,
     );
+  }
+
+  /// Candles / lanterns from decor_markers — only drawn when nightBlend > 0.
+  Future<List<_Candle>> _loadNightCandles() async {
+    try {
+      final raw = await rootBundle.loadString(VillageDecor.assetPath);
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      final fx = (json['fx'] as List<dynamic>);
+      final loaded = <_Candle>[];
+      var phase = 0.0;
+      for (final entry in fx) {
+        final map = entry as Map<String, dynamic>;
+        final type = map['type'] as String?;
+        if (type != 'candle' && type != 'lantern') continue;
+        final uv = (map['uv'] as List<dynamic>).cast<num>();
+        final strength = (map['strength'] as num?)?.toDouble() ?? 1;
+        var radius = type == 'lantern' ? 16.0 : 10.0;
+        if (map['radius'] is List) {
+          final r = (map['radius'] as List<dynamic>).cast<num>();
+          radius = r[0].toDouble();
+        }
+        loaded.add(
+          _Candle(
+            uv: Offset(uv[0].toDouble(), uv[1].toDouble()),
+            phase: phase,
+            strength: strength,
+            radius: radius,
+            isLantern: type == 'lantern',
+          ),
+        );
+        phase += 0.55;
+      }
+      if (loaded.isNotEmpty) return loaded;
+    } catch (_) {
+      // Fall through to built-in night ofrenda layout.
+    }
+    return [
+      for (var i = 0; i < 6; i++)
+        _Candle(
+          uv: Offset(0.06 + i * 0.035, 0.78 + (i.isEven ? 0.01 : -0.01)),
+          phase: i * 0.7,
+          strength: 0.9,
+        ),
+      _Candle(uv: const Offset(0.46, 0.42), phase: 0.2, strength: 1.2, radius: 18, isLantern: true),
+      _Candle(uv: const Offset(0.50, 0.38), phase: 1.0, strength: 1.15, radius: 16, isLantern: true),
+      _Candle(uv: const Offset(0.54, 0.44), phase: 1.8, strength: 1.2, radius: 17, isLantern: true),
+    ];
   }
 
   void resizeTo(Vector2 newSize) {
@@ -636,25 +665,46 @@ class VillageAtmosphere extends PositionComponent {
       final radius = candle.radius * (0.9 + 0.15 * flicker) * (0.85 + 0.15 * night);
       final alpha = night * candle.strength * flicker;
 
+      // Warm ground pool — strongest at full night.
       canvas.drawCircle(
         pos,
-        radius * 1.8,
+        radius * 2.1,
         Paint()
-          ..color = const Color(0xFFFF9A3C).withValues(alpha: 0.12 * alpha)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.9),
+          ..color = const Color(0xFFFF8A3A).withValues(alpha: 0.14 * alpha)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 1.05),
       );
       canvas.drawCircle(
         pos,
         radius,
         Paint()
-          ..color = const Color(0xFFFFD27A).withValues(alpha: 0.35 * alpha)
+          ..color = const Color(0xFFFFD27A).withValues(alpha: 0.38 * alpha)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45),
       );
       canvas.drawCircle(
         pos,
         max(1.5, radius * 0.22),
-        Paint()..color = const Color(0xFFFFF2C8).withValues(alpha: 0.75 * alpha),
+        Paint()..color = const Color(0xFFFFF2C8).withValues(alpha: 0.8 * alpha),
       );
+
+      // Tiny flame tip so night candles read as fire, not just glow blobs.
+      if (!candle.isLantern) {
+        final flameH = 4.5 + 2.5 * flicker;
+        final flame = Path()
+          ..moveTo(pos.dx, pos.dy - flameH)
+          ..quadraticBezierTo(pos.dx + 2.2 * flicker, pos.dy - flameH * 0.35, pos.dx, pos.dy + 1)
+          ..quadraticBezierTo(pos.dx - 2.2 * flicker, pos.dy - flameH * 0.35, pos.dx, pos.dy - flameH)
+          ..close();
+        canvas.drawPath(
+          flame,
+          Paint()..color = const Color(0xFFFFF6C8).withValues(alpha: 0.7 * alpha),
+        );
+        canvas.drawPath(
+          flame,
+          Paint()
+            ..color = const Color(0xFFFF9A3C).withValues(alpha: 0.35 * alpha)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
     }
   }
 
@@ -761,12 +811,14 @@ class _Candle {
     required this.phase,
     required this.strength,
     this.radius = 10,
+    this.isLantern = false,
   });
 
   final Offset uv;
   final double phase;
   final double strength;
   final double radius;
+  final bool isLantern;
 }
 
 class _BuildingLight {
