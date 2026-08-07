@@ -105,10 +105,35 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     final visual = SpriteAnimationComponent(
       size: size.clone(),
       anchor: Anchor.bottomCenter,
+      // Must sit on the parent's local bottom-center. Position (0,0) with
+      // bottomCenter wrongly parks the sprite at the parent's top-left, so
+      // taps on the visible person miss the hitbox and pickup never starts.
+      position: _visualHome,
     );
     _visual = visual;
     add(visual);
     play('idle_$direction');
+  }
+
+  /// Local feet point of the sprite inside this component's size box.
+  Vector2 get _visualHome => Vector2(size.x / 2, size.y);
+
+  void _setVisualOffset([Vector2? offset]) {
+    final visual = _visual;
+    if (visual == null) return;
+    final o = offset ?? Vector2.zero();
+    visual.position = _visualHome + o;
+  }
+
+  /// Slightly larger than the sprite so Pocket God grabs feel fair on phone.
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    const padX = 20.0;
+    const padY = 12.0;
+    return point.x >= -padX &&
+        point.y >= -padY &&
+        point.x <= size.x + padX &&
+        point.y <= size.y + padY;
   }
 
   @override
@@ -166,7 +191,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// graceful degradation for characters missing actions.
   void setDisplaySize(Vector2 displaySize) {
     size = displaySize;
-    _visual?.size = displaySize.clone();
+    final visual = _visual;
+    if (visual != null) {
+      visual.size = displaySize.clone();
+      _setVisualOffset();
+    }
   }
 
   void play(String name) {
@@ -275,10 +304,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     } else if (action == 'smell') {
       final lean = 0.9 + 0.05 * sin(_lifeTime * 3);
       _visual?.scale = Vector2(1.05, lean);
-      _visual?.position = Vector2(sin(_lifeTime * 2) * 1.5, -1);
+      _setVisualOffset(Vector2(sin(_lifeTime * 2) * 1.5, -1));
     } else if (action == 'sit') {
       _visual?.scale = Vector2(1.06, 0.8);
-      _visual?.position = Vector2.zero();
+      _setVisualOffset();
     }
   }
 
@@ -456,7 +485,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     // One bob per ~24px of travel (two steps per stride).
     final phase = _walkDistance / 24 * pi;
     final bob = sin(phase) * 2.2;
-    visual.position = Vector2(0, -bob);
+    _setVisualOffset(Vector2(0, -bob));
     if ((_squash - 1).abs() < 0.02 && _dizzyTimer <= 0) {
       final footfall = 1 + 0.04 * sin(phase * 2);
       visual.scale = Vector2(2 - footfall, footfall);
@@ -466,7 +495,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _resetWalkVisual() {
     final visual = _visual;
     if (visual == null) return;
-    visual.position = Vector2.zero();
+    _setVisualOffset();
     if ((_squash - 1).abs() < 0.02) {
       visual.scale = Vector2.all(1);
     }
@@ -512,7 +541,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _velocity.setZero();
     _dragVelocity.setZero();
     _visual?.scale = Vector2.all(1.12);
-    _visual?.position = Vector2.zero();
+    // Lift slightly so the held toy reads above the plaza.
+    _setVisualOffset(Vector2(0, -10));
     play('idle_$direction');
   }
 
@@ -540,6 +570,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _releaseWithFling(Vector2 fling) {
     _held = false;
     _visual?.scale = Vector2.all(1);
+    _setVisualOffset();
     // Soften extreme flings so chaos stays cartoon, not mean.
     final capped = Vector2(
       fling.x.clamp(-520.0, 520.0),
