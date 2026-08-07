@@ -21,6 +21,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Optional plaza destinations (florist, bakery, stage, …) for purposeful roam.
   List<Vector2> wanderHotspots = const [];
 
+  /// When true, clamps allow walking past the road edge (enter/exit plaza).
+  bool allowOffRoad = false;
+
+  /// Fired once when an exiting walk finishes off-screen.
+  void Function()? onExitComplete;
+
   /// Optional juice hook -- SpiritVillageGame wires this to PetalBurst.
   void Function(Vector2 position, {int count})? onPetalBurst;
 
@@ -198,10 +204,34 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   void walkTo(Vector2 destination) {
     if (_held || _airborne) return;
-    _target = _clampPoint(destination);
+    _target = allowOffRoad ? destination.clone() : _clampPoint(destination);
     _busy = true;
     _updateDirection();
     play('walk_$direction');
+  }
+
+  /// Walk off the left or right edge, then invoke [onExitComplete].
+  void exitPlaza({required bool toLeft}) {
+    if (_held) return;
+    allowOffRoad = true;
+    final road = roadBounds;
+    final y = road?.center.dy ?? position.y;
+    final x = toLeft
+        ? (road?.left ?? position.x) - 120
+        : (road?.right ?? position.x) + 120;
+    walkTo(Vector2(x, y));
+  }
+
+  /// Appear from off-screen and walk onto a plaza point.
+  void enterPlaza(Vector2 destination, {required bool fromLeft}) {
+    allowOffRoad = true;
+    final road = roadBounds;
+    final y = destination.y;
+    position = Vector2(
+      fromLeft ? (road?.left ?? destination.x) - 100 : (road?.right ?? destination.x) + 100,
+      y,
+    );
+    walkTo(destination);
   }
 
   void _updateDirection() {
@@ -221,6 +251,14 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       position.setFrom(target);
       _target = null;
       _busy = false;
+      if (allowOffRoad && onExitComplete != null) {
+        final callback = onExitComplete;
+        onExitComplete = null;
+        allowOffRoad = false;
+        callback?.call();
+        return;
+      }
+      allowOffRoad = false;
       _setIdle();
       return;
     }
@@ -346,6 +384,14 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   Vector2 _clampPoint(Vector2 point, {bool softTop = false}) {
+    if (allowOffRoad) {
+      final bounds = worldBounds;
+      if (bounds == null) return point;
+      return Vector2(
+        point.x.clamp(-160, bounds.x + 160),
+        point.y.clamp(bounds.y * 0.2, bounds.y * 0.98),
+      );
+    }
     final road = roadBounds;
     if (road != null) {
       final minY = softTop ? road.top - road.height : road.top;

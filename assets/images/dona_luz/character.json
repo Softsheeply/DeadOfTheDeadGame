@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "dona_luz",
+  "displayName": "Do\u00f1a Luz",
+  "role": "candle_keeper",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "defaultDirection": "down",
+  "movement": {
+    "walkSpeed": 40,
+    "skipSpeed": 55
+  },
+  "personality": {
+    "decisionIntervalMs": [
+      1200,
+      3800
+    ],
+    "autonomousBehaviours": [
+      {
+        "action": "idle",
+        "weight": 0.3
+      },
+      {
+        "action": "walk",
+        "weight": 0.7
+      }
+    ]
+  },
+  "animations": {
+    "idle_down": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/down/dona_luz_idle_down_00.png"
+      ]
+    },
+    "walk_left": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/left/dona_luz_walk_left_00.png",
+        "walk/left/dona_luz_walk_left_01.png",
+        "walk/left/dona_luz_walk_left_02.png",
+        "walk/left/dona_luz_walk_left_03.png",
+        "walk/left/dona_luz_walk_left_04.png",
+        "walk/left/dona_luz_walk_left_05.png"
+      ]
+    },
+    "walk_right": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true,
+      "paths": [
+        "walk/right/dona_luz_walk_right_00.png",
+        "walk/right/dona_luz_walk_right_01.png",
+        "walk/right/dona_luz_walk_right_02.png",
+        "walk/right/dona_luz_walk_right_03.png",
+        "walk/right/dona_luz_walk_right_04.png",
+        "walk/right/dona_luz_walk_right_05.png"
+      ]
+    }
+  }
+}

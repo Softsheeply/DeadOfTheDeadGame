@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+7
+version: 1.0.0+8
 
 environment:
   sdk: ^3.12.0
@@ -84,6 +84,27 @@ flutter:
     - assets/images/xolo/walk/left/
     - assets/images/xolo/walk/right/
     - assets/images/xolo/character.json
+    - assets/images/gato/idle/down/
+    - assets/images/gato/walk/left/
+    - assets/images/gato/walk/right/
+    - assets/images/gato/walk/up/
+    - assets/images/gato/character.json
+    - assets/images/tito/idle/down/
+    - assets/images/tito/walk/left/
+    - assets/images/tito/walk/right/
+    - assets/images/tito/character.json
+    - assets/images/miguel/idle/down/
+    - assets/images/miguel/walk/left/
+    - assets/images/miguel/walk/right/
+    - assets/images/miguel/character.json
+    - assets/images/dona_luz/idle/down/
+    - assets/images/dona_luz/walk/left/
+    - assets/images/dona_luz/walk/right/
+    - assets/images/dona_luz/character.json
+    - assets/images/alebrije/idle/down/
+    - assets/images/alebrije/walk/left/
+    - assets/images/alebrije/walk/right/
+    - assets/images/alebrije/character.json
     - assets/images/village/
 
   # To add assets to your application, add an assets section, like this:

@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'game/cast_roster.dart';
 import 'game/spirit_village_game.dart';
 
 void main() {
@@ -78,8 +79,185 @@ class VillageHud extends StatelessWidget {
             bottom: 78,
             child: _ToyStatus(game: game),
           ),
+          Positioned(
+            top: 10,
+            right: 12,
+            child: _CastButton(game: game),
+          ),
+          Positioned(
+            top: 58,
+            right: 12,
+            child: _CastPanel(game: game),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _CastButton extends StatelessWidget {
+  const _CastButton({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.castPanelOpenListenable,
+      builder: (context, open, _) {
+        return GestureDetector(
+          onTap: game.toggleCastPanel,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xF21A0F2C),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  open ? Icons.groups_rounded : Icons.group_add_rounded,
+                  color: const Color(0xFFFFF1D1),
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'Cast',
+                  style: TextStyle(
+                    color: Color(0xFFFFF1D1),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CastPanel extends StatelessWidget {
+  const _CastPanel({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.castPanelOpenListenable,
+      builder: (context, open, _) {
+        if (!open) return const SizedBox.shrink();
+        return ValueListenableBuilder<int>(
+          valueListenable: game.castRevision,
+          builder: (context, _, child) {
+            return Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 220,
+                constraints: const BoxConstraints(maxHeight: 260),
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xF2140B22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0x88F39A3C)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Plaza cast',
+                      style: TextStyle(
+                        color: Color(0xFFF39A3C),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Tap to invite or send off-screen',
+                      style: TextStyle(color: Color(0xFFC9B4E0), fontSize: 10),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: kPlazaCast.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 4),
+                        itemBuilder: (context, index) {
+                          final member = kPlazaCast[index];
+                          final on = game.castRoster.isOnPlaza(member.id);
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => game.toggleCastMember(member.id),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: on
+                                    ? const Color(0x553A1B55)
+                                    : const Color(0x221A0F2C),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: on
+                                      ? const Color(0xAA47C4BA)
+                                      : const Color(0x44555555),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    on
+                                        ? Icons.visibility_rounded
+                                        : Icons.visibility_off_rounded,
+                                    size: 16,
+                                    color: on
+                                        ? const Color(0xFF47C4BA)
+                                        : const Color(0xFF887799),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      member.displayName,
+                                      style: TextStyle(
+                                        color: on
+                                            ? const Color(0xFFFFF1D1)
+                                            : const Color(0xFFAA99BB),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    on ? 'On' : 'Off',
+                                    style: TextStyle(
+                                      color: on
+                                          ? const Color(0xFF47C4BA)
+                                          : const Color(0xFF887799),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

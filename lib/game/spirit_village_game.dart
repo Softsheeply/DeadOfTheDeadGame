@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:ui' show Rect;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../data/character_config.dart';
+import 'cast_roster.dart';
 import 'petal_burst.dart';
 import 'resident.dart';
 import 'toys.dart';
@@ -18,6 +19,8 @@ enum VillageToy { wind, petals, music, panDulce }
 /// Spirit Village -- living Día de los Muertos plaza with Pocket God toys.
 class SpiritVillageGame extends FlameGame {
   final List<Resident> residents = [];
+  final Map<String, Resident> _residentsById = {};
+  final CastRoster castRoster = CastRoster();
   VillageBackdrop? backdrop;
   VillageAtmosphere? atmosphere;
   PanDulceTreat? activeTreat;
@@ -27,13 +30,11 @@ class SpiritVillageGame extends FlameGame {
   final Random _random = Random();
   final ValueNotifier<bool> isNight = ValueNotifier<bool>(true);
   final ValueNotifier<String> toyStatus = ValueNotifier<String>('');
+  final ValueNotifier<int> castRevision = ValueNotifier<int>(0);
+  bool castPanelOpen = false;
+  final ValueNotifier<bool> castPanelOpenListenable = ValueNotifier<bool>(false);
 
-  Resident? get xolo {
-    for (final r in residents) {
-      if (r.config.id == 'xolo') return r;
-    }
-    return null;
-  }
+  Resident? get xolo => _residentsById['xolo'];
 
   Rect get roadRect =>
       backdrop?.roadRect ??
@@ -48,65 +49,151 @@ class SpiritVillageGame extends FlameGame {
     atmosphere = VillageAtmosphere(backdrop: backdrop!);
     await add(atmosphere!);
 
-    final person = backdrop!.personDisplaySize;
-    final dog = backdrop!.dogDisplaySize;
-    final road = roadRect;
+    // Default plaza: original three on, extras start off so player can invite them.
+    castRoster
+      ..setOnPlaza('pepita', true)
+      ..setOnPlaza('abuela_rosa', true)
+      ..setOnPlaza('xolo', true)
+      ..setOnPlaza('gato', true)
+      ..setOnPlaza('tito', false)
+      ..setOnPlaza('miguel', false)
+      ..setOnPlaza('dona_luz', false)
+      ..setOnPlaza('alebrije', false);
 
-    await _spawnResident(
-      assetPath: 'assets/images/pepita/character.json',
-      position: Vector2(road.left + road.width * 0.35, road.top + road.height * 0.55),
-      displaySize: Vector2.all(person),
-    );
-    await _spawnResident(
-      assetPath: 'assets/images/abuela_rosa/character.json',
-      position: Vector2(road.left + road.width * 0.62, road.top + road.height * 0.7),
-      displaySize: Vector2.all(person),
-    );
-    await _spawnResident(
-      assetPath: 'assets/images/xolo/character.json',
-      position: Vector2(road.left + road.width * 0.48, road.top + road.height * 0.85),
-      displaySize: Vector2.all(dog),
-    );
+    for (final member in kPlazaCast) {
+      if (castRoster.isOnPlaza(member.id)) {
+        await _spawnCastMember(member, animateEntrance: false);
+      }
+    }
 
+    castRoster.addListener(_onCastRosterChanged);
     _syncResidentBounds();
     _residentsReady = true;
+    _bumpCastRevision();
   }
 
-  Future<void> _spawnResident({
-    required String assetPath,
-    required Vector2 position,
-    required Vector2 displaySize,
+  void _onCastRosterChanged() {
+    // Roster toggles are driven through [setCastPresent] so we can animate.
+  }
+
+  void toggleCastPanel() {
+    castPanelOpen = !castPanelOpen;
+    castPanelOpenListenable.value = castPanelOpen;
+  }
+
+  Future<void> setCastPresent(String id, bool present) async {
+    if (castRoster.isOnPlaza(id) == present) return;
+    castRoster.setOnPlaza(id, present);
+    if (present) {
+      await _bringOnPlaza(id);
+    } else {
+      _sendOffPlaza(id);
+    }
+    _bumpCastRevision();
+  }
+
+  Future<void> toggleCastMember(String id) =>
+      setCastPresent(id, !castRoster.isOnPlaza(id));
+
+  void _bumpCastRevision() => castRevision.value++;
+
+  Future<void> _bringOnPlaza(String id) async {
+    final existing = _residentsById[id];
+    if (existing != null && existing.isMounted) {
+      existing.onExitComplete = null;
+      existing.allowOffRoad = false;
+      final dest = backdrop?.randomHotspot(_random) ?? roadRect.center.toVector2();
+      existing.enterPlaza(dest, fromLeft: _random.nextBool());
+      return;
+    }
+    final member = kPlazaCast.firstWhere((m) => m.id == id);
+    await _spawnCastMember(member, animateEntrance: true);
+  }
+
+  void _sendOffPlaza(String id) {
+    final resident = _residentsById[id];
+    if (resident == null) return;
+    final toLeft = resident.position.x < size.x * 0.5;
+    resident.onExitComplete = () {
+      resident.removeFromParent();
+      residents.remove(resident);
+      _residentsById.remove(id);
+      _bumpCastRevision();
+      toyStatus.value = '${resident.config.displayName} left the plaza';
+    };
+    resident.exitPlaza(toLeft: toLeft);
+    toyStatus.value = '${resident.config.displayName} is heading off…';
+  }
+
+  Future<void> _spawnCastMember(
+    CastMemberInfo member, {
+    required bool animateEntrance,
   }) async {
-    final jsonString = await rootBundle.loadString(assetPath);
+    final jsonString = await rootBundle.loadString(member.assetPath);
     final config = CharacterConfig.fromJson(
       jsonDecode(jsonString) as Map<String, dynamic>,
     );
-    final resident = Resident(config: config, position: position)
+    final displaySize = _displaySizeFor(member.kind);
+    final dest = backdrop?.randomHotspot(_random) ??
+        Vector2(
+          roadRect.left + roadRect.width * (0.2 + _random.nextDouble() * 0.6),
+          roadRect.top + roadRect.height * (0.3 + _random.nextDouble() * 0.5),
+        );
+
+    final resident = Resident(config: config, position: dest.clone())
       ..size = displaySize
       ..worldBounds = size.clone()
       ..roadBounds = roadRect
+      ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
       ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
+
     residents.add(resident);
+    _residentsById[member.id] = resident;
     await add(resident);
+
+    if (animateEntrance) {
+      resident.enterPlaza(dest, fromLeft: _random.nextBool());
+      toyStatus.value = '${config.displayName} joins the plaza!';
+    }
+  }
+
+  Vector2 _displaySizeFor(CastKind kind) {
+    final person = backdrop?.personDisplaySize ?? 64;
+    final dog = backdrop?.dogDisplaySize ?? 50;
+    return switch (kind) {
+      CastKind.person => Vector2.all(person),
+      CastKind.dog => Vector2.all(dog),
+      CastKind.cat => Vector2.all((dog * 0.92).clamp(36.0, 52.0)),
+      CastKind.creature => Vector2.all((person * 0.85).clamp(44.0, 62.0)),
+    };
   }
 
   void _syncResidentBounds() {
     final road = roadRect;
-    final person = backdrop?.personDisplaySize ?? 64;
-    final dog = backdrop?.dogDisplaySize ?? 50;
     final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
     for (final resident in residents) {
+      CastMemberInfo? member;
+      for (final m in kPlazaCast) {
+        if (m.id == resident.config.id) {
+          member = m;
+          break;
+        }
+      }
       resident.worldBounds = size.clone();
       resident.roadBounds = road;
       resident.wanderHotspots = hotspots;
-      final side = resident.config.id == 'xolo' ? dog : person;
-      if ((resident.size.x - side).abs() > 1) {
-        resident.setDisplaySize(Vector2.all(side));
+      if (member != null) {
+        final side = _displaySizeFor(member.kind);
+        if ((resident.size.x - side.x).abs() > 1) {
+          resident.setDisplaySize(side);
+        }
       }
-      resident.position = Vector2(
-        resident.position.x.clamp(road.left, road.right),
-        resident.position.y.clamp(road.top, road.bottom),
-      );
+      if (!resident.allowOffRoad) {
+        resident.position = Vector2(
+          resident.position.x.clamp(road.left, road.right),
+          resident.position.y.clamp(road.top, road.bottom),
+        );
+      }
     }
   }
 
@@ -154,7 +241,7 @@ class SpiritVillageGame extends FlameGame {
       spawnPetals(pos, count: 16);
     }
     for (final resident in residents) {
-      if (resident.config.id != 'xolo') {
+      if (resident.config.id != 'xolo' && resident.config.id != 'gato') {
         resident.applyDancePulse();
       }
     }
@@ -183,15 +270,18 @@ class SpiritVillageGame extends FlameGame {
 
     final dog = xolo;
     dog?.attractTo(treatPos);
+    _residentsById['gato']?.attractTo(
+      treatPos + Vector2(_random.nextDouble() * 20 - 10, 12),
+    );
     for (final resident in residents) {
-      if (resident.config.id == 'xolo') continue;
+      if (resident.config.id == 'xolo' || resident.config.id == 'gato') continue;
       if (_random.nextDouble() < 0.55) {
         resident.attractTo(
           treatPos + Vector2(_random.nextDouble() * 30 - 15, 8),
         );
       }
     }
-    toyStatus.value = 'Pan dulce! Xolo is on the case';
+    toyStatus.value = 'Pan dulce! Who will claim it?';
   }
 
   @override
@@ -212,14 +302,17 @@ class SpiritVillageGame extends FlameGame {
 
     final treat = activeTreat;
     if (treat != null && !treat.claimed) {
-      final dog = xolo;
-      if (dog != null && dog.position.distanceTo(treat.position) < 28) {
-        treat.claimed = true;
-        treat.removeFromParent();
-        activeTreat = null;
-        dog.applyDancePulse();
-        spawnPetals(dog.position.clone()..y -= 16, count: 12);
-        toyStatus.value = 'Xolo gobbled the pan dulce!';
+      for (final id in ['xolo', 'gato']) {
+        final critter = _residentsById[id];
+        if (critter != null && critter.position.distanceTo(treat.position) < 28) {
+          treat.claimed = true;
+          treat.removeFromParent();
+          activeTreat = null;
+          critter.applyDancePulse();
+          spawnPetals(critter.position.clone()..y -= 16, count: 12);
+          toyStatus.value = '${critter.config.displayName} gobbled the pan dulce!';
+          break;
+        }
       }
     }
   }
@@ -233,4 +326,14 @@ class SpiritVillageGame extends FlameGame {
       _syncResidentBounds();
     }
   }
+
+  @override
+  void onRemove() {
+    castRoster.removeListener(_onCastRosterChanged);
+    super.onRemove();
+  }
+}
+
+extension on Offset {
+  Vector2 toVector2() => Vector2(dx, dy);
 }
