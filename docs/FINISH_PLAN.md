@@ -21,6 +21,7 @@
 - [x] Walk bob / facing hysteresis / walkability blockers
 - [x] Soft depth occluders
 - [x] TestFlight pipeline script (`scripts/ios_testflight.sh`)
+- [x] Pick up / drag / fling (Pocket God) on `Resident` — all spawned cast
 
 ---
 
@@ -43,17 +44,25 @@
 - [ ] 12. Idle blink / breathing sprites for main 4
 - [ ] 13. Real sit / wave / smell sprites (replace squash hacks)
 
+### Pick up & move (all characters)
+- [ ] 14. Verify **every** cast member (all 12) can be grabbed, dragged, and flung on device
+- [ ] 15. Reliable hit boxes (big heads / small critters — no missy taps)
+- [ ] 16. Pickup juice: scale-up, shadow, “held” pose / SFX
+- [ ] 17. Drop / fling lands on walkable cobble only (not roofs, fountain bowl, river)
+- [ ] 18. Soft collision so held characters don’t stack invisibly
+- [ ] 19. Tutorial bead: “Drag anyone — they’re toys”
+
 ### Plaza feel
-- [ ] 14. True depth cutouts (fountain rim, tree, bridge)
-- [ ] 15. Building door open/close (florist, bakery, church, mercado)
-- [ ] 16. Tap building → richer status / micro beat
-- [ ] 17. Bench sit looks correct
-- [ ] 18. Ofrenda as clear tappable prop
-- [ ] 19. Better plaza music bed (replace placeholder WAVs)
-- [ ] 20. Polish toy SFX
-- [ ] 21. Mission set #1: 5–8 looping plaza chores
-- [ ] 22. Rare idle events (star, balloon, parade tease)
-- [ ] 23. Skippable 90s tutorial beads
+- [ ] 20. True depth cutouts (fountain rim, tree, bridge)
+- [ ] 21. Building door open/close (florist, bakery, church, mercado)
+- [ ] 22. Tap building → richer status / micro beat
+- [ ] 23. Bench sit looks correct
+- [ ] 24. Ofrenda as clear tappable prop
+- [ ] 25. Better plaza music bed (replace placeholder WAVs)
+- [ ] 26. Polish toy SFX
+- [ ] 27. Mission set #1: 5–8 looping plaza chores
+- [ ] 28. Rare idle events (star, balloon, parade tease)
+- [ ] 29. Skippable 90s tutorial beads
 
 **Exit criteria:** strangers enjoy poking the plaza 5+ minutes; Pepita walk no longer embarrasses you.
 
