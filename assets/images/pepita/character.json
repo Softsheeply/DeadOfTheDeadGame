@@ -24,8 +24,8 @@
     "bakedShadow": false
   },
   "movement": {
-    "walkSpeed": 62,
-    "skipSpeed": 82
+    "walkSpeed": 54,
+    "skipSpeed": 72
   },
   "anchors": {
     "feet": [
@@ -145,7 +145,7 @@
     },
     "walk_down": {
       "frames": 8,
-      "fps": 10,
+      "fps": 8,
       "loop": true,
       "paths": [
         "walk/down/pepita_walk_down_00.png",
@@ -160,7 +160,7 @@
     },
     "walk_left": {
       "frames": 6,
-      "fps": 10,
+      "fps": 8,
       "loop": true,
       "paths": [
         "walk/left/pepita_walk_left_00.png",
@@ -173,7 +173,7 @@
     },
     "walk_right": {
       "frames": 6,
-      "fps": 10,
+      "fps": 8,
       "loop": true,
       "paths": [
         "walk/right/pepita_walk_right_00.png",
@@ -186,7 +186,7 @@
     },
     "walk_up": {
       "frames": 6,
-      "fps": 10,
+      "fps": 8,
       "loop": true,
       "paths": [
         "walk/up/pepita_walk_up_00.png",

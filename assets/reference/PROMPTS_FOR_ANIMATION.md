@@ -13,6 +13,37 @@ Style keywords to reuse in every prompt:
 
 ---
 
+## 0) Character walk cycles (CRITICAL — Pepita first)
+
+Current Pepita walks look rough because frames were AI-regenerated separately:
+silhouette/dress pattern jitters between frames, loop posture jumps, and
+`walk_down` reads as a right-facing 3/4 walk instead of true front view.
+
+```
+Redraw a LOCKED walk cycle for Pepita (chibi Día de los Muertos skeleton
+florist, flower crown, purple dress, brown shoes). Use the SAME character
+model for every frame — do not reinvent proportions, face, or dress pattern.
+
+Requirements:
+- Transparent PNG, 128×128 per frame, feet locked to baseline Y≈119
+- Keep crown, braid, dress embroidery IDENTICAL across frames (only limbs/body move)
+- 4 directions, separate strips:
+
+A) walk_down — TRUE FRONT VIEW facing camera, 8 frames, classic walk cycle
+   (contact → down → passing → up → contact → …). Body faces viewer.
+B) walk_up — TRUE BACK VIEW, 6–8 frames
+C) walk_left — profile/3/4 left, 6–8 frames
+D) walk_right — exact mirror of left OR dedicated right strip, 6–8 frames
+
+Loop must close cleanly: last frame blends into first with same lean/torso angle.
+Secondary motion only: slight braid sway + skirt sway. No sliding feet.
+Painterly soft shading, thick friendly outline, family-friendly, no gore.
+```
+
+Do Pepita first. Then reuse the same locked-rig workflow for Abuela, Tito, etc.
+
+---
+
 ## 1) Candle & lantern flicker pack (highest priority)
 
 ```

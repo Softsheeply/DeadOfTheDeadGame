@@ -51,6 +51,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   final Map<String, SpriteAnimation> _animations = {};
   SpriteAnimationComponent? _visual;
   String _currentAnimationName = '';
+  double _walkDistance = 0;
+  static const double _directionDeadzone = 8;
 
   Resident({required this.config, required Vector2 position})
       : direction = config.defaultDirection,
@@ -77,9 +79,17 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       final sprites = await Future.wait(
         def.paths.map((path) => Sprite.load('${config.id}/$path')),
       );
+      var fps = def.fps.toDouble();
+      // Walk cycles: match frame rate to travel speed so feet don't skate.
+      if (entry.key.startsWith('walk_') && sprites.length > 1) {
+        final walkSpeed = config.movement['walkSpeed'] ?? 55.0;
+        const stridePixels = 48.0;
+        final cyclesPerSecond = walkSpeed / stridePixels;
+        fps = (cyclesPerSecond * sprites.length).clamp(6.0, 11.0);
+      }
       _animations[entry.key] = SpriteAnimation.spriteList(
         sprites,
-        stepTime: 1 / def.fps,
+        stepTime: 1 / fps,
         loop: def.loop,
       );
     }
@@ -141,6 +151,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (resolvedName == null) return;
     final animation = _animations[resolvedName];
     if (animation == null) return;
+    // Don't reset the cycle when re-asserting the same walk/idle clip.
+    if (_currentAnimationName == resolvedName && _visual?.animation == animation) {
+      return;
+    }
     _currentAnimationName = resolvedName;
     _visual?.animation = animation;
   }
@@ -232,7 +246,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (_held || _airborne) return;
     _target = allowOffRoad ? destination.clone() : _clampPoint(destination);
     _busy = true;
-    _updateDirection();
+    _updateDirection(force: true);
     play('walk_$direction');
   }
 
@@ -260,12 +274,30 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     walkTo(destination);
   }
 
-  void _updateDirection() {
+  void _updateDirection({bool force = false}) {
     final target = _target;
     if (target == null) return;
     final dx = target.x - position.x;
     final dy = target.y - position.y;
-    direction = dx.abs() > dy.abs() ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    // Ignore tiny remaining deltas so near-arrival doesn't flip facing.
+    if (!force && dx.abs() < _directionDeadzone && dy.abs() < _directionDeadzone) {
+      return;
+    }
+    // Stick with the current axis until the other clearly dominates (hysteresis).
+    final preferHorizontal = force
+        ? dx.abs() >= dy.abs()
+        : (direction == 'left' || direction == 'right')
+            ? dx.abs() >= dy.abs() * 0.72
+            : dx.abs() > dy.abs() * 1.15;
+    final next = preferHorizontal
+        ? (dx < 0 ? 'left' : 'right')
+        : (dy < 0 ? 'up' : 'down');
+    if (next != direction) {
+      direction = next;
+      if (_target != null && !_held && !_airborne) {
+        play('walk_$direction');
+      }
+    }
   }
 
   void _updateMovement(double dt) {
@@ -277,6 +309,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       position.setFrom(target);
       _target = null;
       _busy = false;
+      _walkDistance = 0;
+      _resetWalkVisual();
       if (allowOffRoad && onExitComplete != null) {
         final callback = onExitComplete;
         onExitComplete = null;
@@ -288,18 +322,46 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       _setIdle();
       return;
     }
+    _updateDirection();
     final speed = config.movement['walkSpeed'] ?? 55.0;
     final step = min(distance, speed * dt);
     position.x += dx / distance * step;
     position.y += dy / distance * step;
+    _walkDistance += step;
+    _applyWalkBob();
     if (!allowOffRoad) {
       _clampToWorld();
+    }
+  }
+
+  /// Soft head/body bob + footfall squash so walks feel less like a slide.
+  void _applyWalkBob() {
+    final visual = _visual;
+    if (visual == null) return;
+    // One bob per ~24px of travel (two steps per stride).
+    final phase = _walkDistance / 24 * pi;
+    final bob = sin(phase) * 2.2;
+    visual.position = Vector2(0, -bob);
+    if ((_squash - 1).abs() < 0.02 && _dizzyTimer <= 0) {
+      final footfall = 1 + 0.04 * sin(phase * 2);
+      visual.scale = Vector2(2 - footfall, footfall);
+    }
+  }
+
+  void _resetWalkVisual() {
+    final visual = _visual;
+    if (visual == null) return;
+    visual.position = Vector2.zero();
+    if ((_squash - 1).abs() < 0.02) {
+      visual.scale = Vector2.all(1);
     }
   }
 
   void _setIdle() {
     _target = null;
     _busy = false;
+    _walkDistance = 0;
+    _resetWalkVisual();
     play('idle_$direction');
   }
 
