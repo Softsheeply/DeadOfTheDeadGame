@@ -49,16 +49,7 @@ class SpiritVillageGame extends FlameGame {
     atmosphere = VillageAtmosphere(backdrop: backdrop!);
     await add(atmosphere!);
 
-    // Default plaza: original three on, extras start off so player can invite them.
-    castRoster
-      ..setOnPlaza('pepita', true)
-      ..setOnPlaza('abuela_rosa', true)
-      ..setOnPlaza('xolo', true)
-      ..setOnPlaza('gato', true)
-      ..setOnPlaza('tito', false)
-      ..setOnPlaza('miguel', false)
-      ..setOnPlaza('dona_luz', false)
-      ..setOnPlaza('alebrije', false);
+    await castRoster.load();
 
     for (final member in kPlazaCast) {
       if (castRoster.isOnPlaza(member.id)) {
@@ -83,7 +74,7 @@ class SpiritVillageGame extends FlameGame {
 
   Future<void> setCastPresent(String id, bool present) async {
     if (castRoster.isOnPlaza(id) == present) return;
-    castRoster.setOnPlaza(id, present);
+    await castRoster.setOnPlaza(id, present);
     if (present) {
       await _bringOnPlaza(id);
     } else {
@@ -145,6 +136,7 @@ class SpiritVillageGame extends FlameGame {
       ..worldBounds = size.clone()
       ..roadBounds = roadRect
       ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
+      ..preferredHotspots = _preferredHotspotsFor(member)
       ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
 
     residents.add(resident);
@@ -168,6 +160,15 @@ class SpiritVillageGame extends FlameGame {
     };
   }
 
+  List<Vector2> _preferredHotspotsFor(CastMemberInfo member) {
+    final all = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
+    if (all.isEmpty || member.preferredHotspotIndexes.isEmpty) return const [];
+    return [
+      for (final index in member.preferredHotspotIndexes)
+        if (index >= 0 && index < all.length) all[index],
+    ];
+  }
+
   void _syncResidentBounds() {
     final road = roadRect;
     final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
@@ -183,6 +184,7 @@ class SpiritVillageGame extends FlameGame {
       resident.roadBounds = road;
       resident.wanderHotspots = hotspots;
       if (member != null) {
+        resident.preferredHotspots = _preferredHotspotsFor(member);
         final side = _displaySizeFor(member.kind);
         if ((resident.size.x - side.x).abs() > 1) {
           resident.setDisplaySize(side);

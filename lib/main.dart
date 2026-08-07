@@ -178,7 +178,7 @@ class _CastPanel extends StatelessWidget {
               color: Colors.transparent,
               child: Container(
                 width: 220,
-                constraints: const BoxConstraints(maxHeight: 260),
+                constraints: const BoxConstraints(maxHeight: 320),
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
                 decoration: BoxDecoration(
                   color: const Color(0xF2140B22),

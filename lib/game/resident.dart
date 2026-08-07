@@ -21,6 +21,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Optional plaza destinations (florist, bakery, stage, …) for purposeful roam.
   List<Vector2> wanderHotspots = const [];
 
+  /// Subset of [wanderHotspots] this resident likes to visit more often.
+  List<Vector2> preferredHotspots = const [];
+
   /// When true, clamps allow walking past the road edge (enter/exit plaza).
   bool allowOffRoad = false;
 
@@ -40,6 +43,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   double _dizzyTimer = 0;
   final Random _random = Random();
   double _behaviourTimer = 0;
+  double _lifeTime = 0;
 
   final Map<String, SpriteAnimation> _animations = {};
   SpriteAnimationComponent? _visual;
@@ -90,6 +94,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void update(double dt) {
     super.update(dt);
     priority = position.y.round();
+    _lifeTime += dt;
 
     if (_dizzyTimer > 0) {
       _dizzyTimer -= dt;
@@ -105,6 +110,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (_airborne) {
       _updateAirborne(dt);
       return;
+    }
+
+    // Soft idle breathing so standing villagers still feel alive.
+    if (_target == null && !_busy && _dizzyTimer <= 0 && (_squash - 1).abs() < 0.02) {
+      final breath = 1 + 0.035 * sin(_lifeTime * 2.6);
+      _visual?.scale = Vector2(2 - breath, breath);
     }
 
     if (_target != null) {
@@ -158,8 +169,20 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _moveRandomly() {
     final road = roadBounds;
     if (road != null && road.width > 8 && road.height > 8) {
+      // Strong bias toward personal favorites (stage for mariachi, etc.).
+      if (preferredHotspots.isNotEmpty && _random.nextDouble() < 0.62) {
+        final spot = preferredHotspots[_random.nextInt(preferredHotspots.length)];
+        walkTo(
+          spot +
+              Vector2(
+                (_random.nextDouble() - 0.5) * 22,
+                (_random.nextDouble() - 0.5) * 12,
+              ),
+        );
+        return;
+      }
       // Visit a named plaza stop often so the cast feels purposeful.
-      if (wanderHotspots.isNotEmpty && _random.nextDouble() < 0.55) {
+      if (wanderHotspots.isNotEmpty && _random.nextDouble() < 0.45) {
         final spot = wanderHotspots[_random.nextInt(wanderHotspots.length)];
         walkTo(
           spot +

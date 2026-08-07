@@ -1,18 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dead_of_the_dead_game/game/cast_roster.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('roster starts with core cast on and guests off by default map', () {
-    final roster = CastRoster();
-    // Defaults from CastMemberInfo.defaultOnPlaza are true; game overrides guests.
-    expect(roster.members.length, 8);
-    expect(roster.members.map((m) => m.id), containsAll(['gato', 'tito', 'miguel']));
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('roster includes expanded cast with preferred hotspots', () {
+    expect(kPlazaCast.length, greaterThanOrEqualTo(12));
+    expect(
+      kPlazaCast.map((m) => m.id),
+      containsAll(['chavo', 'don_mateo', 'pinto', 'senor_cuervo']),
+    );
+    final tito = kPlazaCast.firstWhere((m) => m.id == 'tito');
+    expect(tito.preferredHotspotIndexes, isNotEmpty);
   });
 
-  test('toggle flips plaza presence', () {
-    final roster = CastRoster()..setOnPlaza('tito', false);
+  test('persists on/off plaza choices', () async {
+    SharedPreferences.setMockInitialValues({});
+    final roster = CastRoster();
+    await roster.load();
+    expect(roster.isOnPlaza('pepita'), true);
     expect(roster.isOnPlaza('tito'), false);
-    roster.toggle('tito');
+
+    await roster.setOnPlaza('tito', true);
     expect(roster.isOnPlaza('tito'), true);
+
+    final again = CastRoster();
+    await again.load();
+    expect(again.isOnPlaza('tito'), true);
   });
 }
