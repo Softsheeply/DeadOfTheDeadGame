@@ -11,6 +11,9 @@ import '../data/character_config.dart';
 import 'ambient_critters.dart';
 import 'cast_roster.dart';
 import 'petal_burst.dart';
+import 'plaza_audio.dart';
+import 'plaza_mission.dart';
+import 'plaza_occluders.dart';
 import 'resident.dart';
 import 'toys.dart';
 import 'village_atmosphere.dart';
@@ -24,14 +27,18 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final List<Resident> residents = [];
   final Map<String, Resident> _residentsById = {};
   final CastRoster castRoster = CastRoster();
+  final PlazaAudio audio = PlazaAudio();
+  final PlazaMission mission = PlazaMission();
   VillageBackdrop? backdrop;
   VillageAtmosphere? atmosphere;
   VillageDecor? decor;
   AmbientCritters? critters;
+  PlazaOccluders? occluders;
   PanDulceTreat? activeTreat;
   bool _residentsReady = false;
   bool musicPlaying = false;
   double _musicTimer = 0;
+  double _missionCelebrateTimer = 0;
   final Random _random = Random();
   final ValueNotifier<bool> isNight = ValueNotifier<bool>(true);
   final ValueNotifier<String> toyStatus = ValueNotifier<String>('');
@@ -57,8 +64,11 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     await add(decor!);
     critters = AmbientCritters(backdrop: backdrop!);
     await add(critters!);
+    occluders = PlazaOccluders(backdrop: backdrop!);
+    await add(occluders!);
 
     await castRoster.load();
+    await audio.load();
 
     for (final member in kPlazaCast) {
       if (castRoster.isOnPlaza(member.id)) {
@@ -70,6 +80,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     _syncResidentBounds();
     _residentsReady = true;
     _bumpCastRevision();
+    toyStatus.value = mission.detail.value;
   }
 
   void _onCastRosterChanged() {
@@ -86,7 +97,15 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     if (_tapNearFountain(event.localPosition)) {
       atmosphere?.splashFountain(intensity: 1.15);
       spawnPetals(event.localPosition.clone(), count: 8);
+      audio.petalsSfx();
       toyStatus.value = 'The fountain burps marigold mist!';
+      return;
+    }
+    if (backdrop?.nearOfrenda(event.localPosition) ?? false) {
+      spawnPetals(event.localPosition.clone(), count: 10);
+      audio.petalsSfx();
+      _noteOfrendaPetals();
+      toyStatus.value = 'Marigolds settle on the ofrenda';
     }
   }
 
@@ -171,7 +190,13 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..walkClamp = _walkClamp
       ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
       ..preferredHotspots = _preferredHotspotsFor(member)
-      ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
+      ..restSpots = backdrop?.restSpotWorldPoints() ?? const []
+      ..onPetalBurst = (pos, {int count = 14}) {
+        spawnPetals(pos, count: count);
+      }
+      ..onIdleFlavor = (line) {
+        toyStatus.value = line;
+      };
 
     residents.add(resident);
     _residentsById[member.id] = resident;
@@ -212,6 +237,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   void _syncResidentBounds() {
     final road = roadRect;
     final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
+    final rests = backdrop?.restSpotWorldPoints() ?? const <Vector2>[];
     for (final resident in residents) {
       CastMemberInfo? member;
       for (final m in kPlazaCast) {
@@ -224,6 +250,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       resident.roadBounds = road;
       resident.walkClamp = _walkClamp;
       resident.wanderHotspots = hotspots;
+      resident.restSpots = rests;
       if (member != null) {
         resident.preferredHotspots = _preferredHotspotsFor(member);
         final side = _displaySizeFor(member.kind);
@@ -239,6 +266,33 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
 
   void spawnPetals(Vector2 position, {int count = 14}) {
     add(PetalBurst(position: position, count: count));
+    if (backdrop?.nearOfrenda(position) ?? false) {
+      _noteOfrendaPetals();
+    }
+  }
+
+  void _noteOfrendaPetals() {
+    if (_missionCelebrateTimer > 0) return;
+    final done = mission.reportOfrendaPetals();
+    if (done) {
+      _onMissionComplete();
+    } else if (mission.current == MissionId.marigolds) {
+      toyStatus.value =
+          'Ofrenda ${mission.progress.value}/${mission.goal.value} — keep the marigolds coming';
+    }
+  }
+
+  void _onMissionComplete() {
+    if (_missionCelebrateTimer > 0) return;
+    audio.missionSfx();
+    _missionCelebrateTimer = 2.4;
+    final ofrenda = backdrop?.ofrendaWorld ?? size / 2;
+    add(PetalBurst(position: ofrenda, count: 22));
+    add(SparkleBurst(position: ofrenda.clone(), count: 20));
+    for (final resident in residents) {
+      if (!resident.held) resident.applyDancePulse();
+    }
+    toyStatus.value = 'Mission complete! ${mission.title.value}';
   }
 
   void toggleDayNight() {
@@ -262,13 +316,13 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   }
 
   void _castWind() {
+    audio.windSfx();
     add(WindGust(size: size.clone()));
     final sign = _random.nextBool() ? 1.0 : -1.0;
     atmosphere?.applyGust(directionSign: sign);
     for (final resident in residents) {
       resident.applyWind(directionSign: sign);
     }
-    // A couple of leaf-scatter petal pops so the gust feels physical.
     final road = roadRect;
     for (var i = 0; i < 4; i++) {
       spawnPetals(
@@ -283,13 +337,22 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   }
 
   void _castPetalRain() {
+    audio.petalsSfx();
     final road = roadRect;
-    for (var i = 0; i < 10; i++) {
+    final ofrenda = backdrop?.ofrendaWorld;
+    if (ofrenda != null) {
+      spawnPetals(ofrenda.clone(), count: 18);
+      spawnPetals(
+        ofrenda + Vector2(_random.nextDouble() * 20 - 10, 8),
+        count: 12,
+      );
+    }
+    for (var i = 0; i < 8; i++) {
       final pos = Vector2(
         road.left + _random.nextDouble() * road.width,
         road.top + _random.nextDouble() * road.height,
       );
-      spawnPetals(pos, count: 16);
+      spawnPetals(pos, count: 14);
     }
     for (final resident in residents) {
       if (resident.config.id != 'xolo' && resident.config.id != 'gato') {
@@ -301,6 +364,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   }
 
   void _castMusic() {
+    audio.musicSfx();
     musicPlaying = true;
     _musicTimer = 4.0;
     add(MusicNotesBurst(size: size.clone()));
@@ -308,9 +372,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       resident.applyDancePulse();
     }
     toyStatus.value = 'Mariachi fills the air — everyone dances!';
+    final done = mission.reportMariachi();
+    if (done) _onMissionComplete();
   }
 
   void _castPanDulce() {
+    audio.treatSfx();
     activeTreat?.removeFromParent();
     final road = roadRect;
     final treatPos = Vector2(
@@ -341,6 +408,14 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (_missionCelebrateTimer > 0) {
+      _missionCelebrateTimer -= dt;
+      if (_missionCelebrateTimer <= 0) {
+        mission.advanceAfterCelebration();
+        toyStatus.value = 'Next: ${mission.detail.value}';
+      }
+    }
 
     if (musicPlaying) {
       _musicTimer -= dt;
@@ -378,6 +453,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     backdrop?.resizeTo(size);
     atmosphere?.resizeTo(size);
     critters?.resizeTo(size);
+    occluders?.resizeTo(size);
     if (_residentsReady) {
       _syncResidentBounds();
     }
@@ -386,6 +462,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   @override
   void onRemove() {
     castRoster.removeListener(_onCastRosterChanged);
+    audio.dispose();
     super.onRemove();
   }
 }

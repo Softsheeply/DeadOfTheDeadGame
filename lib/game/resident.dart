@@ -27,6 +27,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Subset of [wanderHotspots] this resident likes to visit more often.
   List<Vector2> preferredHotspots = const [];
 
+  /// Bench / rest spots for sit idle actions.
+  List<Vector2> restSpots = const [];
+
+  /// Fired with a short status line when an idle performance happens.
+  void Function(String line)? onIdleFlavor;
+
   /// When true, clamps allow walking past the road edge (enter/exit plaza).
   bool allowOffRoad = false;
 
@@ -47,6 +53,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   final Random _random = Random();
   double _behaviourTimer = 0;
   double _lifeTime = 0;
+  double _idleActionTimer = 0;
+  String? _idleAction;
 
   final Map<String, SpriteAnimation> _animations = {};
   SpriteAnimationComponent? _visual;
@@ -106,11 +114,26 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
-    priority = position.y.round();
+    priority = (position.y * 10).round();
     _lifeTime += dt;
 
     if (_dizzyTimer > 0) {
       _dizzyTimer -= dt;
+    }
+
+    if (_idleActionTimer > 0) {
+      _idleActionTimer -= dt;
+      _updateIdleAction(dt);
+      if (_idleActionTimer <= 0) {
+        _endIdleAction();
+      }
+      if (_squash != 1) {
+        _squash += (1 - _squash) * min(1, dt * 10);
+        if (_idleAction != 'sit') {
+          _visual?.scale = Vector2(2 - _squash, _squash);
+        }
+      }
+      return;
     }
 
     if (_squash != 1) {
@@ -176,11 +199,97 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _behaviourTimer -= dt;
     if (_behaviourTimer > 0) return;
     _behaviourTimer = _nextDelay();
-    if (_random.nextDouble() < 0.28) {
+    final roll = _random.nextDouble();
+    if (roll < 0.22) {
       _setIdle();
+    } else if (roll < 0.38) {
+      _startIdleAction();
     } else {
       _moveRandomly();
     }
+  }
+
+  void _startIdleAction() {
+    final roll = _random.nextDouble();
+    if (roll < 0.34) {
+      _beginWave();
+    } else if (roll < 0.62) {
+      _beginSmell();
+    } else {
+      _beginSit();
+    }
+  }
+
+  void _beginWave() {
+    _busy = true;
+    _idleAction = 'wave';
+    _idleActionTimer = 1.1;
+    direction = 'down';
+    play('idle_down');
+    _squash = 0.78;
+    onPetalBurst?.call(position.clone()..y -= 36, count: 6);
+    onIdleFlavor?.call('${config.displayName} waves hello!');
+  }
+
+  void _beginSmell() {
+    // Face florist / lean into flowers if we can walk there first.
+    if (preferredHotspots.isNotEmpty && _random.nextDouble() < 0.55) {
+      final spot = preferredHotspots.first;
+      walkTo(spot);
+      // After arrival behaviour will idle; schedule smell via timer on next idle.
+    }
+    _busy = true;
+    _idleAction = 'smell';
+    _idleActionTimer = 1.4;
+    play('idle_$direction');
+    _squash = 0.88;
+    onPetalBurst?.call(position.clone()..y -= 28, count: 5);
+    onIdleFlavor?.call('${config.displayName} smells the marigolds');
+  }
+
+  void _beginSit() {
+    if (restSpots.isNotEmpty && _random.nextDouble() < 0.7) {
+      final spot = restSpots[_random.nextInt(restSpots.length)];
+      // Walk over, then sit when close — for simplicity sit in place if far.
+      if (position.distanceTo(spot) < 40) {
+        position.setFrom(spot);
+      } else {
+        walkTo(spot);
+        return;
+      }
+    }
+    _busy = true;
+    _idleAction = 'sit';
+    _idleActionTimer = 2.4 + _random.nextDouble() * 1.2;
+    play('idle_$direction');
+    _visual?.scale = Vector2(1.05, 0.82);
+    onIdleFlavor?.call('${config.displayName} takes a little rest');
+  }
+
+  void _updateIdleAction(double dt) {
+    final action = _idleAction;
+    if (action == null) return;
+    if (action == 'wave') {
+      final pulse = 1 + 0.06 * sin(_lifeTime * 14);
+      _visual?.scale = Vector2(2 - pulse, pulse);
+    } else if (action == 'smell') {
+      final lean = 0.9 + 0.05 * sin(_lifeTime * 3);
+      _visual?.scale = Vector2(1.05, lean);
+      _visual?.position = Vector2(sin(_lifeTime * 2) * 1.5, -1);
+    } else if (action == 'sit') {
+      _visual?.scale = Vector2(1.06, 0.8);
+      _visual?.position = Vector2.zero();
+    }
+  }
+
+  void _endIdleAction() {
+    _idleAction = null;
+    _idleActionTimer = 0;
+    _busy = false;
+    _squash = 1;
+    _resetWalkVisual();
+    _visual?.scale = Vector2.all(1);
+    play('idle_$direction');
   }
 
   void _moveRandomly() {
@@ -284,11 +393,17 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       return;
     }
     // Stick with the current axis until the other clearly dominates (hysteresis).
-    final preferHorizontal = force
+    var preferHorizontal = force
         ? dx.abs() >= dy.abs()
         : (direction == 'left' || direction == 'right')
             ? dx.abs() >= dy.abs() * 0.72
             : dx.abs() > dy.abs() * 1.15;
+    // Pepita's walk_down faces sideways in current art — prefer L/R when close.
+    if (!force && config.id == 'pepita' && !preferHorizontal && dx.abs() > 6) {
+      if (dx.abs() > dy.abs() * 0.45) {
+        preferHorizontal = true;
+      }
+    }
     final next = preferHorizontal
         ? (dx < 0 ? 'left' : 'right')
         : (dy < 0 ? 'up' : 'down');
@@ -388,6 +503,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+    _idleAction = null;
+    _idleActionTimer = 0;
     _held = true;
     _airborne = false;
     _busy = true;
@@ -395,6 +512,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _velocity.setZero();
     _dragVelocity.setZero();
     _visual?.scale = Vector2.all(1.12);
+    _visual?.position = Vector2.zero();
     play('idle_$direction');
   }
 

@@ -101,8 +101,20 @@ class VillageHud extends StatelessWidget {
           ),
           Positioned(
             top: 10,
+            left: 12,
+            child: _MissionCard(game: game),
+          ),
+          Positioned(
+            top: 10,
             right: 12,
-            child: _CastButton(game: game),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _MuteButton(game: game),
+                const SizedBox(width: 8),
+                _CastButton(game: game),
+              ],
+            ),
           ),
           Positioned(
             top: 58,
@@ -111,6 +123,126 @@ class VillageHud extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MuteButton extends StatelessWidget {
+  const _MuteButton({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.audio.muted,
+      builder: (context, muted, _) {
+        return GestureDetector(
+          onTap: game.audio.toggleMute,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xF21A0F2C),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Icon(
+              muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+              color: const Color(0xFFFFF1D1),
+              size: 20,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MissionCard extends StatelessWidget {
+  const _MissionCard({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        game.mission.title,
+        game.mission.detail,
+        game.mission.progress,
+        game.mission.goal,
+        game.mission.completedFlash,
+      ]),
+      builder: (context, _) {
+        final flash = game.mission.completedFlash.value;
+        return Container(
+          constraints: const BoxConstraints(maxWidth: 260),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          decoration: BoxDecoration(
+            color: flash ? const Color(0xF23A1B55) : const Color(0xF21A0F2C),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: flash ? const Color(0xFF47C4BA) : const Color(0x88F39A3C),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                flash ? 'Done!' : 'Mission',
+                style: TextStyle(
+                  color: flash ? const Color(0xFF47C4BA) : const Color(0xFFF39A3C),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                game.mission.title.value,
+                style: const TextStyle(
+                  color: Color(0xFFFFF1D1),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                game.mission.detail.value,
+                style: const TextStyle(color: Color(0xFFC9B4E0), fontSize: 10),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: game.mission.goal.value == 0
+                            ? 0
+                            : game.mission.progress.value / game.mission.goal.value,
+                        minHeight: 5,
+                        backgroundColor: const Color(0x443A1B55),
+                        color: const Color(0xFFF39A3C),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${game.mission.progress.value}/${game.mission.goal.value}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFF1D1),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

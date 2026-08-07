@@ -52,6 +52,16 @@ class VillageBackdrop extends PositionComponent {
     Offset(0.48, 0.84), // plaza center south
   ];
 
+  /// Bench / rest UVs (purple bench near fountain, etc.).
+  static const List<Offset> restSpotUvs = [
+    Offset(0.62, 0.78), // bench east of fountain
+    Offset(0.36, 0.80), // west plaza rest
+    Offset(0.82, 0.78), // near mercado
+  ];
+
+  /// Ofrenda / tree planter — mission target.
+  static const Offset ofrendaUv = Offset(0.50, 0.72);
+
   Sprite? _day;
   Sprite? _night;
   bool isNight = true;
@@ -219,6 +229,18 @@ class VillageBackdrop extends PositionComponent {
 
   List<Vector2> hotspotWorldPoints() =>
       hotspotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
+
+  List<Vector2> restSpotWorldPoints() =>
+      restSpotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
+
+  Vector2 get ofrendaWorld => clampToWalkable(uvToWorld(ofrendaUv));
+
+  bool nearOfrenda(Vector2 point, {double radiusFactor = 0.09}) {
+    if (drawRect == Rect.zero) return false;
+    final o = ofrendaWorld;
+    final r = drawRect.width * radiusFactor;
+    return point.distanceTo(o) <= r;
+  }
 
   /// Suggested character height so people sit under door height on the art.
   double get personDisplaySize {
