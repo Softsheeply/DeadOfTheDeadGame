@@ -28,7 +28,7 @@
 ## Phase A — Plaza “finished” (soft launch)
 
 ### Store / chrome
-- [ ] 1. App icon (unique)
+- [ ] 1. App icon (unique) — drop `assets/branding/app_icon_1024.png`, run `dart run flutter_launcher_icons`
 - [ ] 2. Launch image (unique)
 - [ ] 3. Settings sheet (mute, reduce motion, credits)
 - [ ] 4. Save: missions + day/night + cast + mute
