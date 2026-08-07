@@ -10,6 +10,7 @@ import '../data/character_config.dart';
 import 'petal_burst.dart';
 import 'resident.dart';
 import 'toys.dart';
+import 'village_atmosphere.dart';
 import 'village_backdrop.dart';
 
 enum VillageToy { wind, petals, music, panDulce }
@@ -18,6 +19,7 @@ enum VillageToy { wind, petals, music, panDulce }
 class SpiritVillageGame extends FlameGame {
   final List<Resident> residents = [];
   VillageBackdrop? backdrop;
+  VillageAtmosphere? atmosphere;
   PanDulceTreat? activeTreat;
   bool _residentsReady = false;
   bool musicPlaying = false;
@@ -43,6 +45,8 @@ class SpiritVillageGame extends FlameGame {
 
     backdrop = VillageBackdrop(size: size.clone());
     await add(backdrop!);
+    atmosphere = VillageAtmosphere(backdrop: backdrop!);
+    await add(atmosphere!);
 
     final person = backdrop!.personDisplaySize;
     final dog = backdrop!.dogDisplaySize;
@@ -221,6 +225,7 @@ class SpiritVillageGame extends FlameGame {
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     backdrop?.resizeTo(size);
+    atmosphere?.resizeTo(size);
     if (_residentsReady) {
       _syncResidentBounds();
     }

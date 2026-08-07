@@ -131,14 +131,15 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     return _animations.keys.isEmpty ? null : _animations.keys.first;
   }
 
-  double _nextDelay() => 2.0 + _random.nextDouble() * 4.0;
+  /// Shorter pauses + walk-biased so the plaza feels continuously alive.
+  double _nextDelay() => 0.6 + _random.nextDouble() * 1.8;
 
   void _updateBehaviour(double dt) {
     if (_busy || _dizzyTimer > 0) return;
     _behaviourTimer -= dt;
     if (_behaviourTimer > 0) return;
     _behaviourTimer = _nextDelay();
-    if (_random.nextDouble() < 0.5) {
+    if (_random.nextDouble() < 0.28) {
       _setIdle();
     } else {
       _moveRandomly();
@@ -148,8 +149,26 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _moveRandomly() {
     final road = roadBounds;
     if (road != null && road.width > 8 && road.height > 8) {
-      final x = road.left + _random.nextDouble() * road.width;
-      final y = road.top + _random.nextDouble() * road.height;
+      // Bias toward longer crossings so people really roam the plaza.
+      final fromEdge = _random.nextBool();
+      late final double x;
+      late final double y;
+      if (fromEdge) {
+        final edge = _random.nextInt(4);
+        x = switch (edge) {
+          0 => road.left + _random.nextDouble() * road.width * 0.2,
+          1 => road.right - _random.nextDouble() * road.width * 0.2,
+          _ => road.left + _random.nextDouble() * road.width,
+        };
+        y = switch (edge) {
+          2 => road.top + _random.nextDouble() * road.height * 0.25,
+          3 => road.bottom - _random.nextDouble() * road.height * 0.25,
+          _ => road.top + _random.nextDouble() * road.height,
+        };
+      } else {
+        x = road.left + _random.nextDouble() * road.width;
+        y = road.top + _random.nextDouble() * road.height;
+      }
       walkTo(Vector2(x, y));
       return;
     }

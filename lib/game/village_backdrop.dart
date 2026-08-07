@@ -17,11 +17,16 @@ class VillageBackdrop extends PositionComponent {
   static const String nightAsset = 'village/spirit_village_plaza_night.png';
 
   /// Walkable cobble band as fractions of the painted image (not the screen).
-  /// Tuned so feet stay on the plaza road, not up on rooftops/stalls.
-  static const double roadLeft = 0.14;
-  static const double roadRight = 0.86;
-  static const double roadTop = 0.58;
-  static const double roadBottom = 0.82;
+  /// Wider plaza roam so residents cross fountain rim, stalls, and bridge approach.
+  static const double roadLeft = 0.06;
+  static const double roadRight = 0.94;
+  static const double roadTop = 0.48;
+  static const double roadBottom = 0.90;
+
+  /// Soft fountain exclusion (UV of painted image) so wander prefers cobble rim.
+  static const Offset fountainCenterUv = Offset(0.575, 0.62);
+  static const double fountainRadiusX = 0.045;
+  static const double fountainRadiusY = 0.055;
 
   Sprite? _day;
   Sprite? _night;
@@ -29,6 +34,9 @@ class VillageBackdrop extends PositionComponent {
   double _blend = 1;
   double _blendTarget = 1;
   Rect drawRect = Rect.zero;
+
+  /// 0 = full day art, 1 = full night art (animated during transitions).
+  double get nightBlend => _blend;
 
   @override
   Future<void> onLoad() async {
@@ -74,10 +82,24 @@ class VillageBackdrop extends PositionComponent {
 
   Vector2 randomRoadPoint(Random random) {
     final road = roadRect;
-    return Vector2(
-      road.left + random.nextDouble() * road.width,
-      road.top + random.nextDouble() * road.height,
-    );
+    // Prefer open cobble; reject fountain bowl samples a few times.
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final point = Vector2(
+        road.left + random.nextDouble() * road.width,
+        road.top + random.nextDouble() * road.height,
+      );
+      if (!_insideFountain(point) || attempt == 7) return point;
+    }
+    return Vector2(road.center.dx, road.center.dy);
+  }
+
+  bool _insideFountain(Vector2 point) {
+    if (drawRect == Rect.zero) return false;
+    final fx = drawRect.left + drawRect.width * fountainCenterUv.dx;
+    final fy = drawRect.top + drawRect.height * fountainCenterUv.dy;
+    final nx = (point.x - fx) / (drawRect.width * fountainRadiusX);
+    final ny = (point.y - fy) / (drawRect.height * fountainRadiusY);
+    return nx * nx + ny * ny < 1;
   }
 
   /// Suggested character height so people sit under door height on the art.
