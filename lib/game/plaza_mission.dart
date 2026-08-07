@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// Lightweight plaza mission progress for the first shippable loop.
-enum MissionId { marigolds, mariachi }
+/// Lightweight plaza mission progress for the soft-launch loop.
+enum MissionId { marigolds, mariachi, feedXolo, candles }
 
 class PlazaMission {
   PlazaMission() {
@@ -19,6 +19,8 @@ class PlazaMission {
   int _goal = 3;
   bool _completePending = false;
 
+  int get rawProgress => _progress;
+
   void _set(MissionId id) {
     current = id;
     _progress = 0;
@@ -33,9 +35,29 @@ class PlazaMission {
         _goal = 1;
         title.value = 'Wake the mariachi';
         detail.value = 'Play music so the plaza dances';
+      case MissionId.feedXolo:
+        _goal = 1;
+        title.value = 'Treat for Xolo';
+        detail.value = 'Drop pan dulce and let Xolo claim it';
+      case MissionId.candles:
+        _goal = 5;
+        title.value = 'Wake the candles';
+        detail.value = 'Tap night candles around the plaza (×5)';
     }
     goal.value = _goal;
     progress.value = 0;
+  }
+
+  /// Restore from save. Progress is clamped; completed state is not restored mid-flash.
+  void restore(MissionId id, int savedProgress) {
+    _set(id);
+    _progress = savedProgress.clamp(0, _goal);
+    progress.value = _progress;
+    if (_progress >= _goal) {
+      // Avoid locking on a finished mission after relaunch.
+      _progress = 0;
+      progress.value = 0;
+    }
   }
 
   /// Petal toy / burst near the ofrenda tree.
@@ -47,6 +69,18 @@ class PlazaMission {
   /// Music toy used.
   bool reportMariachi() {
     if (current != MissionId.mariachi || _completePending) return false;
+    return _bump();
+  }
+
+  /// Xolo claimed pan dulce.
+  bool reportXoloFed() {
+    if (current != MissionId.feedXolo || _completePending) return false;
+    return _bump();
+  }
+
+  /// Player lit a candle / lantern.
+  bool reportCandleLit() {
+    if (current != MissionId.candles || _completePending) return false;
     return _bump();
   }
 
@@ -65,11 +99,15 @@ class PlazaMission {
   void advanceAfterCelebration() {
     completedFlash.value = false;
     _completePending = false;
-    if (current == MissionId.marigolds) {
-      _set(MissionId.mariachi);
-    } else {
-      // Loop soft chores so the plaza always has a little goal.
-      _set(MissionId.marigolds);
+    switch (current) {
+      case MissionId.marigolds:
+        _set(MissionId.mariachi);
+      case MissionId.mariachi:
+        _set(MissionId.feedXolo);
+      case MissionId.feedXolo:
+        _set(MissionId.candles);
+      case MissionId.candles:
+        _set(MissionId.marigolds);
     }
   }
 }

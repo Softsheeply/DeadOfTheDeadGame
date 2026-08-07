@@ -377,6 +377,32 @@ class VillageAtmosphere extends PositionComponent {
     }
   }
 
+  /// Tap-to-light a nearby candle/lantern. Returns true if one was newly lit.
+  bool tryLightCandle(Vector2 worldPoint, {double maxDist = 42}) {
+    final draw = backdrop.drawRect;
+    if (draw == Rect.zero) return false;
+    _Candle? best;
+    var bestDist = maxDist;
+    for (final candle in _candles) {
+      if (candle.playerLit) continue;
+      final pos = Offset(
+        draw.left + draw.width * candle.uv.dx,
+        draw.top + draw.height * candle.uv.dy,
+      );
+      final d = (Offset(worldPoint.x, worldPoint.y) - pos).distance;
+      if (d < bestDist) {
+        bestDist = d;
+        best = candle;
+      }
+    }
+    final hit = best;
+    if (hit == null) return false;
+    hit.playerLit = true;
+    hit.glowBoost = 1.4;
+    hit.strength = (hit.strength * 1.25).clamp(0.9, 1.8);
+    return true;
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -395,6 +421,11 @@ class VillageAtmosphere extends PositionComponent {
     }
     if (_fountainSplash > 0) {
       _fountainSplash = max(0, _fountainSplash - dt * 0.9);
+    }
+    for (final candle in _candles) {
+      if (candle.glowBoost > 0) {
+        candle.glowBoost = max(0, candle.glowBoost - dt * 0.55);
+      }
     }
     for (final light in _lights) {
       light.update(dt, _random, _time);
@@ -858,8 +889,12 @@ class VillageAtmosphere extends PositionComponent {
           0.22 *
               sin(_time * 6.5 + candle.phase) *
               sin(_time * 3.1 + candle.phase * 0.7);
-      final radius = candle.radius * (0.9 + 0.15 * flicker) * (0.85 + 0.15 * night);
-      final alpha = night * candle.strength * flicker;
+      final boost = 1 + candle.glowBoost;
+      final radius =
+          candle.radius * (0.9 + 0.15 * flicker) * (0.85 + 0.15 * night) * boost;
+      // Player-lit candles stay faintly visible even in day.
+      final dayFloor = candle.playerLit ? 0.35 : 0.0;
+      final alpha = (night.clamp(dayFloor, 1.0)) * candle.strength * flicker * boost;
 
       // Warm ground pool — strongest at full night.
       canvas.drawCircle(
@@ -1050,9 +1085,11 @@ class _Candle {
 
   final Offset uv;
   final double phase;
-  final double strength;
+  double strength;
   final double radius;
   final bool isLantern;
+  bool playerLit = false;
+  double glowBoost = 0;
 }
 
 class _BuildingLight {

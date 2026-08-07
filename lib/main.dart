@@ -100,6 +100,12 @@ class VillageHud extends StatelessWidget {
             child: _ToyStatus(game: game),
           ),
           Positioned(
+            left: 24,
+            right: 24,
+            bottom: 118,
+            child: _TutorialBead(game: game),
+          ),
+          Positioned(
             top: 10,
             left: 12,
             child: _MissionCard(game: game),
@@ -112,6 +118,8 @@ class VillageHud extends StatelessWidget {
               children: [
                 _MuteButton(game: game),
                 const SizedBox(width: 8),
+                _SettingsButton(game: game),
+                const SizedBox(width: 8),
                 _CastButton(game: game),
               ],
             ),
@@ -120,6 +128,11 @@ class VillageHud extends StatelessWidget {
             top: 58,
             right: 12,
             child: _CastPanel(game: game),
+          ),
+          Positioned(
+            top: 58,
+            right: 12,
+            child: _SettingsPanel(game: game),
           ),
         ],
       ),
@@ -138,7 +151,7 @@ class _MuteButton extends StatelessWidget {
       valueListenable: game.audio.muted,
       builder: (context, muted, _) {
         return GestureDetector(
-          onTap: game.audio.toggleMute,
+          onTap: game.toggleMutePersisted,
           child: Container(
             width: 40,
             height: 40,
@@ -554,3 +567,201 @@ class _ToyStatus extends StatelessWidget {
     );
   }
 }
+
+class _TutorialBead extends StatelessWidget {
+  const _TutorialBead({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.showTutorial,
+      builder: (context, show, _) {
+        if (!show) return const SizedBox.shrink();
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: game.dismissTutorial,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xF21A0F2C),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xAAF39A3C)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.back_hand_rounded, color: Color(0xFFF39A3C), size: 18),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Drag anyone — they’re toys',
+                        style: TextStyle(
+                          color: Color(0xFFFFF1D1),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Got it',
+                      style: TextStyle(
+                        color: Color(0xFF47C4BA),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SettingsButton extends StatelessWidget {
+  const _SettingsButton({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.settingsOpen,
+      builder: (context, open, _) {
+        return GestureDetector(
+          onTap: game.toggleSettings,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xF21A0F2C),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Icon(
+              open ? Icons.close_rounded : Icons.settings_rounded,
+              color: const Color(0xFFFFF1D1),
+              size: 20,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SettingsPanel extends StatelessWidget {
+  const _SettingsPanel({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.settingsOpen,
+      builder: (context, open, _) {
+        if (!open) return const SizedBox.shrink();
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 240,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xF2140B22),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Settings',
+                  style: TextStyle(
+                    color: Color(0xFFF39A3C),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<bool>(
+                  valueListenable: game.audio.muted,
+                  builder: (context, muted, _) {
+                    return _SettingsToggle(
+                      label: 'Mute audio',
+                      value: muted,
+                      onChanged: (v) => game.setMutedPersisted(v),
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: game.reduceMotion,
+                  builder: (context, value, _) {
+                    return _SettingsToggle(
+                      label: 'Reduce motion',
+                      value: value,
+                      onChanged: game.setReduceMotion,
+                    );
+                  },
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Day of the Dead\nSoftsheeply · plaza prototype',
+                  style: TextStyle(color: Color(0xFFC9B4E0), fontSize: 10, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SettingsToggle extends StatelessWidget {
+  const _SettingsToggle({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFFFF1D1),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeThumbColor: const Color(0xFFF39A3C),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+

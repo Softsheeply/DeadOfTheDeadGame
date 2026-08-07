@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+17` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+18` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -16,12 +16,17 @@
 - [x] Toys: wind, petals, music, pan dulce
 - [x] Day/night sky toggle
 - [x] Coded atmosphere (fountain, river flow, flags, leaves, candles)
-- [x] Mission loop: ofrenda marigolds → mariachi
+- [x] Mission loop: ofrenda marigolds → mariachi → feed Xolo → candles
 - [x] Audio bed + toy stingers + mute
 - [x] Walk bob / facing hysteresis / walkability blockers
 - [x] Soft depth occluders
 - [x] TestFlight pipeline script (`scripts/ios_testflight.sh`)
 - [x] Pick up / drag / fling (Pocket God) on `Resident` — all spawned cast
+- [x] Pickup juice (shadow, grab/drop SFX, held lift)
+- [x] Drop / fling lands on walkable cobble
+- [x] Soft separation while holding so toys don’t stack
+- [x] Tutorial bead: “Drag anyone — they’re toys”
+- [x] Settings (mute, reduce motion, credits) + save mute/day/cast/mission/tutorial
 
 ---
 
@@ -30,8 +35,8 @@
 ### Store / chrome
 - [ ] 1. App icon (unique) — drop `assets/branding/app_icon_1024.png`, run `dart run flutter_launcher_icons`
 - [ ] 2. Launch image (unique)
-- [ ] 3. Settings sheet (mute, reduce motion, credits)
-- [ ] 4. Save: missions + day/night + cast + mute
+- [x] 3. Settings sheet (mute, reduce motion, credits)
+- [x] 4. Save: missions + day/night + cast + mute
 - [ ] 5. Store listing copy + plaza screenshots
 - [ ] 6. Soft-launch TestFlight / App Store build from polished plaza
 
@@ -47,10 +52,10 @@
 ### Pick up & move (all characters)
 - [ ] 14. Verify **every** cast member (all 12) can be grabbed, dragged, and flung on device (hitbox/visual alignment fixed — re-test on device)
 - [ ] 15. Reliable hit boxes (big heads / small critters — no missy taps)
-- [ ] 16. Pickup juice: scale-up, shadow, “held” pose / SFX
-- [ ] 17. Drop / fling lands on walkable cobble only (not roofs, fountain bowl, river)
-- [ ] 18. Soft collision so held characters don’t stack invisibly
-- [ ] 19. Tutorial bead: “Drag anyone — they’re toys”
+- [x] 16. Pickup juice: scale-up, shadow, “held” pose / SFX
+- [x] 17. Drop / fling lands on walkable cobble only (not roofs, fountain bowl, river)
+- [x] 18. Soft collision so held characters don’t stack invisibly
+- [x] 19. Tutorial bead: “Drag anyone — they’re toys”
 
 ### Plaza feel
 - [ ] 20. True depth cutouts (fountain rim, tree, bridge)
@@ -60,7 +65,7 @@
 - [ ] 24. Ofrenda as clear tappable prop
 - [ ] 25. Better plaza music bed (replace placeholder WAVs)
 - [ ] 26. Polish toy SFX
-- [ ] 27. Mission set #1: 5–8 looping plaza chores
+- [x] 27. Mission set #1: 4 looping plaza chores (marigolds → mariachi → Xolo → candles)
 - [ ] 28. Rare idle events (star, balloon, parade tease)
 - [ ] 29. Skippable 90s tutorial beads
 

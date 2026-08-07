@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui' show Rect;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, Rect;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -41,6 +41,15 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   /// Optional juice hook -- SpiritVillageGame wires this to PetalBurst.
   void Function(Vector2 position, {int count})? onPetalBurst;
+
+  /// Fired when the player starts dragging this resident.
+  void Function()? onGrab;
+
+  /// Fired when the player releases; [flung] is true for a real toss.
+  void Function({required bool flung})? onRelease;
+
+  /// When true, skip walk bob / idle breathing (accessibility).
+  bool reduceMotion = false;
 
   Vector2? _target;
   bool _busy = false;
@@ -174,7 +183,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     }
 
     // Soft idle breathing so standing villagers still feel alive.
-    if (_target == null && !_busy && _dizzyTimer <= 0 && (_squash - 1).abs() < 0.02) {
+    if (!reduceMotion &&
+        _target == null &&
+        !_busy &&
+        _dizzyTimer <= 0 &&
+        (_squash - 1).abs() < 0.02) {
       final breath = 1 + 0.035 * sin(_lifeTime * 2.6);
       _visual?.scale = Vector2(2 - breath, breath);
     }
@@ -481,7 +494,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Soft head/body bob + footfall squash so walks feel less like a slide.
   void _applyWalkBob() {
     final visual = _visual;
-    if (visual == null) return;
+    if (visual == null || reduceMotion) return;
     // One bob per ~24px of travel (two steps per stride).
     final phase = _walkDistance / 24 * pi;
     final bob = sin(phase) * 2.2;
@@ -490,6 +503,25 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       final footfall = 1 + 0.04 * sin(phase * 2);
       visual.scale = Vector2(2 - footfall, footfall);
     }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Soft ground shadow — stronger while held so the toy reads as lifted.
+    final feet = Offset(size.x / 2, size.y);
+    final lift = _held ? 1.0 : (_airborne ? 0.7 : 0.45);
+    final paint = Paint()
+      ..color = Color.fromRGBO(18, 8, 28, 0.18 + 0.22 * lift)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, _held ? 7 : 3.5);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(feet.dx, feet.dy + (_held ? 6 : 2)),
+        width: size.x * (0.38 + 0.2 * lift),
+        height: size.y * (0.08 + 0.06 * lift),
+      ),
+      paint,
+    );
+    super.render(canvas);
   }
 
   void _resetWalkVisual() {
@@ -540,17 +572,19 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _target = null;
     _velocity.setZero();
     _dragVelocity.setZero();
-    _visual?.scale = Vector2.all(1.12);
+    _visual?.scale = Vector2.all(1.14);
     // Lift slightly so the held toy reads above the plaza.
-    _setVisualOffset(Vector2(0, -10));
+    _setVisualOffset(Vector2(0, -12));
     play('idle_$direction');
+    onGrab?.call();
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     final previous = position.clone();
     position += event.localDelta;
-    _clampToWorld();
+    // Held toys stay on walkable cobble (no roofs / fountain bowl / river).
+    _clampToWorld(softTop: false);
     final now = position.clone();
     _dragVelocity = (now - previous) * 60;
   }
@@ -576,7 +610,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       fling.x.clamp(-520.0, 520.0),
       fling.y.clamp(-620.0, 200.0),
     );
-    if (capped.length > 80) {
+    final flung = capped.length > 80;
+    onRelease?.call(flung: flung);
+    if (flung) {
       _velocity = capped;
       _airborne = true;
       _busy = true;
@@ -609,6 +645,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _land() {
     _airborne = false;
     _velocity.setZero();
+    // Snap off roofs / fountain / river onto cobble.
+    _clampToWorld(softTop: false);
     _busy = false;
     _dizzyTimer = 0.8;
     _squash = 0.8;

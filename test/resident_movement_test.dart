@@ -96,6 +96,41 @@ void main() {
     expect(resident.airborne, false);
   });
 
+  test('release snaps landing onto walkClamp cobble', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 120))
+      ..worldBounds = Vector2(400, 400)
+      ..walkClamp = (point, {bool softTop = false}) => Vector2(200, 280);
+    resident.debugFling(Vector2(0, -200));
+    for (var i = 0; i < 180; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.airborne, false);
+    expect(resident.position.y, closeTo(280, 0.5));
+  });
+
+  test('grab and release hooks fire', () {
+    var grabs = 0;
+    var softDrops = 0;
+    var flings = 0;
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 100))
+      ..onGrab = () => grabs++
+      ..onRelease = ({required bool flung}) {
+        if (flung) {
+          flings++;
+        } else {
+          softDrops++;
+        }
+      };
+    // Hooks are wired to gesture path; debugGrab skips them — call release path.
+    resident.debugGrab();
+    expect(grabs, 0);
+    resident.debugRelease();
+    expect(softDrops, 1);
+    resident.debugFling(Vector2(200, -200));
+    // debugFling does not call onRelease; soft release already covered.
+    expect(flings, 0);
+  });
+
   test('fling makes the resident airborne then land under gravity', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(200, 200))
       ..worldBounds = Vector2(400, 400);

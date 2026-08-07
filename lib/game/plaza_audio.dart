@@ -49,6 +49,20 @@ class PlazaAudio {
     }
   }
 
+  Future<void> setMuted(bool value) async {
+    if (muted.value == value) return;
+    muted.value = value;
+    if (!_ready) return;
+    if (muted.value) {
+      FlameAudio.bgm.pause();
+    } else {
+      FlameAudio.bgm.resume();
+      if (enabled) {
+        FlameAudio.bgm.play(bed, volume: 0.28);
+      }
+    }
+  }
+
   void playSfx(String file, {double volume = 0.55}) {
     if (!_ready || muted.value || !enabled) return;
     try {
@@ -61,6 +75,9 @@ class PlazaAudio {
   void musicSfx() => playSfx(music, volume: 0.55);
   void treatSfx() => playSfx(treat, volume: 0.5);
   void missionSfx() => playSfx(mission, volume: 0.6);
+  void grabSfx() => playSfx(treat, volume: 0.35);
+  void dropSfx({bool flung = false}) =>
+      playSfx(flung ? wind : petals, volume: flung ? 0.4 : 0.35);
 
   Future<void> dispose() async {
     try {

@@ -14,6 +14,7 @@ import 'petal_burst.dart';
 import 'plaza_audio.dart';
 import 'plaza_mission.dart';
 import 'plaza_occluders.dart';
+import 'plaza_prefs.dart';
 import 'resident.dart';
 import 'toys.dart';
 import 'village_atmosphere.dart';
@@ -29,6 +30,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final CastRoster castRoster = CastRoster();
   final PlazaAudio audio = PlazaAudio();
   final PlazaMission mission = PlazaMission();
+  final PlazaPrefs prefs = PlazaPrefs();
   VillageBackdrop? backdrop;
   VillageAtmosphere? atmosphere;
   VillageDecor? decor;
@@ -45,6 +47,9 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final ValueNotifier<int> castRevision = ValueNotifier<int>(0);
   bool castPanelOpen = false;
   final ValueNotifier<bool> castPanelOpenListenable = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> showTutorial = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> settingsOpen = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> reduceMotion = ValueNotifier<bool>(false);
 
   Resident? get xolo => _residentsById['xolo'];
 
@@ -68,6 +73,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     await add(occluders!);
 
     await castRoster.load();
+    await prefs.load();
+    audio.muted.value = prefs.muted;
+    reduceMotion.value = prefs.reduceMotion;
+    mission.restore(prefs.missionId, prefs.missionProgress);
+    showTutorial.value = !prefs.tutorialSeen;
+
     await audio.load();
 
     for (final member in kPlazaCast) {
@@ -80,6 +91,11 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     _syncResidentBounds();
     _residentsReady = true;
     _bumpCastRevision();
+
+    if (prefs.isNight != (backdrop?.isNight ?? true)) {
+      backdrop?.setNight(prefs.isNight);
+    }
+    isNight.value = backdrop?.isNight ?? true;
     toyStatus.value = mission.detail.value;
   }
 
@@ -89,6 +105,20 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
+    if (atmosphere?.tryLightCandle(event.localPosition) ?? false) {
+      spawnPetals(event.localPosition.clone(), count: 6);
+      audio.petalsSfx();
+      toyStatus.value = 'A candle flares brighter!';
+      final done = mission.reportCandleLit();
+      if (done) {
+        _onMissionComplete();
+      } else if (mission.current == MissionId.candles) {
+        toyStatus.value =
+            'Candles ${mission.progress.value}/${mission.goal.value} — keep lighting';
+        _persistMission();
+      }
+      return;
+    }
     final building = decor?.hitTest(event.localPosition);
     if (building != null) {
       toyStatus.value = '${building.label}: ${building.status}';
@@ -122,6 +152,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   void toggleCastPanel() {
     castPanelOpen = !castPanelOpen;
     castPanelOpenListenable.value = castPanelOpen;
+    if (castPanelOpen) settingsOpen.value = false;
   }
 
   Future<void> setCastPresent(String id, bool present) async {
@@ -191,11 +222,23 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
       ..preferredHotspots = _preferredHotspotsFor(member)
       ..restSpots = backdrop?.restSpotWorldPoints() ?? const []
+      ..reduceMotion = reduceMotion.value
       ..onPetalBurst = (pos, {int count = 14}) {
         spawnPetals(pos, count: count);
       }
       ..onIdleFlavor = (line) {
         toyStatus.value = line;
+      }
+      ..onGrab = () {
+        audio.grabSfx();
+        dismissTutorial();
+        toyStatus.value = 'Got ${config.displayName}!';
+      }
+      ..onRelease = ({required bool flung}) {
+        audio.dropSfx(flung: flung);
+        toyStatus.value = flung
+            ? '${config.displayName} goes flying!'
+            : '${config.displayName} lands softly';
       };
 
     residents.add(resident);
@@ -258,6 +301,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
           resident.setDisplaySize(side);
         }
       }
+      resident.reduceMotion = reduceMotion.value;
       if (!resident.allowOffRoad) {
         resident.position = _walkClamp(resident.position);
       }
@@ -274,12 +318,17 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   void _noteOfrendaPetals() {
     if (_missionCelebrateTimer > 0) return;
     final done = mission.reportOfrendaPetals();
+    _persistMission();
     if (done) {
       _onMissionComplete();
     } else if (mission.current == MissionId.marigolds) {
       toyStatus.value =
           'Ofrenda ${mission.progress.value}/${mission.goal.value} — keep the marigolds coming';
     }
+  }
+
+  void _persistMission() {
+    prefs.saveMission(mission.current, mission.rawProgress);
   }
 
   void _onMissionComplete() {
@@ -295,9 +344,39 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     toyStatus.value = 'Mission complete! ${mission.title.value}';
   }
 
+  void dismissTutorial() {
+    if (!showTutorial.value) return;
+    showTutorial.value = false;
+    prefs.setTutorialSeen(true);
+  }
+
+  void toggleSettings() {
+    settingsOpen.value = !settingsOpen.value;
+    if (settingsOpen.value) castPanelOpenListenable.value = false;
+  }
+
+  Future<void> setReduceMotion(bool value) async {
+    reduceMotion.value = value;
+    for (final resident in residents) {
+      resident.reduceMotion = value;
+    }
+    await prefs.setReduceMotion(value);
+  }
+
+  Future<void> setMutedPersisted(bool value) async {
+    await audio.setMuted(value);
+    await prefs.setMuted(value);
+  }
+
+  void toggleMutePersisted() {
+    audio.toggleMute();
+    prefs.setMuted(audio.muted.value);
+  }
+
   void toggleDayNight() {
     backdrop?.toggleDayNight();
     isNight.value = backdrop?.isNight ?? true;
+    prefs.setNight(isNight.value);
     toyStatus.value =
         isNight.value ? 'Night settles over the plaza' : 'Morning light fills the plaza';
   }
@@ -373,6 +452,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     }
     toyStatus.value = 'Mariachi fills the air — everyone dances!';
     final done = mission.reportMariachi();
+    _persistMission();
     if (done) _onMissionComplete();
   }
 
@@ -413,9 +493,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       _missionCelebrateTimer -= dt;
       if (_missionCelebrateTimer <= 0) {
         mission.advanceAfterCelebration();
+        _persistMission();
         toyStatus.value = 'Next: ${mission.detail.value}';
       }
     }
+
+    _separateFromHeld();
 
     if (musicPlaying) {
       _musicTimer -= dt;
@@ -441,8 +524,29 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
           spawnPetals(critter.position.clone()..y -= 16, count: 12);
           add(SparkleBurst(position: critter.position.clone(), count: 16));
           toyStatus.value = '${critter.config.displayName} gobbled the pan dulce!';
+          if (id == 'xolo') {
+            final done = mission.reportXoloFed();
+            _persistMission();
+            if (done) _onMissionComplete();
+          }
           break;
         }
+      }
+    }
+  }
+
+  /// Soft push so held toys don't stack invisibly on top of others.
+  void _separateFromHeld() {
+    const minDist = 34.0;
+    for (final held in residents) {
+      if (!held.held) continue;
+      for (final other in residents) {
+        if (identical(other, held) || other.held || other.airborne) continue;
+        final delta = other.position - held.position;
+        final dist = delta.length;
+        if (dist >= minDist || dist < 0.001) continue;
+        final push = delta.normalized() * (minDist - dist);
+        other.position = _walkClamp(other.position + push);
       }
     }
   }
