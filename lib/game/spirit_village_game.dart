@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' show Rect;
 
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
@@ -32,6 +33,10 @@ class SpiritVillageGame extends FlameGame {
     return null;
   }
 
+  Rect get roadRect =>
+      backdrop?.roadRect ??
+      Rect.fromLTWH(size.x * 0.15, size.y * 0.62, size.x * 0.7, size.y * 0.2);
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -39,22 +44,27 @@ class SpiritVillageGame extends FlameGame {
     backdrop = VillageBackdrop(size: size.clone());
     await add(backdrop!);
 
+    final person = backdrop!.personDisplaySize;
+    final dog = backdrop!.dogDisplaySize;
+    final road = roadRect;
+
     await _spawnResident(
       assetPath: 'assets/images/pepita/character.json',
-      position: Vector2(size.x * 0.38, size.y * 0.78),
-      displaySize: Vector2(128, 128),
+      position: Vector2(road.left + road.width * 0.35, road.top + road.height * 0.55),
+      displaySize: Vector2.all(person),
     );
     await _spawnResident(
       assetPath: 'assets/images/abuela_rosa/character.json',
-      position: Vector2(size.x * 0.58, size.y * 0.82),
-      displaySize: Vector2(128, 128),
+      position: Vector2(road.left + road.width * 0.62, road.top + road.height * 0.7),
+      displaySize: Vector2.all(person),
     );
     await _spawnResident(
       assetPath: 'assets/images/xolo/character.json',
-      position: Vector2(size.x * 0.48, size.y * 0.84),
-      displaySize: Vector2(110, 110),
+      position: Vector2(road.left + road.width * 0.48, road.top + road.height * 0.85),
+      displaySize: Vector2.all(dog),
     );
 
+    _syncResidentBounds();
     _residentsReady = true;
   }
 
@@ -70,9 +80,28 @@ class SpiritVillageGame extends FlameGame {
     final resident = Resident(config: config, position: position)
       ..size = displaySize
       ..worldBounds = size.clone()
+      ..roadBounds = roadRect
       ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
     residents.add(resident);
     await add(resident);
+  }
+
+  void _syncResidentBounds() {
+    final road = roadRect;
+    final person = backdrop?.personDisplaySize ?? 64;
+    final dog = backdrop?.dogDisplaySize ?? 50;
+    for (final resident in residents) {
+      resident.worldBounds = size.clone();
+      resident.roadBounds = road;
+      final side = resident.config.id == 'xolo' ? dog : person;
+      if ((resident.size.x - side).abs() > 1) {
+        resident.setDisplaySize(Vector2.all(side));
+      }
+      resident.position = Vector2(
+        resident.position.x.clamp(road.left, road.right),
+        resident.position.y.clamp(road.top, road.bottom),
+      );
+    }
   }
 
   void spawnPetals(Vector2 position, {int count = 14}) {
@@ -82,7 +111,8 @@ class SpiritVillageGame extends FlameGame {
   void toggleDayNight() {
     backdrop?.toggleDayNight();
     isNight.value = backdrop?.isNight ?? true;
-    toyStatus.value = isNight.value ? 'Night settles over the plaza' : 'Morning light fills the plaza';
+    toyStatus.value =
+        isNight.value ? 'Night settles over the plaza' : 'Morning light fills the plaza';
   }
 
   void useToy(VillageToy toy) {
@@ -108,10 +138,11 @@ class SpiritVillageGame extends FlameGame {
   }
 
   void _castPetalRain() {
+    final road = roadRect;
     for (var i = 0; i < 10; i++) {
       final pos = Vector2(
-        40 + _random.nextDouble() * (size.x - 80),
-        size.y * (0.45 + _random.nextDouble() * 0.4),
+        road.left + _random.nextDouble() * road.width,
+        road.top + _random.nextDouble() * road.height,
       );
       spawnPetals(pos, count: 16);
     }
@@ -134,22 +165,23 @@ class SpiritVillageGame extends FlameGame {
 
   void _castPanDulce() {
     activeTreat?.removeFromParent();
+    final road = roadRect;
     final treatPos = Vector2(
-      size.x * (0.25 + _random.nextDouble() * 0.5),
-      size.y * (0.72 + _random.nextDouble() * 0.15),
+      road.left + road.width * (0.2 + _random.nextDouble() * 0.6),
+      road.top + road.height * (0.35 + _random.nextDouble() * 0.45),
     );
     final treat = PanDulceTreat(position: treatPos);
     activeTreat = treat;
     add(treat);
 
     final dog = xolo;
-    if (dog != null) {
-      dog.attractTo(treatPos);
-    }
+    dog?.attractTo(treatPos);
     for (final resident in residents) {
       if (resident.config.id == 'xolo') continue;
       if (_random.nextDouble() < 0.55) {
-        resident.attractTo(treatPos + Vector2(_random.nextDouble() * 40 - 20, 10));
+        resident.attractTo(
+          treatPos + Vector2(_random.nextDouble() * 30 - 15, 8),
+        );
       }
     }
     toyStatus.value = 'Pan dulce! Xolo is on the case';
@@ -163,8 +195,7 @@ class SpiritVillageGame extends FlameGame {
       _musicTimer -= dt;
       if (_musicTimer <= 0) {
         musicPlaying = false;
-      } else if (_musicTimer > 0 && _random.nextDouble() < dt * 1.2) {
-        // Occasional dance pulses while music lasts.
+      } else if (_random.nextDouble() < dt * 1.2) {
         final dancers = residents.where((r) => !r.held && !r.airborne).toList();
         if (dancers.isNotEmpty) {
           dancers[_random.nextInt(dancers.length)].applyDancePulse();
@@ -175,12 +206,12 @@ class SpiritVillageGame extends FlameGame {
     final treat = activeTreat;
     if (treat != null && !treat.claimed) {
       final dog = xolo;
-      if (dog != null && dog.position.distanceTo(treat.position) < 36) {
+      if (dog != null && dog.position.distanceTo(treat.position) < 28) {
         treat.claimed = true;
         treat.removeFromParent();
         activeTreat = null;
         dog.applyDancePulse();
-        spawnPetals(dog.position.clone()..y -= 20, count: 12);
+        spawnPetals(dog.position.clone()..y -= 16, count: 12);
         toyStatus.value = 'Xolo gobbled the pan dulce!';
       }
     }
@@ -191,9 +222,7 @@ class SpiritVillageGame extends FlameGame {
     super.onGameResize(size);
     backdrop?.resizeTo(size);
     if (_residentsReady) {
-      for (final resident in residents) {
-        resident.worldBounds = size.clone();
-      }
+      _syncResidentBounds();
     }
   }
 }

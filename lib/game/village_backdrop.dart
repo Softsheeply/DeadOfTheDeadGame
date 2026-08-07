@@ -1,10 +1,14 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/painting.dart';
 
 /// Full-bleed Spirit Village backdrop with day/night painted variants.
+///
+/// Uses *contain* fit so the whole plaza is visible (letterboxed), which
+/// reads as more zoomed-out than cover-cropping into the fountain.
 class VillageBackdrop extends PositionComponent {
   VillageBackdrop({required Vector2 size})
       : super(size: size, position: Vector2.zero(), priority: -100);
@@ -12,12 +16,19 @@ class VillageBackdrop extends PositionComponent {
   static const String dayAsset = 'village/spirit_village_plaza_day.png';
   static const String nightAsset = 'village/spirit_village_plaza_night.png';
 
+  /// Walkable cobble band as fractions of the painted image (not the screen).
+  /// Tuned so feet stay on the plaza road, not up on rooftops/stalls.
+  static const double roadLeft = 0.14;
+  static const double roadRight = 0.86;
+  static const double roadTop = 0.58;
+  static const double roadBottom = 0.82;
+
   Sprite? _day;
   Sprite? _night;
   bool isNight = true;
-  double _blend = 1; // 0 = day, 1 = night
+  double _blend = 1;
   double _blendTarget = 1;
-  Rect _drawRect = Rect.zero;
+  Rect drawRect = Rect.zero;
 
   @override
   Future<void> onLoad() async {
@@ -32,7 +43,6 @@ class VillageBackdrop extends PositionComponent {
     _recomputeDrawRect();
   }
 
-  /// Animate toward day (false) or night (true) over ~1.2s.
   void setNight(bool night) {
     isNight = night;
     _blendTarget = night ? 1 : 0;
@@ -40,19 +50,60 @@ class VillageBackdrop extends PositionComponent {
 
   void toggleDayNight() => setNight(!isNight);
 
+  /// Cobblestone road in game/world coordinates.
+  Rect get roadRect {
+    if (drawRect == Rect.zero) {
+      return Rect.fromLTWH(size.x * 0.15, size.y * 0.62, size.x * 0.7, size.y * 0.2);
+    }
+    return Rect.fromLTRB(
+      drawRect.left + drawRect.width * roadLeft,
+      drawRect.top + drawRect.height * roadTop,
+      drawRect.left + drawRect.width * roadRight,
+      drawRect.top + drawRect.height * roadBottom,
+    );
+  }
+
+  Vector2 clampToRoad(Vector2 point, {bool allowAirborneLift = false}) {
+    final road = roadRect;
+    final minY = allowAirborneLift ? road.top - road.height * 0.8 : road.top;
+    return Vector2(
+      point.x.clamp(road.left, road.right),
+      point.y.clamp(minY, road.bottom),
+    );
+  }
+
+  Vector2 randomRoadPoint(Random random) {
+    final road = roadRect;
+    return Vector2(
+      road.left + random.nextDouble() * road.width,
+      road.top + random.nextDouble() * road.height,
+    );
+  }
+
+  /// Suggested character height so people sit under door height on the art.
+  double get personDisplaySize {
+    if (drawRect == Rect.zero) return 64;
+    return (drawRect.height * 0.20).clamp(48.0, 72.0);
+  }
+
+  double get dogDisplaySize => (personDisplaySize * 0.78).clamp(40.0, 58.0);
+
   void _recomputeDrawRect() {
     final sprite = _night ?? _day;
     if (sprite == null || size.x <= 0 || size.y <= 0) {
-      _drawRect = Rect.zero;
+      drawRect = Rect.zero;
       return;
     }
     final imgW = sprite.srcSize.x;
     final imgH = sprite.srcSize.y;
-    final scale = max(size.x / imgW, size.y / imgH);
-    _drawRect = Rect.fromCenter(
+    // Contain = see the whole town (zoom out vs cover).
+    final scale = min(size.x / imgW, size.y / imgH);
+    final drawW = imgW * scale;
+    final drawH = imgH * scale;
+    drawRect = Rect.fromCenter(
       center: Offset(size.x / 2, size.y / 2),
-      width: imgW * scale,
-      height: imgH * scale,
+      width: drawW,
+      height: drawH,
     );
   }
 
@@ -69,34 +120,20 @@ class VillageBackdrop extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    if (_drawRect == Rect.zero) {
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.x, size.y),
-        Paint()..color = const Color(0xFF1A0F3A),
-      );
-      return;
-    }
+    // Letterbox fill behind the contained plaza.
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..color = const Color(0xFF120A24),
+    );
+
+    if (drawRect == Rect.zero) return;
 
     if (_blend < 1 && _day != null) {
-      _day!.renderRect(canvas, _drawRect);
+      _day!.renderRect(canvas, drawRect);
     }
     if (_blend > 0 && _night != null) {
       final paint = Paint()..color = Color.fromRGBO(255, 255, 255, _blend);
-      _night!.renderRect(canvas, _drawRect, overridePaint: paint);
+      _night!.renderRect(canvas, drawRect, overridePaint: paint);
     }
-
-    final vignetteStrength = 0.25 + 0.35 * _blend;
-    final vignette = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          const Color(0x00000000),
-          Color.fromRGBO(0, 0, 0, 0.18 * vignetteStrength),
-          Color.fromRGBO(12, 6, 24, vignetteStrength),
-        ],
-        stops: const [0.45, 0.75, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), vignette);
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show Rect;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -11,9 +12,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   final CharacterConfig config;
   String direction;
 
-  /// Set by the game after this resident is added, so _moveRandomly has
-  /// somewhere to wander within.
+  /// Full playfield size (for fling gravity ground fallback).
   Vector2? worldBounds;
+
+  /// Cobble road only -- wander, land, and drag clamps prefer this.
+  Rect? roadBounds;
 
   /// Optional juice hook -- SpiritVillageGame wires this to PetalBurst.
   void Function(Vector2 position, {int count})? onPetalBurst;
@@ -105,6 +108,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Plays the named animation if this resident actually has it. Falls back
   /// to `${name}_down`, then to any idle, matching the JS prototype's
   /// graceful degradation for characters missing actions.
+  void setDisplaySize(Vector2 displaySize) {
+    size = displaySize;
+    _visual?.size = displaySize.clone();
+  }
+
   void play(String name) {
     final resolvedName = _resolveAnimation(name);
     if (resolvedName == null) return;
@@ -138,19 +146,25 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   void _moveRandomly() {
+    final road = roadBounds;
+    if (road != null && road.width > 8 && road.height > 8) {
+      final x = road.left + _random.nextDouble() * road.width;
+      final y = road.top + _random.nextDouble() * road.height;
+      walkTo(Vector2(x, y));
+      return;
+    }
     final bounds = worldBounds;
     if (bounds == null) return;
     const margin = 70.0;
     final usableWidth = max(1.0, bounds.x - margin * 2);
     final x = margin + _random.nextDouble() * usableWidth;
-    // Keep feet on the painted plaza cobbles (lower band of the backdrop).
-    final y = bounds.y * 0.68 + _random.nextDouble() * (bounds.y * 0.22);
+    final y = bounds.y * 0.68 + _random.nextDouble() * (bounds.y * 0.18);
     walkTo(Vector2(x, y));
   }
 
   void walkTo(Vector2 destination) {
     if (_held || _airborne) return;
-    _target = destination;
+    _target = _clampPoint(destination);
     _busy = true;
     _updateDirection();
     play('walk_$direction');
@@ -290,17 +304,33 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   double _groundY() {
+    final road = roadBounds;
+    if (road != null) return road.bottom;
     final bounds = worldBounds;
     if (bounds == null) return position.y;
     return bounds.y * 0.90;
   }
 
-  void _clampToWorld({bool softTop = false}) {
+  Vector2 _clampPoint(Vector2 point, {bool softTop = false}) {
+    final road = roadBounds;
+    if (road != null) {
+      final minY = softTop ? road.top - road.height : road.top;
+      return Vector2(
+        point.x.clamp(road.left, road.right),
+        point.y.clamp(minY, road.bottom),
+      );
+    }
     final bounds = worldBounds;
-    if (bounds == null) return;
-    position.x = position.x.clamp(48, bounds.x - 48);
+    if (bounds == null) return point;
     final minY = softTop ? bounds.y * 0.25 : bounds.y * 0.62;
-    position.y = position.y.clamp(minY, bounds.y * 0.95);
+    return Vector2(
+      point.x.clamp(48, bounds.x - 48),
+      point.y.clamp(minY, bounds.y * 0.95),
+    );
+  }
+
+  void _clampToWorld({bool softTop = false}) {
+    position.setFrom(_clampPoint(position, softTop: softTop));
   }
 
   /// Test seam: start a fling without gesture events.

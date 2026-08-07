@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flutter/widgets.dart' show Rect;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dead_of_the_dead_game/data/character_config.dart';
 import 'package:dead_of_the_dead_game/game/resident.dart';
@@ -133,9 +134,23 @@ void main() {
 
   test('attractTo starts a walk toward the treat', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(50, 200))
-      ..worldBounds = Vector2(400, 400);
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(40, 180, 320, 100);
     resident.attractTo(Vector2(300, 220));
     expect(resident.busy, true);
     expect(resident.direction, 'right');
+  });
+
+  test('walkTo clamps destinations onto the road', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
+    resident.walkTo(Vector2(10, 10)); // off the road / on a "rooftop"
+    // Should walk toward a clamped road point, not stay busy walking into houses.
+    for (var i = 0; i < 120; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.position.x, inInclusiveRange(50, 350));
+    expect(resident.position.y, inInclusiveRange(200, 280));
   });
 }
