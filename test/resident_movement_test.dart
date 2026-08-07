@@ -168,4 +168,16 @@ void main() {
     expect(exited, true);
     expect(resident.position.x, lessThan(50));
   });
+
+  test('walkTo clamps destinations onto the road', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
+    resident.walkTo(Vector2(10, 10));
+    for (var i = 0; i < 120; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.position.x, inInclusiveRange(50, 350));
+    expect(resident.position.y, inInclusiveRange(200, 280));
+  });
 }
