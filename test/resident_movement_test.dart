@@ -113,7 +113,9 @@ void main() {
     var softDrops = 0;
     var flings = 0;
     final resident = Resident(config: _minimalConfig(), position: Vector2(100, 100))
-      ..onGrab = () => grabs++
+      ..onGrab = () {
+        grabs++;
+      }
       ..onRelease = ({required bool flung}) {
         if (flung) {
           flings++;
