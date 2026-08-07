@@ -168,6 +168,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..size = displaySize
       ..worldBounds = size.clone()
       ..roadBounds = roadRect
+      ..walkClamp = _walkClamp
       ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
       ..preferredHotspots = _preferredHotspotsFor(member)
       ..onPetalBurst = (pos, {int count = 14}) => spawnPetals(pos, count: count);
@@ -202,6 +203,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     ];
   }
 
+  Vector2 _walkClamp(Vector2 point, {bool softTop = false}) {
+    final bd = backdrop;
+    if (bd == null) return point;
+    return bd.clampToWalkable(point, allowAirborneLift: softTop);
+  }
+
   void _syncResidentBounds() {
     final road = roadRect;
     final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
@@ -215,6 +222,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       }
       resident.worldBounds = size.clone();
       resident.roadBounds = road;
+      resident.walkClamp = _walkClamp;
       resident.wanderHotspots = hotspots;
       if (member != null) {
         resident.preferredHotspots = _preferredHotspotsFor(member);
@@ -224,10 +232,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
         }
       }
       if (!resident.allowOffRoad) {
-        resident.position = Vector2(
-          resident.position.x.clamp(road.left, road.right),
-          resident.position.y.clamp(road.top, road.bottom),
-        );
+        resident.position = _walkClamp(resident.position);
       }
     }
   }

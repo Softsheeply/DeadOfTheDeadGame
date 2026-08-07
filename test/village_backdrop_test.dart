@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dead_of_the_dead_game/game/village_backdrop.dart';
 
 void main() {
-  test('roadRect covers a wide plaza band from drawRect fractions', () {
+  test('roadRect covers cobble band below building fronts', () {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
 
@@ -15,26 +15,30 @@ void main() {
     expect(road.right, closeTo(1280 * VillageBackdrop.roadRight, 0.01));
     expect(road.top, closeTo(426 * VillageBackdrop.roadTop, 0.01));
     expect(road.bottom, closeTo(426 * VillageBackdrop.roadBottom, 0.01));
-    expect(road.width / 1280, greaterThan(0.8));
-    expect(road.height / 426, greaterThan(0.35));
+    expect(VillageBackdrop.roadTop, greaterThan(0.60));
+    expect(road.width / 1280, greaterThan(0.75));
+    expect(road.height / 426, greaterThan(0.18));
   });
 
-  test('randomRoadPoint stays inside the road and usually avoids fountain', () {
+  test('randomRoadPoint stays walkable and avoids fountain/tree/river', () {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
     final random = Random(42);
-    var insideFountain = 0;
-    for (var i = 0; i < 40; i++) {
+    for (var i = 0; i < 50; i++) {
       final p = backdrop.randomRoadPoint(random);
-      expect(p.x, inInclusiveRange(backdrop.roadRect.left, backdrop.roadRect.right));
-      expect(p.y, inInclusiveRange(backdrop.roadRect.top, backdrop.roadRect.bottom));
-      final fx = 1280 * VillageBackdrop.fountainCenterUv.dx;
-      final fy = 426 * VillageBackdrop.fountainCenterUv.dy;
-      final nx = (p.x - fx) / (1280 * VillageBackdrop.fountainRadiusX);
-      final ny = (p.y - fy) / (426 * VillageBackdrop.fountainRadiusY);
-      if (nx * nx + ny * ny < 1) insideFountain++;
+      expect(backdrop.isWalkable(p), isTrue);
+      expect(backdrop.isBlocked(p), isFalse);
     }
-    expect(insideFountain, lessThan(8));
+  });
+
+  test('clampToWalkable pushes out of the tree planter', () {
+    final backdrop = VillageBackdrop(size: Vector2(1280, 426))
+      ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
+    final insideTree = Vector2(1280 * 0.48, 426 * 0.72);
+    expect(backdrop.isBlocked(insideTree), isTrue);
+    final clamped = backdrop.clampToWalkable(insideTree);
+    expect(backdrop.isBlocked(clamped), isFalse);
+    expect(backdrop.isWalkable(clamped), isTrue);
   });
 
   test('hotspotWorldPoints land on the walkable road', () {
@@ -42,10 +46,8 @@ void main() {
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
     final spots = backdrop.hotspotWorldPoints();
     expect(spots, isNotEmpty);
-    final road = backdrop.roadRect;
     for (final spot in spots) {
-      expect(spot.x, inInclusiveRange(road.left, road.right));
-      expect(spot.y, inInclusiveRange(road.top, road.bottom));
+      expect(backdrop.isWalkable(spot), isTrue);
     }
   });
 

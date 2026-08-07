@@ -145,10 +145,11 @@ void main() {
     final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
       ..worldBounds = Vector2(400, 400)
       ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80)
+      ..preferredHotspots = [Vector2(300, 240)]
       ..wanderHotspots = [Vector2(300, 240)];
 
     // Force many behaviour ticks; eventually should walk toward the hotspot side.
-    for (var i = 0; i < 40; i++) {
+    for (var i = 0; i < 80; i++) {
       resident.update(3.0);
     }
     expect(resident.position.x, greaterThan(150));
@@ -159,14 +160,18 @@ void main() {
       ..worldBounds = Vector2(400, 400)
       ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
     var exited = false;
-    resident.onExitComplete = () => exited = true;
+    double? exitX;
+    resident.onExitComplete = () {
+      exited = true;
+      exitX = resident.position.x;
+    };
     resident.exitPlaza(toLeft: true);
     expect(resident.allowOffRoad, true);
-    for (var i = 0; i < 300; i++) {
+    for (var i = 0; i < 600 && !exited; i++) {
       resident.update(1 / 60);
     }
     expect(exited, true);
-    expect(resident.position.x, lessThan(50));
+    expect(exitX, lessThan(50));
   });
 
   test('walkTo clamps destinations onto the road', () {

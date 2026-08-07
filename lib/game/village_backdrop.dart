@@ -17,28 +17,39 @@ class VillageBackdrop extends PositionComponent {
   static const String nightAsset = 'village/spirit_village_plaza_night.png';
 
   /// Walkable cobble band as fractions of the painted image (not the screen).
-  /// Wider plaza roam so residents cross fountain rim, stalls, and bridge approach.
-  static const double roadLeft = 0.06;
+  /// Kept below shop doors / roofs so feet stay on plaza stone.
+  static const double roadLeft = 0.08;
   static const double roadRight = 0.94;
-  static const double roadTop = 0.48;
-  static const double roadBottom = 0.90;
+  static const double roadTop = 0.66;
+  static const double roadBottom = 0.88;
 
   /// Soft fountain exclusion (UV of painted image) so wander prefers cobble rim.
   static const Offset fountainCenterUv = Offset(0.575, 0.62);
-  static const double fountainRadiusX = 0.045;
-  static const double fountainRadiusY = 0.055;
+  static const double fountainRadiusX = 0.05;
+  static const double fountainRadiusY = 0.07;
+
+  /// Solid obstacles residents must walk around (UV ellipses).
+  static const List<(Offset center, double rx, double ry)> blockedEllipses = [
+    (fountainCenterUv, fountainRadiusX, fountainRadiusY),
+    (Offset(0.48, 0.72), 0.045, 0.045), // central tree planter base
+    (Offset(0.13, 0.86), 0.11, 0.07), // river pool
+    (Offset(0.20, 0.90), 0.08, 0.05), // river bend
+    (Offset(0.86, 0.86), 0.07, 0.055), // graveyard plot
+    (Offset(0.78, 0.84), 0.045, 0.04), // doghouse
+  ];
 
   /// Interesting plaza stops residents like to visit (UV of painted image).
+  /// All sit on open cobble in front of buildings — not on doors/roofs.
   static const List<Offset> hotspotUvs = [
-    Offset(0.14, 0.70), // floristería front
-    Offset(0.28, 0.72), // panadería
-    Offset(0.42, 0.74), // tree / fountain west
-    Offset(0.58, 0.78), // fountain south rim
-    Offset(0.66, 0.70), // mariachi stage
-    Offset(0.76, 0.72), // church steps
-    Offset(0.88, 0.74), // mercado
-    Offset(0.18, 0.84), // bridge approach
-    Offset(0.50, 0.86), // plaza center south
+    Offset(0.14, 0.74), // floristería front
+    Offset(0.28, 0.75), // panadería
+    Offset(0.40, 0.78), // west of tree
+    Offset(0.58, 0.80), // fountain south rim
+    Offset(0.66, 0.74), // mariachi stage apron
+    Offset(0.76, 0.76), // church steps
+    Offset(0.88, 0.76), // mercado
+    Offset(0.22, 0.82), // bridge approach
+    Offset(0.48, 0.84), // plaza center south
   ];
 
   Sprite? _day;
@@ -84,33 +95,110 @@ class VillageBackdrop extends PositionComponent {
     );
   }
 
-  Vector2 clampToRoad(Vector2 point, {bool allowAirborneLift = false}) {
+  bool isBlocked(Vector2 point) {
+    if (drawRect == Rect.zero) return false;
+    for (final zone in blockedEllipses) {
+      final cx = drawRect.left + drawRect.width * zone.$1.dx;
+      final cy = drawRect.top + drawRect.height * zone.$1.dy;
+      final rx = drawRect.width * zone.$2;
+      final ry = drawRect.height * zone.$3;
+      if (rx <= 0 || ry <= 0) continue;
+      final nx = (point.x - cx) / rx;
+      final ny = (point.y - cy) / ry;
+      if (nx * nx + ny * ny < 1) return true;
+    }
+    return false;
+  }
+
+  bool isWalkable(Vector2 point, {bool allowAirborneLift = false}) {
     final road = roadRect;
     final minY = allowAirborneLift ? road.top - road.height * 0.8 : road.top;
-    return Vector2(
+    if (point.x < road.left ||
+        point.x > road.right ||
+        point.y < minY ||
+        point.y > road.bottom) {
+      return false;
+    }
+    if (allowAirborneLift && point.y < road.top) return true;
+    return !isBlocked(point);
+  }
+
+  Vector2 clampToRoad(Vector2 point, {bool allowAirborneLift = false}) {
+    return clampToWalkable(point, allowAirborneLift: allowAirborneLift);
+  }
+
+  /// Clamp onto the cobble band and push out of trees / fountain / river.
+  Vector2 clampToWalkable(Vector2 point, {bool allowAirborneLift = false}) {
+    final road = roadRect;
+    final minY = allowAirborneLift ? road.top - road.height * 0.8 : road.top;
+    var result = Vector2(
       point.x.clamp(road.left, road.right),
       point.y.clamp(minY, road.bottom),
     );
+    if (allowAirborneLift && result.y < road.top) return result;
+    if (drawRect == Rect.zero) return result;
+
+    for (var attempt = 0; attempt < 10; attempt++) {
+      var blocked = false;
+      for (final zone in blockedEllipses) {
+        final cx = drawRect.left + drawRect.width * zone.$1.dx;
+        final cy = drawRect.top + drawRect.height * zone.$1.dy;
+        final rx = drawRect.width * zone.$2;
+        final ry = drawRect.height * zone.$3;
+        if (rx <= 0 || ry <= 0) continue;
+        final nx = (result.x - cx) / rx;
+        final ny = (result.y - cy) / ry;
+        final d2 = nx * nx + ny * ny;
+        if (d2 >= 1) continue;
+        blocked = true;
+        // Prefer pushing toward open plaza south of buildings.
+        if (d2 < 1e-6) {
+          result = Vector2(cx, cy + ry * 1.2);
+        } else {
+          final d = sqrt(d2);
+          result = Vector2(
+            cx + nx / d * rx * 1.18,
+            cy + ny / d * ry * 1.18,
+          );
+        }
+        result = Vector2(
+          result.x.clamp(road.left, road.right),
+          result.y.clamp(minY, road.bottom),
+        );
+      }
+      if (!blocked) return result;
+    }
+
+    // Last resort: walk toward the road midline until clear.
+    final mid = Vector2(road.center.dx, road.center.dy);
+    for (var i = 0; i < 12; i++) {
+      result += (mid - result) * 0.2;
+      result = Vector2(
+        result.x.clamp(road.left, road.right),
+        result.y.clamp(minY, road.bottom),
+      );
+      if (!isBlocked(result)) return result;
+    }
+    return Vector2(road.center.dx, road.bottom - 4);
   }
 
   Vector2 randomRoadPoint(Random random) {
     final road = roadRect;
-    // Prefer open cobble; reject fountain bowl samples a few times.
-    for (var attempt = 0; attempt < 8; attempt++) {
+    for (var attempt = 0; attempt < 16; attempt++) {
       final point = Vector2(
         road.left + random.nextDouble() * road.width,
         road.top + random.nextDouble() * road.height,
       );
-      if (!_insideFountain(point) || attempt == 7) return point;
+      if (isWalkable(point)) return point;
     }
-    return Vector2(road.center.dx, road.center.dy);
+    return clampToWalkable(Vector2(road.center.dx, road.center.dy));
   }
 
   /// World-space hotspot with a little jitter so paths don't stack perfectly.
   Vector2 randomHotspot(Random random) {
     final uv = hotspotUvs[random.nextInt(hotspotUvs.length)];
     final point = uvToWorld(uv);
-    return clampToRoad(
+    return clampToWalkable(
       point +
           Vector2(
             (random.nextDouble() - 0.5) * 28,
@@ -130,24 +218,15 @@ class VillageBackdrop extends PositionComponent {
   }
 
   List<Vector2> hotspotWorldPoints() =>
-      hotspotUvs.map(uvToWorld).map(clampToRoad).toList(growable: false);
-
-  bool _insideFountain(Vector2 point) {
-    if (drawRect == Rect.zero) return false;
-    final fx = drawRect.left + drawRect.width * fountainCenterUv.dx;
-    final fy = drawRect.top + drawRect.height * fountainCenterUv.dy;
-    final nx = (point.x - fx) / (drawRect.width * fountainRadiusX);
-    final ny = (point.y - fy) / (drawRect.height * fountainRadiusY);
-    return nx * nx + ny * ny < 1;
-  }
+      hotspotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
 
   /// Suggested character height so people sit under door height on the art.
   double get personDisplaySize {
     if (drawRect == Rect.zero) return 64;
-    return (drawRect.height * 0.20).clamp(48.0, 72.0);
+    return (drawRect.height * 0.18).clamp(44.0, 64.0);
   }
 
-  double get dogDisplaySize => (personDisplaySize * 0.78).clamp(40.0, 58.0);
+  double get dogDisplaySize => (personDisplaySize * 0.78).clamp(36.0, 52.0);
 
   void _recomputeDrawRect() {
     final sprite = _night ?? _day;

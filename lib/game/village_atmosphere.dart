@@ -23,6 +23,7 @@ class VillageAtmosphere extends PositionComponent {
   late final List<_WaterBody> _waters;
   late final List<_FountainJet> _jets;
   late final List<_WaterDroplet> _droplets;
+  late final List<_RiverSpark> _riverSparks;
   late final List<_Candle> _candles;
   late final List<_BuildingLight> _lights;
   late final List<_PapelFlag> _papel;
@@ -30,10 +31,20 @@ class VillageAtmosphere extends PositionComponent {
   late final List<_Firefly> _fireflies;
   late final List<_DriftPetal> _petals;
   late final List<_FallingLeaf> _leaves;
+  late final List<_TreeCanopy> _trees;
   double _time = 0;
-  double _wind = 0;
-  double _windSign = 1;
+  /// Player wind toy strength 0..1.
+  double _gust = 0;
+  double _gustSign = 1;
   double _fountainSplash = 0;
+  /// Gentle always-on breeze (±1), drifts slowly.
+  double _breeze = 0.35;
+  double _breezeTarget = 0.35;
+  double _breezeTimer = 0;
+
+  /// Combined wind amount for overlays (ambient + gust).
+  double get _windStrength => (_breeze.abs() * 0.35 + _gust).clamp(0.0, 1.6);
+  double get _windSign => _gust > 0.08 ? _gustSign : (_breeze >= 0 ? 1.0 : -1.0);
 
   @override
   Future<void> onLoad() async {
@@ -47,6 +58,7 @@ class VillageAtmosphere extends PositionComponent {
         radiusY: 0.045,
         rippleCount: 4,
         speed: 1.15,
+        kind: _WaterKind.fountain,
       ),
       _WaterBody(
         center: const Offset(0.575, 0.655),
@@ -54,13 +66,17 @@ class VillageAtmosphere extends PositionComponent {
         radiusY: 0.028,
         rippleCount: 3,
         speed: 0.95,
+        kind: _WaterKind.fountain,
       ),
+      // River flows downstream toward bottom-left.
       _WaterBody(
         center: const Offset(0.13, 0.88),
         radiusX: 0.07,
         radiusY: 0.022,
         rippleCount: 3,
         speed: 1.35,
+        kind: _WaterKind.river,
+        flow: const Offset(-0.55, 0.45),
       ),
       _WaterBody(
         center: const Offset(0.20, 0.90),
@@ -68,6 +84,17 @@ class VillageAtmosphere extends PositionComponent {
         radiusY: 0.018,
         rippleCount: 2,
         speed: 1.2,
+        kind: _WaterKind.river,
+        flow: const Offset(-0.4, 0.55),
+      ),
+      _WaterBody(
+        center: const Offset(0.10, 0.82),
+        radiusX: 0.045,
+        radiusY: 0.03,
+        rippleCount: 2,
+        speed: 1.1,
+        kind: _WaterKind.river,
+        flow: const Offset(-0.35, 0.65),
       ),
     ];
 
@@ -226,6 +253,43 @@ class VillageAtmosphere extends PositionComponent {
     ];
 
     _droplets = List.generate(28, (i) => _spawnDroplet(seed: i / 28));
+
+    _riverSparks = List.generate(36, (i) {
+      final rivers = _waters.where((w) => w.kind == _WaterKind.river).toList();
+      final body = rivers[i % rivers.length];
+      return _RiverSpark(
+        bodyIndex: _waters.indexOf(body),
+        t: _random.nextDouble(),
+        lateral: (_random.nextDouble() - 0.5) * 0.7,
+        size: 1.2 + _random.nextDouble() * 2.2,
+        speed: 0.18 + _random.nextDouble() * 0.22,
+      );
+    });
+
+    // Soft canopy overlays that sway with breeze (tree is painted; this sells motion).
+    _trees = [
+      _TreeCanopy(
+        uv: const Offset(0.50, 0.42),
+        radiusX: 0.11,
+        radiusY: 0.14,
+        phase: 0.2,
+        leafCount: 14,
+      ),
+      _TreeCanopy(
+        uv: const Offset(0.47, 0.38),
+        radiusX: 0.05,
+        radiusY: 0.06,
+        phase: 1.4,
+        leafCount: 6,
+      ),
+      _TreeCanopy(
+        uv: const Offset(0.54, 0.40),
+        radiusX: 0.05,
+        radiusY: 0.055,
+        phase: 2.1,
+        leafCount: 6,
+      ),
+    ];
   }
 
   _WaterDroplet _spawnDroplet({double seed = 0}) {
@@ -293,10 +357,11 @@ class VillageAtmosphere extends PositionComponent {
     size.setFrom(newSize);
   }
 
-  /// Brief gust from the Wind toy — papel and smoke lean harder.
+  /// Brief gust from the Wind toy — flags/trees lean hard; ambient breeze keeps going.
   void applyGust({required double directionSign}) {
-    _windSign = directionSign >= 0 ? 1 : -1;
-    _wind = 1.0;
+    _gustSign = directionSign >= 0 ? 1 : -1;
+    _gust = 1.0;
+    _breeze = directionSign >= 0 ? 1.0 : -1.0;
     splashFountain(intensity: 0.85);
   }
 
@@ -316,8 +381,17 @@ class VillageAtmosphere extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _time += dt;
-    if (_wind > 0) {
-      _wind = max(0, _wind - dt * 0.55);
+
+    // Ambient breeze slowly drifts left/right — always a little motion.
+    _breezeTimer -= dt;
+    if (_breezeTimer <= 0) {
+      _breezeTimer = 2.5 + _random.nextDouble() * 4.5;
+      _breezeTarget = (_random.nextBool() ? 1 : -1) * (0.25 + _random.nextDouble() * 0.55);
+    }
+    _breeze += (_breezeTarget - _breeze) * min(1, dt * 0.35);
+
+    if (_gust > 0) {
+      _gust = max(0, _gust - dt * 0.55);
     }
     if (_fountainSplash > 0) {
       _fountainSplash = max(0, _fountainSplash - dt * 0.9);
@@ -338,7 +412,7 @@ class VillageAtmosphere extends PositionComponent {
         (fly.uv.dy + cos(_time * fly.speed * 0.8 + fly.phase) * dt * 0.015).clamp(0.28, 0.82),
       );
     }
-    final windPush = (0.015 + _wind * 0.05) * _windSign;
+    final windPush = (0.012 + _windStrength * 0.05) * _windSign;
     for (final petal in _petals) {
       var x = petal.uv.dx + windPush * dt * 4 + sin(_time + petal.phase) * dt * 0.01;
       x %= 1.0;
@@ -350,14 +424,14 @@ class VillageAtmosphere extends PositionComponent {
       }
       petal.uv = Offset(x, y);
     }
-    final leafWind = (0.02 + _wind * 0.08) * _windSign;
+    final leafWind = (0.015 + _windStrength * 0.08) * _windSign;
     for (final leaf in _leaves) {
       var x = leaf.uv.dx +
           leafWind * dt * 3.5 +
           sin(_time * 1.4 + leaf.phase) * dt * 0.018;
       x %= 1.0;
       if (x < 0) x += 1;
-      var y = leaf.uv.dy + leaf.speed * dt * (1 + _wind * 0.6);
+      var y = leaf.uv.dy + leaf.speed * dt * (1 + _windStrength * 0.6);
       if (y > 0.92) {
         x = _random.nextDouble();
         y = 0.08 + _random.nextDouble() * 0.12;
@@ -377,6 +451,21 @@ class VillageAtmosphere extends PositionComponent {
         drop.arc = fresh.arc;
       }
     }
+    for (final spark in _riverSparks) {
+      final flowBoost = 1 + _windStrength * 0.35;
+      spark.t += dt * spark.speed * flowBoost;
+      if (spark.t >= 1) {
+        spark.t -= 1;
+        spark.lateral = (_random.nextDouble() - 0.5) * 0.75;
+        spark.size = 1.2 + _random.nextDouble() * 2.2;
+        spark.speed = 0.18 + _random.nextDouble() * 0.22;
+        final rivers = [
+          for (var i = 0; i < _waters.length; i++)
+            if (_waters[i].kind == _WaterKind.river) i,
+        ];
+        spark.bodyIndex = rivers[_random.nextInt(rivers.length)];
+      }
+    }
   }
 
   @override
@@ -386,6 +475,7 @@ class VillageAtmosphere extends PositionComponent {
 
     final night = backdrop.nightBlend;
     _renderPapel(canvas, draw);
+    _renderTrees(canvas, draw);
     _renderWater(canvas, draw);
     _renderSmoke(canvas, draw);
     _renderDriftPetals(canvas, draw);
@@ -401,31 +491,34 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderPapel(Canvas canvas, Rect draw) {
-    final swayAmp = 0.12 + _wind * 0.35;
+    // Ambient sway always; player gust leans flags hard.
+    final swayAmp = 0.08 + _breeze.abs() * 0.12 + _gust * 0.45;
+    final lean = _breeze * 0.08 + _gust * 0.35 * _gustSign;
     for (final flag in _papel) {
       final anchor = Offset(
         draw.left + draw.width * flag.uv.dx,
         draw.top + draw.height * flag.uv.dy,
       );
       final sway =
-          sin(_time * 2.2 + flag.phase) * swayAmp + _wind * 0.25 * _windSign;
+          sin(_time * (1.6 + _breeze.abs()) + flag.phase) * swayAmp + lean;
       final w = draw.width * flag.width;
-      final h = draw.height * flag.height;
+      final h = draw.height * flag.height * (1 + _gust * 0.08);
 
       canvas.save();
       canvas.translate(anchor.dx, anchor.dy);
       canvas.rotate(sway);
+      // Soft second fold so wind reads as fabric, not a rigid board.
+      final flutter = sin(_time * 3.4 + flag.phase * 1.7) * (0.04 + _gust * 0.12);
       final path = Path()
         ..moveTo(-w * 0.5, 0)
         ..lineTo(w * 0.5, 0)
-        ..lineTo(w * 0.35, h)
-        ..lineTo(-w * 0.35, h)
+        ..lineTo(w * (0.35 + flutter), h)
+        ..lineTo(-w * (0.35 - flutter), h)
         ..close();
       canvas.drawPath(
         path,
         Paint()..color = flag.color.withValues(alpha: 0.82),
       );
-      // Tiny punched hole suggestion (no clear blend — keeps letterbox intact).
       canvas.drawCircle(
         Offset(0, h * 0.38),
         w * 0.14,
@@ -435,11 +528,60 @@ class VillageAtmosphere extends PositionComponent {
     }
   }
 
+  void _renderTrees(Canvas canvas, Rect draw) {
+    final sway =
+        sin(_time * 1.15) * (0.025 + _breeze.abs() * 0.03) +
+        _gust * 0.09 * _gustSign;
+    for (final tree in _trees) {
+      final cx = draw.left + draw.width * tree.uv.dx;
+      final cy = draw.top + draw.height * tree.uv.dy;
+      final rx = draw.width * tree.radiusX;
+      final ry = draw.height * tree.radiusY;
+
+      canvas.save();
+      canvas.translate(cx, cy + ry * 0.85);
+      canvas.rotate(sway * (0.7 + tree.phase * 0.1));
+      canvas.translate(0, -ry * 0.85);
+
+      // Soft canopy wash — sells sway without covering the painted trunk art.
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: rx * 2, height: ry * 2),
+        Paint()
+          ..color = const Color(0xFF3F7A3A).withValues(alpha: 0.07 + _gust * 0.04)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, rx * 0.25),
+      );
+
+      for (var i = 0; i < tree.leafCount; i++) {
+        final a = tree.phase + i * 0.9 + _time * 0.4;
+        final ox = cos(a) * rx * (0.25 + (i % 5) * 0.12);
+        final oy = sin(a * 0.85) * ry * (0.2 + (i % 4) * 0.1);
+        final leafSway = sin(_time * 2.2 + a) * (2 + _gust * 5) * _windSign;
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(ox + leafSway, oy),
+            width: 7 + (i % 3) * 2,
+            height: 4 + (i % 2),
+          ),
+          Paint()
+            ..color = Color.lerp(
+              const Color(0xFF5FA84A),
+              const Color(0xFFF39A3C),
+              (i % 4) / 5,
+            )!.withValues(alpha: 0.28 + _gust * 0.1),
+        );
+      }
+      canvas.restore();
+    }
+  }
+
   void _renderSmoke(Canvas canvas, Rect draw) {
     for (final puff in _smoke) {
       final t = puff.age;
       final x = draw.left +
-          draw.width * (puff.origin.dx + t * 0.03 * _windSign + sin(_time + t * 8) * 0.008);
+          draw.width *
+              (puff.origin.dx +
+                  t * 0.03 * _windSign +
+                  sin(_time + t * 8) * 0.008);
       final y = draw.top + draw.height * (puff.origin.dy - t * 0.12);
       final radius = draw.width * (0.012 + t * 0.02);
       final alpha = (1 - t) * 0.22;
@@ -521,53 +663,74 @@ class VillageAtmosphere extends PositionComponent {
     for (final body in _waters) {
       final cx = draw.left + draw.width * body.center.dx;
       final cy = draw.top + draw.height * body.center.dy;
-      final rx = draw.width * body.radiusX * splashBoost;
-      final ry = draw.height * body.radiusY * splashBoost;
+      final rx = draw.width * body.radiusX * (body.kind == _WaterKind.fountain ? splashBoost : 1);
+      final ry = draw.height * body.radiusY * (body.kind == _WaterKind.fountain ? splashBoost : 1);
 
-      // Soft pool glow.
       canvas.drawOval(
         Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2),
         Paint()
           ..color = const Color(0xFF6EC8FF)
-              .withValues(alpha: 0.10 + 0.06 * sin(_time * body.speed) + _fountainSplash * 0.08)
+              .withValues(alpha: 0.10 + 0.06 * sin(_time * body.speed) +
+                  (body.kind == _WaterKind.fountain ? _fountainSplash * 0.08 : 0))
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
 
-      // Highlight sheen drifting across the surface.
-      final sheenX = cx + sin(_time * body.speed * 0.7) * rx * 0.35;
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(sheenX, cy - ry * 0.15),
-          width: rx * 0.55,
-          height: ry * 0.28,
-        ),
-        Paint()
-          ..color = const Color(0xFFE8F8FF).withValues(alpha: 0.12 + _fountainSplash * 0.08)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-      );
-
-      for (var i = 0; i < body.rippleCount; i++) {
-        final phase = (_time * body.speed + i * 0.85) % 1.0;
-        final expand = 0.35 + phase * 0.75;
-        final alpha = (1 - phase) * (0.28 + _fountainSplash * 0.15);
+      if (body.kind == _WaterKind.fountain) {
+        final sheenX = cx + sin(_time * body.speed * 0.7) * rx * 0.35;
         canvas.drawOval(
           Rect.fromCenter(
-            center: Offset(cx, cy),
-            width: rx * 2 * expand,
-            height: ry * 2 * expand,
+            center: Offset(sheenX, cy - ry * 0.15),
+            width: rx * 0.55,
+            height: ry * 0.28,
           ),
           Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4 + _fountainSplash * 0.6
-            ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
+            ..color = const Color(0xFFE8F8FF).withValues(alpha: 0.12 + _fountainSplash * 0.08)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
         );
+      }
+
+      for (var i = 0; i < body.rippleCount; i++) {
+        if (body.kind == _WaterKind.river) {
+          // Downstream-traveling crescents instead of expanding rings.
+          final phase = (_time * body.speed * 0.55 + i * 0.4) % 1.0;
+          final flow = body.flow;
+          final px = cx + flow.dx * rx * (phase * 2 - 1);
+          final py = cy + flow.dy * ry * (phase * 2 - 1);
+          final alpha = (1 - (phase - 0.5).abs() * 2) * 0.32;
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: Offset(px, py),
+              width: rx * (0.55 + phase * 0.35),
+              height: ry * (0.45 + phase * 0.25),
+            ),
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.3
+              ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
+          );
+        } else {
+          final phase = (_time * body.speed + i * 0.85) % 1.0;
+          final expand = 0.35 + phase * 0.75;
+          final alpha = (1 - phase) * (0.28 + _fountainSplash * 0.15);
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: Offset(cx, cy),
+              width: rx * 2 * expand,
+              height: ry * 2 * expand,
+            ),
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.4 + _fountainSplash * 0.6
+              ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
+          );
+        }
       }
     }
 
     _renderFountainJets(canvas, draw);
     _renderDroplets(canvas, draw);
+    _renderRiverSparks(canvas, draw);
 
-    // Splash rings when the fountain is agitated.
     if (_fountainSplash > 0.05) {
       final fx = draw.left + draw.width * VillageBackdrop.fountainCenterUv.dx;
       final fy = draw.top + draw.height * VillageBackdrop.fountainCenterUv.dy;
@@ -587,6 +750,39 @@ class VillageAtmosphere extends PositionComponent {
                 .withValues(alpha: (1 - t) * 0.35 * _fountainSplash.clamp(0.0, 1.0)),
         );
       }
+    }
+  }
+
+  void _renderRiverSparks(Canvas canvas, Rect draw) {
+    for (final spark in _riverSparks) {
+      final body = _waters[spark.bodyIndex];
+      final cx = draw.left + draw.width * body.center.dx;
+      final cy = draw.top + draw.height * body.center.dy;
+      final rx = draw.width * body.radiusX;
+      final ry = draw.height * body.radiusY;
+      final flow = body.flow;
+      // Move along flow direction from upstream (-flow) to downstream (+flow).
+      final t = spark.t;
+      final along = t * 2 - 1;
+      final perpX = -flow.dy;
+      final perpY = flow.dx;
+      final x = cx + flow.dx * rx * along + perpX * rx * spark.lateral * 0.55;
+      final y = cy + flow.dy * ry * along + perpY * ry * spark.lateral * 0.55;
+      final fade = (1 - (t - 0.5).abs() * 2).clamp(0.0, 1.0);
+      canvas.drawCircle(
+        Offset(x, y),
+        spark.size,
+        Paint()..color = const Color(0xFFE8F8FF).withValues(alpha: 0.45 * fade),
+      );
+      // Tiny streak in flow direction.
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(x + flow.dx * 6, y + flow.dy * 5),
+        Paint()
+          ..color = const Color(0xFFB8ECFF).withValues(alpha: 0.35 * fade)
+          ..strokeWidth = 1.2
+          ..strokeCap = StrokeCap.round,
+      );
     }
   }
 
@@ -641,7 +837,7 @@ class VillageAtmosphere extends PositionComponent {
       final oy = draw.top + draw.height * drop.origin.dy;
       final lateral = draw.width * 0.04 * sin(drop.angle) * t * drop.arc;
       final height = draw.height * drop.height * rise * (1 + _fountainSplash * 0.3);
-      final x = ox + lateral + _wind * 6 * _windSign * t;
+      final x = ox + lateral + _gust * 6 * _gustSign * t;
       final y = oy - height;
       final alpha = (1 - t) * 0.75;
       canvas.drawCircle(
@@ -755,6 +951,8 @@ class VillageAtmosphere extends PositionComponent {
   }
 }
 
+enum _WaterKind { fountain, river }
+
 class _WaterBody {
   _WaterBody({
     required this.center,
@@ -762,6 +960,8 @@ class _WaterBody {
     required this.radiusY,
     required this.rippleCount,
     required this.speed,
+    this.kind = _WaterKind.fountain,
+    this.flow = Offset.zero,
   });
 
   final Offset center;
@@ -769,6 +969,40 @@ class _WaterBody {
   final double radiusY;
   final int rippleCount;
   final double speed;
+  final _WaterKind kind;
+  final Offset flow;
+}
+
+class _RiverSpark {
+  _RiverSpark({
+    required this.bodyIndex,
+    required this.t,
+    required this.lateral,
+    required this.size,
+    required this.speed,
+  });
+
+  int bodyIndex;
+  double t;
+  double lateral;
+  double size;
+  double speed;
+}
+
+class _TreeCanopy {
+  _TreeCanopy({
+    required this.uv,
+    required this.radiusX,
+    required this.radiusY,
+    required this.phase,
+    required this.leafCount,
+  });
+
+  final Offset uv;
+  final double radiusX;
+  final double radiusY;
+  final double phase;
+  final int leafCount;
 }
 
 class _FountainJet {

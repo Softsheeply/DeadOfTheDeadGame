@@ -18,6 +18,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Cobble road only -- wander, land, and drag clamps prefer this.
   Rect? roadBounds;
 
+  /// Optional plaza-aware clamp (avoids trees, fountain, river, roofs).
+  Vector2 Function(Vector2 point, {bool softTop})? walkClamp;
+
   /// Optional plaza destinations (florist, bakery, stage, …) for purposeful roam.
   List<Vector2> wanderHotspots = const [];
 
@@ -289,6 +292,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     final step = min(distance, speed * dt);
     position.x += dx / distance * step;
     position.y += dy / distance * step;
+    if (!allowOffRoad) {
+      _clampToWorld();
+    }
   }
 
   void _setIdle() {
@@ -400,7 +406,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   double _groundY() {
     final road = roadBounds;
-    if (road != null) return road.bottom;
+    if (road != null) {
+      // Land near current feet Y inside the cobble band, not always at the bottom.
+      return position.y.clamp(road.top + road.height * 0.15, road.bottom);
+    }
     final bounds = worldBounds;
     if (bounds == null) return position.y;
     return bounds.y * 0.90;
@@ -414,6 +423,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         point.x.clamp(-160, bounds.x + 160),
         point.y.clamp(bounds.y * 0.2, bounds.y * 0.98),
       );
+    }
+    final custom = walkClamp;
+    if (custom != null) {
+      return custom(point, softTop: softTop);
     }
     final road = roadBounds;
     if (road != null) {
