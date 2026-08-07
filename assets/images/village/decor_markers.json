@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "note": "UV fractions of the painted plaza (1280x426). Used by VillageDecor.",
+  "buildings": [
+    {
+      "id": "floristeria",
+      "label": "Floristería",
+      "center": [0.12, 0.52],
+      "hitSize": [0.10, 0.18],
+      "status": "Marigolds freshly watered — Pepita would approve."
+    },
+    {
+      "id": "panaderia",
+      "label": "Panadería",
+      "center": [0.28, 0.52],
+      "hitSize": [0.10, 0.18],
+      "status": "The oven sighs warm pan dulce into the night."
+    },
+    {
+      "id": "mariachi_stage",
+      "label": "Mariachi stage",
+      "center": [0.62, 0.50],
+      "hitSize": [0.11, 0.16],
+      "status": "A guitar waits. Someone should play."
+    },
+    {
+      "id": "church",
+      "label": "Church",
+      "center": [0.74, 0.48],
+      "hitSize": [0.10, 0.20],
+      "status": "Candlelight pools under the skull doorway."
+    },
+    {
+      "id": "mercado",
+      "label": "Mercado",
+      "center": [0.90, 0.52],
+      "hitSize": [0.09, 0.16],
+      "status": "Sugar skulls and ribbons catch the lamplight."
+    }
+  ],
+  "fx": [
+    { "type": "candle", "uv": [0.08, 0.78], "strength": 0.9 },
+    { "type": "candle", "uv": [0.12, 0.79], "strength": 0.85 },
+    { "type": "candle", "uv": [0.16, 0.78], "strength": 0.9 },
+    { "type": "candle", "uv": [0.52, 0.68], "strength": 1.0 },
+    { "type": "candle", "uv": [0.56, 0.70], "strength": 1.05 },
+    { "type": "candle", "uv": [0.60, 0.68], "strength": 1.0 },
+    { "type": "lantern", "uv": [0.48, 0.40], "strength": 1.2 },
+    { "type": "lantern", "uv": [0.52, 0.38], "strength": 1.15 },
+    { "type": "water", "uv": [0.575, 0.60], "radius": [0.055, 0.045] },
+    { "type": "water", "uv": [0.13, 0.88], "radius": [0.07, 0.022] },
+    { "type": "smoke", "uv": [0.30, 0.30], "strength": 1.0 },
+    { "type": "window", "uv": [0.115, 0.46], "size": [0.028, 0.035] },
+    { "type": "oven", "uv": [0.275, 0.50], "size": [0.04, 0.05] },
+    { "type": "window", "uv": [0.74, 0.34], "size": [0.02, 0.025] }
+  ]
+}

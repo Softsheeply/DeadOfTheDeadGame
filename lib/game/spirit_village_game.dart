@@ -2,27 +2,32 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' show Offset, Rect;
 
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../data/character_config.dart';
+import 'ambient_critters.dart';
 import 'cast_roster.dart';
 import 'petal_burst.dart';
 import 'resident.dart';
 import 'toys.dart';
 import 'village_atmosphere.dart';
 import 'village_backdrop.dart';
+import 'village_decor.dart';
 
 enum VillageToy { wind, petals, music, panDulce }
 
 /// Spirit Village -- living Día de los Muertos plaza with Pocket God toys.
-class SpiritVillageGame extends FlameGame {
+class SpiritVillageGame extends FlameGame with TapCallbacks {
   final List<Resident> residents = [];
   final Map<String, Resident> _residentsById = {};
   final CastRoster castRoster = CastRoster();
   VillageBackdrop? backdrop;
   VillageAtmosphere? atmosphere;
+  VillageDecor? decor;
+  AmbientCritters? critters;
   PanDulceTreat? activeTreat;
   bool _residentsReady = false;
   bool musicPlaying = false;
@@ -48,6 +53,10 @@ class SpiritVillageGame extends FlameGame {
     await add(backdrop!);
     atmosphere = VillageAtmosphere(backdrop: backdrop!);
     await add(atmosphere!);
+    decor = VillageDecor(backdrop: backdrop!);
+    await add(decor!);
+    critters = AmbientCritters(backdrop: backdrop!);
+    await add(critters!);
 
     await castRoster.load();
 
@@ -65,6 +74,14 @@ class SpiritVillageGame extends FlameGame {
 
   void _onCastRosterChanged() {
     // Roster toggles are driven through [setCastPresent] so we can animate.
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    final building = decor?.hitTest(event.localPosition);
+    if (building != null) {
+      toyStatus.value = '${building.label}: ${building.status}';
+    }
   }
 
   void toggleCastPanel() {
@@ -324,6 +341,7 @@ class SpiritVillageGame extends FlameGame {
     super.onGameResize(size);
     backdrop?.resizeTo(size);
     atmosphere?.resizeTo(size);
+    critters?.resizeTo(size);
     if (_residentsReady) {
       _syncResidentBounds();
     }
