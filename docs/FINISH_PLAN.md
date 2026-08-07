@@ -93,6 +93,7 @@ For **each** character:
 - [ ] React: poke, happy, sit, carry
 - [ ] Shared dance (music)
 - [ ] Shared wind lean
+- [ ] Held / carried pose (while player drags them)
 
 Tracking:
 - [ ] 34. Pepita complete set
