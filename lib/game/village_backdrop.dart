@@ -28,6 +28,19 @@ class VillageBackdrop extends PositionComponent {
   static const double fountainRadiusX = 0.045;
   static const double fountainRadiusY = 0.055;
 
+  /// Interesting plaza stops residents like to visit (UV of painted image).
+  static const List<Offset> hotspotUvs = [
+    Offset(0.14, 0.70), // floristería front
+    Offset(0.28, 0.72), // panadería
+    Offset(0.42, 0.74), // tree / fountain west
+    Offset(0.58, 0.78), // fountain south rim
+    Offset(0.66, 0.70), // mariachi stage
+    Offset(0.76, 0.72), // church steps
+    Offset(0.88, 0.74), // mercado
+    Offset(0.18, 0.84), // bridge approach
+    Offset(0.50, 0.86), // plaza center south
+  ];
+
   Sprite? _day;
   Sprite? _night;
   bool isNight = true;
@@ -92,6 +105,32 @@ class VillageBackdrop extends PositionComponent {
     }
     return Vector2(road.center.dx, road.center.dy);
   }
+
+  /// World-space hotspot with a little jitter so paths don't stack perfectly.
+  Vector2 randomHotspot(Random random) {
+    final uv = hotspotUvs[random.nextInt(hotspotUvs.length)];
+    final point = uvToWorld(uv);
+    return clampToRoad(
+      point +
+          Vector2(
+            (random.nextDouble() - 0.5) * 28,
+            (random.nextDouble() - 0.5) * 16,
+          ),
+    );
+  }
+
+  Vector2 uvToWorld(Offset uv) {
+    if (drawRect == Rect.zero) {
+      return Vector2(size.x * uv.dx, size.y * uv.dy);
+    }
+    return Vector2(
+      drawRect.left + drawRect.width * uv.dx,
+      drawRect.top + drawRect.height * uv.dy,
+    );
+  }
+
+  List<Vector2> hotspotWorldPoints() =>
+      hotspotUvs.map(uvToWorld).map(clampToRoad).toList(growable: false);
 
   bool _insideFountain(Vector2 point) {
     if (drawRect == Rect.zero) return false;

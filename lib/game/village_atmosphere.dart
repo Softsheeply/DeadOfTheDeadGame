@@ -6,7 +6,7 @@ import 'package:flutter/painting.dart';
 
 import 'village_backdrop.dart';
 
-/// Living plaza overlays: water ripples, candle flicker, building glow.
+/// Living plaza overlays: water, candles, buildings, papel, smoke, fireflies.
 ///
 /// Drawn in image space via [VillageBackdrop.drawRect] so markers stay locked
 /// to the painted plaza when the screen letterboxes or resizes.
@@ -20,14 +20,19 @@ class VillageAtmosphere extends PositionComponent {
   late final List<_WaterBody> _waters;
   late final List<_Candle> _candles;
   late final List<_BuildingLight> _lights;
+  late final List<_PapelFlag> _papel;
+  late final List<_SmokePuff> _smoke;
+  late final List<_Firefly> _fireflies;
+  late final List<_DriftPetal> _petals;
   double _time = 0;
+  double _wind = 0;
+  double _windSign = 1;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     size = backdrop.size.clone();
 
-    // UV fractions of the painted plaza (1280×426).
     _waters = [
       _WaterBody(
         center: const Offset(0.575, 0.60),
@@ -43,7 +48,6 @@ class VillageAtmosphere extends PositionComponent {
         rippleCount: 3,
         speed: 0.95,
       ),
-      // Stream under the stone bridge (bottom-left).
       _WaterBody(
         center: const Offset(0.13, 0.88),
         radiusX: 0.07,
@@ -61,28 +65,24 @@ class VillageAtmosphere extends PositionComponent {
     ];
 
     _candles = [
-      // Bridge ofrenda
       for (var i = 0; i < 6; i++)
         _Candle(
           uv: Offset(0.06 + i * 0.035, 0.78 + (i.isEven ? 0.01 : -0.01)),
           phase: i * 0.7,
           strength: 0.9,
         ),
-      // Fountain rim
       for (var i = 0; i < 5; i++)
         _Candle(
           uv: Offset(0.50 + i * 0.03, 0.68 + (i % 2) * 0.02),
           phase: 1.2 + i * 0.55,
           strength: 1.05,
         ),
-      // Plaza ground candles
       _Candle(uv: const Offset(0.32, 0.72), phase: 0.4, strength: 0.85),
       _Candle(uv: const Offset(0.38, 0.76), phase: 1.1, strength: 0.85),
       _Candle(uv: const Offset(0.44, 0.70), phase: 2.0, strength: 0.85),
       _Candle(uv: const Offset(0.70, 0.74), phase: 2.6, strength: 0.85),
       _Candle(uv: const Offset(0.78, 0.70), phase: 3.3, strength: 0.85),
       _Candle(uv: const Offset(0.84, 0.76), phase: 4.1, strength: 0.9),
-      // Tree lanterns
       _Candle(uv: const Offset(0.46, 0.42), phase: 0.2, strength: 1.2, radius: 18),
       _Candle(uv: const Offset(0.50, 0.38), phase: 1.0, strength: 1.15, radius: 16),
       _Candle(uv: const Offset(0.54, 0.44), phase: 1.8, strength: 1.2, radius: 17),
@@ -128,18 +128,101 @@ class VillageAtmosphere extends PositionComponent {
         flicker: true,
       ),
     ];
+
+    const papelColors = [
+      Color(0xFFED5791),
+      Color(0xFFF39A3C),
+      Color(0xFF47C4BA),
+      Color(0xFF733D91),
+      Color(0xFFFFE066),
+      Color(0xFF5B8CFF),
+    ];
+    _papel = [
+      for (var row = 0; row < 2; row++)
+        for (var i = 0; i < 14; i++)
+          _PapelFlag(
+            uv: Offset(0.12 + i * 0.055, 0.14 + row * 0.055 + (i.isEven ? 0.01 : 0)),
+            color: papelColors[(i + row * 3) % papelColors.length],
+            phase: i * 0.45 + row,
+            width: 0.018 + (i % 3) * 0.003,
+            height: 0.04 + (i % 2) * 0.01,
+          ),
+    ];
+
+    _smoke = List.generate(10, (i) {
+      return _SmokePuff(
+        origin: const Offset(0.30, 0.30),
+        age: i / 10,
+        drift: 0.4 + _random.nextDouble() * 0.4,
+      );
+    });
+
+    _fireflies = List.generate(18, (i) {
+      return _Firefly(
+        uv: Offset(0.15 + _random.nextDouble() * 0.7, 0.35 + _random.nextDouble() * 0.45),
+        phase: _random.nextDouble() * pi * 2,
+        speed: 0.15 + _random.nextDouble() * 0.25,
+      );
+    });
+
+    _petals = List.generate(12, (i) {
+      return _DriftPetal(
+        uv: Offset(_random.nextDouble(), 0.2 + _random.nextDouble() * 0.6),
+        phase: _random.nextDouble() * pi * 2,
+        speed: 0.03 + _random.nextDouble() * 0.05,
+        color: Color.lerp(
+          const Color(0xFFF39A3C),
+          const Color(0xFFED5791),
+          _random.nextDouble(),
+        )!,
+      );
+    });
   }
 
   void resizeTo(Vector2 newSize) {
     size.setFrom(newSize);
   }
 
+  /// Brief gust from the Wind toy — papel and smoke lean harder.
+  void applyGust({required double directionSign}) {
+    _windSign = directionSign >= 0 ? 1 : -1;
+    _wind = 1.0;
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
     _time += dt;
+    if (_wind > 0) {
+      _wind = max(0, _wind - dt * 0.55);
+    }
     for (final light in _lights) {
       light.update(dt, _random, _time);
+    }
+    for (final puff in _smoke) {
+      puff.age += dt * 0.22 * puff.drift;
+      if (puff.age >= 1) {
+        puff.age -= 1;
+        puff.drift = 0.4 + _random.nextDouble() * 0.45;
+      }
+    }
+    for (final fly in _fireflies) {
+      fly.uv = Offset(
+        (fly.uv.dx + sin(_time * fly.speed + fly.phase) * dt * 0.02).clamp(0.08, 0.92),
+        (fly.uv.dy + cos(_time * fly.speed * 0.8 + fly.phase) * dt * 0.015).clamp(0.28, 0.82),
+      );
+    }
+    final windPush = (0.015 + _wind * 0.05) * _windSign;
+    for (final petal in _petals) {
+      var x = petal.uv.dx + windPush * dt * 4 + sin(_time + petal.phase) * dt * 0.01;
+      x %= 1.0;
+      if (x < 0) x += 1;
+      var y = petal.uv.dy + petal.speed * dt;
+      if (y > 0.9) {
+        x = _random.nextDouble();
+        y = 0.18 + _random.nextDouble() * 0.1;
+      }
+      petal.uv = Offset(x, y);
     }
   }
 
@@ -149,14 +232,110 @@ class VillageAtmosphere extends PositionComponent {
     if (draw == Rect.zero) return;
 
     final night = backdrop.nightBlend;
+    _renderPapel(canvas, draw);
     _renderWater(canvas, draw);
+    _renderSmoke(canvas, draw);
+    _renderDriftPetals(canvas, draw);
 
     if (night > 0.02) {
       _renderCandles(canvas, draw, night);
       _renderBuildingLights(canvas, draw, night);
+      _renderFireflies(canvas, draw, night);
     } else {
-      // Soft day ember for the bakery oven only.
       _renderBuildingLights(canvas, draw, 0.3, dayOnly: true);
+    }
+  }
+
+  void _renderPapel(Canvas canvas, Rect draw) {
+    final swayAmp = 0.12 + _wind * 0.35;
+    for (final flag in _papel) {
+      final anchor = Offset(
+        draw.left + draw.width * flag.uv.dx,
+        draw.top + draw.height * flag.uv.dy,
+      );
+      final sway =
+          sin(_time * 2.2 + flag.phase) * swayAmp + _wind * 0.25 * _windSign;
+      final w = draw.width * flag.width;
+      final h = draw.height * flag.height;
+
+      canvas.save();
+      canvas.translate(anchor.dx, anchor.dy);
+      canvas.rotate(sway);
+      final path = Path()
+        ..moveTo(-w * 0.5, 0)
+        ..lineTo(w * 0.5, 0)
+        ..lineTo(w * 0.35, h)
+        ..lineTo(-w * 0.35, h)
+        ..close();
+      canvas.drawPath(
+        path,
+        Paint()..color = flag.color.withValues(alpha: 0.82),
+      );
+      // Tiny punched hole suggestion (no clear blend — keeps letterbox intact).
+      canvas.drawCircle(
+        Offset(0, h * 0.38),
+        w * 0.14,
+        Paint()..color = const Color(0x55FFF8E8),
+      );
+      canvas.restore();
+    }
+  }
+
+  void _renderSmoke(Canvas canvas, Rect draw) {
+    for (final puff in _smoke) {
+      final t = puff.age;
+      final x = draw.left +
+          draw.width * (puff.origin.dx + t * 0.03 * _windSign + sin(_time + t * 8) * 0.008);
+      final y = draw.top + draw.height * (puff.origin.dy - t * 0.12);
+      final radius = draw.width * (0.012 + t * 0.02);
+      final alpha = (1 - t) * 0.22;
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        Paint()
+          ..color = const Color(0xFFD8C8B8).withValues(alpha: alpha)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.8),
+      );
+    }
+  }
+
+  void _renderDriftPetals(Canvas canvas, Rect draw) {
+    for (final petal in _petals) {
+      final pos = Offset(
+        draw.left + draw.width * petal.uv.dx,
+        draw.top + draw.height * petal.uv.dy,
+      );
+      canvas.save();
+      canvas.translate(pos.dx, pos.dy);
+      canvas.rotate(_time * 0.8 + petal.phase);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: 7, height: 4),
+        Paint()..color = petal.color.withValues(alpha: 0.55),
+      );
+      canvas.restore();
+    }
+  }
+
+  void _renderFireflies(Canvas canvas, Rect draw, double night) {
+    for (final fly in _fireflies) {
+      final pulse = 0.45 + 0.55 * (0.5 + 0.5 * sin(_time * 5 + fly.phase));
+      final pos = Offset(
+        draw.left + draw.width * fly.uv.dx,
+        draw.top + draw.height * fly.uv.dy,
+      );
+      final alpha = night * pulse;
+      canvas.drawCircle(
+        pos,
+        5,
+        Paint()
+          ..color = const Color(0xFFB8FF7A).withValues(alpha: 0.18 * alpha)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+      canvas.drawCircle(
+        pos,
+        1.6,
+        Paint()..color = const Color(0xFFE8FFB0).withValues(alpha: 0.85 * alpha),
+      );
     }
   }
 
@@ -341,4 +520,58 @@ class _BuildingLight {
     }
     alpha = value.clamp(0.4, 1.0);
   }
+}
+
+class _PapelFlag {
+  _PapelFlag({
+    required this.uv,
+    required this.color,
+    required this.phase,
+    required this.width,
+    required this.height,
+  });
+
+  final Offset uv;
+  final Color color;
+  final double phase;
+  final double width;
+  final double height;
+}
+
+class _SmokePuff {
+  _SmokePuff({
+    required this.origin,
+    required this.age,
+    required this.drift,
+  });
+
+  final Offset origin;
+  double age;
+  double drift;
+}
+
+class _Firefly {
+  _Firefly({
+    required this.uv,
+    required this.phase,
+    required this.speed,
+  });
+
+  Offset uv;
+  final double phase;
+  final double speed;
+}
+
+class _DriftPetal {
+  _DriftPetal({
+    required this.uv,
+    required this.phase,
+    required this.speed,
+    required this.color,
+  });
+
+  Offset uv;
+  final double phase;
+  final double speed;
+  final Color color;
 }

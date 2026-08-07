@@ -18,6 +18,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Cobble road only -- wander, land, and drag clamps prefer this.
   Rect? roadBounds;
 
+  /// Optional plaza destinations (florist, bakery, stage, …) for purposeful roam.
+  List<Vector2> wanderHotspots = const [];
+
   /// Optional juice hook -- SpiritVillageGame wires this to PetalBurst.
   void Function(Vector2 position, {int count})? onPetalBurst;
 
@@ -149,6 +152,18 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _moveRandomly() {
     final road = roadBounds;
     if (road != null && road.width > 8 && road.height > 8) {
+      // Visit a named plaza stop often so the cast feels purposeful.
+      if (wanderHotspots.isNotEmpty && _random.nextDouble() < 0.55) {
+        final spot = wanderHotspots[_random.nextInt(wanderHotspots.length)];
+        walkTo(
+          spot +
+              Vector2(
+                (_random.nextDouble() - 0.5) * 24,
+                (_random.nextDouble() - 0.5) * 14,
+              ),
+        );
+        return;
+      }
       // Bias toward longer crossings so people really roam the plaza.
       final fromEdge = _random.nextBool();
       late final double x;

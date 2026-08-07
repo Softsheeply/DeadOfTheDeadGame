@@ -141,12 +141,24 @@ void main() {
     expect(resident.direction, 'right');
   });
 
+  test('wander prefers hotspots when provided', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80)
+      ..wanderHotspots = [Vector2(300, 240)];
+
+    // Force many behaviour ticks; eventually should walk toward the hotspot side.
+    for (var i = 0; i < 40; i++) {
+      resident.update(3.0);
+    }
+    expect(resident.position.x, greaterThan(150));
+  });
+
   test('walkTo clamps destinations onto the road', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
       ..worldBounds = Vector2(400, 400)
       ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
     resident.walkTo(Vector2(10, 10)); // off the road / on a "rooftop"
-    // Should walk toward a clamped road point, not stay busy walking into houses.
     for (var i = 0; i < 120; i++) {
       resident.update(1 / 60);
     }

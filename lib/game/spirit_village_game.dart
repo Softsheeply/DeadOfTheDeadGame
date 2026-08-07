@@ -94,9 +94,11 @@ class SpiritVillageGame extends FlameGame {
     final road = roadRect;
     final person = backdrop?.personDisplaySize ?? 64;
     final dog = backdrop?.dogDisplaySize ?? 50;
+    final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
     for (final resident in residents) {
       resident.worldBounds = size.clone();
       resident.roadBounds = road;
+      resident.wanderHotspots = hotspots;
       final side = resident.config.id == 'xolo' ? dog : person;
       if ((resident.size.x - side).abs() > 1) {
         resident.setDisplaySize(Vector2.all(side));
@@ -135,6 +137,7 @@ class SpiritVillageGame extends FlameGame {
   void _castWind() {
     add(WindGust(size: size.clone()));
     final sign = _random.nextBool() ? 1.0 : -1.0;
+    atmosphere?.applyGust(directionSign: sign);
     for (final resident in residents) {
       resident.applyWind(directionSign: sign);
     }

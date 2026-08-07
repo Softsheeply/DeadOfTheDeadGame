@@ -37,6 +37,18 @@ void main() {
     expect(insideFountain, lessThan(8));
   });
 
+  test('hotspotWorldPoints land on the walkable road', () {
+    final backdrop = VillageBackdrop(size: Vector2(1280, 426))
+      ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
+    final spots = backdrop.hotspotWorldPoints();
+    expect(spots, isNotEmpty);
+    final road = backdrop.roadRect;
+    for (final spot in spots) {
+      expect(spot.x, inInclusiveRange(road.left, road.right));
+      expect(spot.y, inInclusiveRange(road.top, road.bottom));
+    }
+  });
+
   test('nightBlend follows setNight target over time', () {
     final backdrop = VillageBackdrop(size: Vector2(800, 400));
     expect(backdrop.nightBlend, 1);

@@ -7,8 +7,8 @@
   "frameHeight": 128,
   "defaultDirection": "down",
   "movement": {
-    "walkSpeed": 35,
-    "skipSpeed": 45
+    "walkSpeed": 42,
+    "skipSpeed": 55
   },
   "personality": {
     "decisionIntervalMs": [
