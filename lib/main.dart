@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'game/cast_roster.dart';
 import 'game/spirit_village_game.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations(const [
+  await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(
     MaterialApp(
       title: 'Day of the Dead',
@@ -44,8 +44,28 @@ class _SpiritVillageAppState extends State<SpiritVillageApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF120A24),
       body: GameWidget(
         game: _game,
+        loadingBuilder: (_) => const ColoredBox(
+          color: Color(0xFF120A24),
+          child: Center(
+            child: CircularProgressIndicator(color: Color(0xFFF39A3C)),
+          ),
+        ),
+        errorBuilder: (_, error) => ColoredBox(
+          color: const Color(0xFF120A24),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Plaza failed to load:\n$error',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFFFF1D1), fontSize: 13),
+              ),
+            ),
+          ),
+        ),
         overlayBuilderMap: {
           'hud': (context, game) => VillageHud(game: game as SpiritVillageGame),
         },
