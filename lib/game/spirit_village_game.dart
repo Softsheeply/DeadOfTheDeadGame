@@ -81,7 +81,23 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     final building = decor?.hitTest(event.localPosition);
     if (building != null) {
       toyStatus.value = '${building.label}: ${building.status}';
+      return;
     }
+    if (_tapNearFountain(event.localPosition)) {
+      atmosphere?.splashFountain(intensity: 1.15);
+      spawnPetals(event.localPosition.clone(), count: 8);
+      toyStatus.value = 'The fountain burps marigold mist!';
+    }
+  }
+
+  bool _tapNearFountain(Vector2 worldPoint) {
+    final draw = backdrop?.drawRect;
+    if (draw == null || draw == Rect.zero) return false;
+    final fx = draw.left + draw.width * VillageBackdrop.fountainCenterUv.dx;
+    final fy = draw.top + draw.height * VillageBackdrop.fountainCenterUv.dy;
+    final nx = (worldPoint.x - fx) / (draw.width * VillageBackdrop.fountainRadiusX * 1.8);
+    final ny = (worldPoint.y - fy) / (draw.height * VillageBackdrop.fountainRadiusY * 1.8);
+    return nx * nx + ny * ny <= 1;
   }
 
   void toggleCastPanel() {
@@ -247,6 +263,17 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     for (final resident in residents) {
       resident.applyWind(directionSign: sign);
     }
+    // A couple of leaf-scatter petal pops so the gust feels physical.
+    final road = roadRect;
+    for (var i = 0; i < 4; i++) {
+      spawnPetals(
+        Vector2(
+          road.left + _random.nextDouble() * road.width,
+          road.top + _random.nextDouble() * road.height * 0.6,
+        ),
+        count: 8,
+      );
+    }
     toyStatus.value = 'A festival wind sweeps the plaza!';
   }
 
@@ -264,12 +291,14 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
         resident.applyDancePulse();
       }
     }
+    atmosphere?.splashFountain(intensity: 0.4);
     toyStatus.value = 'Marigold rain!';
   }
 
   void _castMusic() {
     musicPlaying = true;
     _musicTimer = 4.0;
+    add(MusicNotesBurst(size: size.clone()));
     for (final resident in residents) {
       resident.applyDancePulse();
     }
@@ -286,6 +315,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     final treat = PanDulceTreat(position: treatPos);
     activeTreat = treat;
     add(treat);
+    spawnPetals(treatPos.clone()..y -= 10, count: 6);
 
     final dog = xolo;
     dog?.attractTo(treatPos);
@@ -329,6 +359,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
           activeTreat = null;
           critter.applyDancePulse();
           spawnPetals(critter.position.clone()..y -= 16, count: 12);
+          add(SparkleBurst(position: critter.position.clone(), count: 16));
           toyStatus.value = '${critter.config.displayName} gobbled the pan dulce!';
           break;
         }

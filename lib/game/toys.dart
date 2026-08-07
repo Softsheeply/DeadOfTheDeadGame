@@ -94,6 +94,14 @@ class PanDulceTreat extends PositionComponent {
     final y = sin(_bob) * 3;
     final bread = Paint()..color = const Color(0xFFE8B86D);
     final sugar = Paint()..color = const Color(0xFFFFF1D1);
+    // Soft glow so the treat reads as a toy target.
+    canvas.drawCircle(
+      Offset(0, y),
+      16,
+      Paint()
+        ..color = const Color(0xFFFFE0A0).withValues(alpha: 0.22 + 0.1 * sin(_bob))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
     canvas.drawOval(
       Rect.fromCenter(center: Offset(0, y), width: 22, height: 14),
       bread,
@@ -102,4 +110,169 @@ class PanDulceTreat extends PositionComponent {
     canvas.drawCircle(Offset(3, y - 3), 2.0, sugar);
     canvas.drawCircle(Offset(0, y + 1), 1.8, sugar);
   }
+}
+
+/// Floating music notes that drift up during the mariachi toy.
+class MusicNotesBurst extends PositionComponent {
+  MusicNotesBurst({required Vector2 size})
+      : super(size: size, position: Vector2.zero(), priority: 45);
+
+  final Random _random = Random();
+  late final List<_Note> _notes;
+  double _age = 0;
+  static const double lifetime = 3.6;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _notes = List.generate(14, (i) {
+      return _Note(
+        offset: Vector2(
+          size.x * (0.18 + _random.nextDouble() * 0.64),
+          size.y * (0.55 + _random.nextDouble() * 0.3),
+        ),
+        speed: 35 + _random.nextDouble() * 55,
+        sway: 18 + _random.nextDouble() * 22,
+        phase: _random.nextDouble() * pi * 2,
+        scale: 0.7 + _random.nextDouble() * 0.7,
+        color: i.isEven ? const Color(0xFFFFE066) : const Color(0xFFED5791),
+      );
+    });
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _age += dt;
+    for (final note in _notes) {
+      note.offset.y -= note.speed * dt;
+      note.offset.x += sin(_age * 2.2 + note.phase) * note.sway * dt * 0.35;
+    }
+    if (_age >= lifetime) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final fade = (1 - (_age / lifetime)).clamp(0.0, 1.0);
+    for (final note in _notes) {
+      canvas.save();
+      canvas.translate(note.offset.x, note.offset.y);
+      canvas.scale(note.scale);
+      canvas.rotate(sin(_age * 3 + note.phase) * 0.25);
+      final paint = Paint()
+        ..color = note.color.withValues(alpha: 0.75 * fade);
+      // Stem
+      canvas.drawLine(
+        const Offset(4, -10),
+        const Offset(4, 6),
+        paint
+          ..strokeWidth = 1.6
+          ..style = PaintingStyle.stroke,
+      );
+      // Note head
+      canvas.drawOval(
+        Rect.fromCenter(center: const Offset(0, 6), width: 9, height: 6),
+        Paint()..color = note.color.withValues(alpha: 0.85 * fade),
+      );
+      // Flag
+      final flag = Path()
+        ..moveTo(4, -10)
+        ..quadraticBezierTo(14, -6, 10, 0)
+        ..lineTo(4, -2)
+        ..close();
+      canvas.drawPath(
+        flag,
+        Paint()..color = note.color.withValues(alpha: 0.7 * fade),
+      );
+      canvas.restore();
+    }
+  }
+}
+
+class _Note {
+  _Note({
+    required this.offset,
+    required this.speed,
+    required this.sway,
+    required this.phase,
+    required this.scale,
+    required this.color,
+  });
+
+  Vector2 offset;
+  final double speed;
+  final double sway;
+  final double phase;
+  final double scale;
+  final Color color;
+}
+
+/// Quick sparkle pop used when someone claims pan dulce.
+class SparkleBurst extends PositionComponent {
+  SparkleBurst({required Vector2 position, this.count = 12})
+      : super(
+          position: position,
+          size: Vector2.zero(),
+          priority: 50,
+        );
+
+  final int count;
+  final Random _random = Random();
+  late final List<_Spark> _sparks;
+  double _age = 0;
+  static const double lifetime = 0.7;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _sparks = List.generate(count, (_) {
+      final angle = _random.nextDouble() * pi * 2;
+      final speed = 60 + _random.nextDouble() * 120;
+      return _Spark(
+        velocity: Vector2(cos(angle), sin(angle)) * speed,
+        size: 2 + _random.nextDouble() * 3,
+        color: Color.lerp(
+          const Color(0xFFFFE066),
+          const Color(0xFFFFF1D1),
+          _random.nextDouble(),
+        )!,
+      );
+    });
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _age += dt;
+    for (final spark in _sparks) {
+      spark.velocity.y += 180 * dt;
+      spark.offset += spark.velocity * dt;
+    }
+    if (_age >= lifetime) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final fade = (1 - (_age / lifetime)).clamp(0.0, 1.0);
+    for (final spark in _sparks) {
+      canvas.drawCircle(
+        Offset(spark.offset.x, spark.offset.y),
+        spark.size * fade,
+        Paint()..color = spark.color.withValues(alpha: 0.9 * fade),
+      );
+    }
+  }
+}
+
+class _Spark {
+  _Spark({
+    required this.velocity,
+    required this.size,
+    required this.color,
+  }) : offset = Vector2.zero();
+
+  Vector2 offset;
+  Vector2 velocity;
+  final double size;
+  final Color color;
 }

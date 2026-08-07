@@ -18,15 +18,19 @@ class VillageAtmosphere extends PositionComponent {
   final Random _random = Random(7);
 
   late final List<_WaterBody> _waters;
+  late final List<_FountainJet> _jets;
+  late final List<_WaterDroplet> _droplets;
   late final List<_Candle> _candles;
   late final List<_BuildingLight> _lights;
   late final List<_PapelFlag> _papel;
   late final List<_SmokePuff> _smoke;
   late final List<_Firefly> _fireflies;
   late final List<_DriftPetal> _petals;
+  late final List<_FallingLeaf> _leaves;
   double _time = 0;
   double _wind = 0;
   double _windSign = 1;
+  double _fountainSplash = 0;
 
   @override
   Future<void> onLoad() async {
@@ -94,6 +98,7 @@ class VillageAtmosphere extends PositionComponent {
         size: const Size(0.028, 0.035),
         color: const Color(0xFFFFC46A),
         flicker: true,
+        breathe: true,
       ),
       _BuildingLight(
         uv: const Offset(0.275, 0.50),
@@ -114,18 +119,35 @@ class VillageAtmosphere extends PositionComponent {
         size: const Size(0.03, 0.055),
         color: const Color(0xFFFFD27A),
         flicker: true,
+        breathe: true,
       ),
       _BuildingLight(
         uv: const Offset(0.74, 0.34),
         size: const Size(0.02, 0.025),
         color: const Color(0xFFFFE0A0),
         flicker: true,
+        breathe: true,
       ),
       _BuildingLight(
         uv: const Offset(0.90, 0.46),
         size: const Size(0.025, 0.03),
         color: const Color(0xFFFFC070),
         flicker: true,
+        breathe: true,
+      ),
+      _BuildingLight(
+        uv: const Offset(0.48, 0.40),
+        size: const Size(0.022, 0.028),
+        color: const Color(0xFFFFB060),
+        breathe: true,
+        dayVisible: true,
+      ),
+      _BuildingLight(
+        uv: const Offset(0.18, 0.52),
+        size: const Size(0.02, 0.022),
+        color: const Color(0xFFFFC878),
+        flicker: true,
+        breathe: true,
       ),
     ];
 
@@ -177,6 +199,65 @@ class VillageAtmosphere extends PositionComponent {
         )!,
       );
     });
+
+    const leafColors = [
+      Color(0xFFD97706),
+      Color(0xFFB45309),
+      Color(0xFFCA8A04),
+      Color(0xFFA16207),
+      Color(0xFF854D0E),
+      Color(0xFF65A30D),
+    ];
+    _leaves = List.generate(16, (i) {
+      return _FallingLeaf(
+        uv: Offset(_random.nextDouble(), 0.12 + _random.nextDouble() * 0.55),
+        phase: _random.nextDouble() * pi * 2,
+        speed: 0.04 + _random.nextDouble() * 0.06,
+        spin: 0.8 + _random.nextDouble() * 1.6,
+        color: leafColors[i % leafColors.length],
+        width: 5 + _random.nextDouble() * 4,
+        height: 3 + _random.nextDouble() * 2.5,
+      );
+    });
+
+    // Central fountain jets + a few side spouts.
+    _jets = [
+      for (var i = 0; i < 5; i++)
+        _FountainJet(
+          origin: const Offset(0.575, 0.61),
+          angle: -1.15 + i * 0.35,
+          height: 0.055 + (i == 2 ? 0.02 : 0),
+          phase: i * 0.7,
+        ),
+      _FountainJet(
+        origin: const Offset(0.56, 0.62),
+        angle: -0.4,
+        height: 0.035,
+        phase: 2.1,
+      ),
+      _FountainJet(
+        origin: const Offset(0.59, 0.62),
+        angle: 0.4,
+        height: 0.035,
+        phase: 3.4,
+      ),
+    ];
+
+    _droplets = List.generate(28, (i) => _spawnDroplet(seed: i / 28));
+  }
+
+  _WaterDroplet _spawnDroplet({double seed = 0}) {
+    final jet = _jets[_random.nextInt(_jets.length)];
+    final arc = 0.35 + _random.nextDouble() * 0.55;
+    return _WaterDroplet(
+      origin: jet.origin,
+      angle: jet.angle + (_random.nextDouble() - 0.5) * 0.35,
+      height: jet.height * (0.7 + _random.nextDouble() * 0.5),
+      age: seed,
+      life: 0.55 + _random.nextDouble() * 0.45,
+      size: 1.2 + _random.nextDouble() * 1.8,
+      arc: arc,
+    );
   }
 
   void resizeTo(Vector2 newSize) {
@@ -187,6 +268,19 @@ class VillageAtmosphere extends PositionComponent {
   void applyGust({required double directionSign}) {
     _windSign = directionSign >= 0 ? 1 : -1;
     _wind = 1.0;
+    splashFountain(intensity: 0.85);
+  }
+
+  /// Extra fountain thrash — wind toy or a tap on the fountain.
+  void splashFountain({double intensity = 1}) {
+    _fountainSplash = (_fountainSplash + intensity).clamp(0.0, 1.6);
+    for (var i = 0; i < (8 * intensity).round(); i++) {
+      _droplets.add(_spawnDroplet(seed: _random.nextDouble() * 0.2));
+    }
+    // Cap droplet list so wind spam stays cheap.
+    while (_droplets.length > 48) {
+      _droplets.removeAt(0);
+    }
   }
 
   @override
@@ -195,6 +289,9 @@ class VillageAtmosphere extends PositionComponent {
     _time += dt;
     if (_wind > 0) {
       _wind = max(0, _wind - dt * 0.55);
+    }
+    if (_fountainSplash > 0) {
+      _fountainSplash = max(0, _fountainSplash - dt * 0.9);
     }
     for (final light in _lights) {
       light.update(dt, _random, _time);
@@ -224,6 +321,33 @@ class VillageAtmosphere extends PositionComponent {
       }
       petal.uv = Offset(x, y);
     }
+    final leafWind = (0.02 + _wind * 0.08) * _windSign;
+    for (final leaf in _leaves) {
+      var x = leaf.uv.dx +
+          leafWind * dt * 3.5 +
+          sin(_time * 1.4 + leaf.phase) * dt * 0.018;
+      x %= 1.0;
+      if (x < 0) x += 1;
+      var y = leaf.uv.dy + leaf.speed * dt * (1 + _wind * 0.6);
+      if (y > 0.92) {
+        x = _random.nextDouble();
+        y = 0.08 + _random.nextDouble() * 0.12;
+      }
+      leaf.uv = Offset(x, y);
+    }
+    for (final drop in _droplets) {
+      drop.age += dt / drop.life;
+      if (drop.age >= 1) {
+        final fresh = _spawnDroplet();
+        drop.origin = fresh.origin;
+        drop.angle = fresh.angle;
+        drop.height = fresh.height * (1 + _fountainSplash * 0.35);
+        drop.age = 0;
+        drop.life = fresh.life;
+        drop.size = fresh.size;
+        drop.arc = fresh.arc;
+      }
+    }
   }
 
   @override
@@ -236,6 +360,7 @@ class VillageAtmosphere extends PositionComponent {
     _renderWater(canvas, draw);
     _renderSmoke(canvas, draw);
     _renderDriftPetals(canvas, draw);
+    _renderLeaves(canvas, draw);
 
     if (night > 0.02) {
       _renderCandles(canvas, draw, night);
@@ -316,6 +441,28 @@ class VillageAtmosphere extends PositionComponent {
     }
   }
 
+  void _renderLeaves(Canvas canvas, Rect draw) {
+    for (final leaf in _leaves) {
+      final pos = Offset(
+        draw.left + draw.width * leaf.uv.dx,
+        draw.top + draw.height * leaf.uv.dy,
+      );
+      canvas.save();
+      canvas.translate(pos.dx, pos.dy);
+      canvas.rotate(_time * leaf.spin + leaf.phase);
+      final path = Path()
+        ..moveTo(0, -leaf.height)
+        ..quadraticBezierTo(leaf.width, 0, 0, leaf.height)
+        ..quadraticBezierTo(-leaf.width, 0, 0, -leaf.height)
+        ..close();
+      canvas.drawPath(
+        path,
+        Paint()..color = leaf.color.withValues(alpha: 0.62),
+      );
+      canvas.restore();
+    }
+  }
+
   void _renderFireflies(Canvas canvas, Rect draw, double night) {
     for (final fly in _fireflies) {
       final pulse = 0.45 + 0.55 * (0.5 + 0.5 * sin(_time * 5 + fly.phase));
@@ -340,24 +487,40 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderWater(Canvas canvas, Rect draw) {
+    final splashBoost = 1 + _fountainSplash * 0.55;
+
     for (final body in _waters) {
       final cx = draw.left + draw.width * body.center.dx;
       final cy = draw.top + draw.height * body.center.dy;
-      final rx = draw.width * body.radiusX;
-      final ry = draw.height * body.radiusY;
+      final rx = draw.width * body.radiusX * splashBoost;
+      final ry = draw.height * body.radiusY * splashBoost;
 
+      // Soft pool glow.
       canvas.drawOval(
         Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2),
         Paint()
           ..color = const Color(0xFF6EC8FF)
-              .withValues(alpha: 0.10 + 0.06 * sin(_time * body.speed))
+              .withValues(alpha: 0.10 + 0.06 * sin(_time * body.speed) + _fountainSplash * 0.08)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+
+      // Highlight sheen drifting across the surface.
+      final sheenX = cx + sin(_time * body.speed * 0.7) * rx * 0.35;
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(sheenX, cy - ry * 0.15),
+          width: rx * 0.55,
+          height: ry * 0.28,
+        ),
+        Paint()
+          ..color = const Color(0xFFE8F8FF).withValues(alpha: 0.12 + _fountainSplash * 0.08)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
       );
 
       for (var i = 0; i < body.rippleCount; i++) {
         final phase = (_time * body.speed + i * 0.85) % 1.0;
         final expand = 0.35 + phase * 0.75;
-        final alpha = (1 - phase) * 0.28;
+        final alpha = (1 - phase) * (0.28 + _fountainSplash * 0.15);
         canvas.drawOval(
           Rect.fromCenter(
             center: Offset(cx, cy),
@@ -366,10 +529,97 @@ class VillageAtmosphere extends PositionComponent {
           ),
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4
+            ..strokeWidth = 1.4 + _fountainSplash * 0.6
             ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
         );
       }
+    }
+
+    _renderFountainJets(canvas, draw);
+    _renderDroplets(canvas, draw);
+
+    // Splash rings when the fountain is agitated.
+    if (_fountainSplash > 0.05) {
+      final fx = draw.left + draw.width * VillageBackdrop.fountainCenterUv.dx;
+      final fy = draw.top + draw.height * VillageBackdrop.fountainCenterUv.dy;
+      for (var i = 0; i < 3; i++) {
+        final t = ((_time * 1.8 + i * 0.33) % 1.0);
+        final r = draw.width * (0.03 + t * 0.06) * (0.8 + _fountainSplash * 0.4);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(fx, fy + draw.height * 0.01),
+            width: r * 2.2,
+            height: r * 1.2,
+          ),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.8
+            ..color = const Color(0xFFD6F4FF)
+                .withValues(alpha: (1 - t) * 0.35 * _fountainSplash.clamp(0.0, 1.0)),
+        );
+      }
+    }
+  }
+
+  void _renderFountainJets(Canvas canvas, Rect draw) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    for (final jet in _jets) {
+      final ox = draw.left + draw.width * jet.origin.dx;
+      final oy = draw.top + draw.height * jet.origin.dy;
+      final pulse = 0.85 + 0.15 * sin(_time * 3.2 + jet.phase);
+      final h = draw.height * jet.height * pulse * (1 + _fountainSplash * 0.45);
+      final reach = draw.width * 0.028 * sin(jet.angle).abs().clamp(0.35, 1.0) +
+          draw.width * 0.012;
+      final tipX = ox + cos(jet.angle - pi / 2) * reach * (0.6 + 0.4 * pulse);
+      final tipY = oy - h;
+      final midX = (ox + tipX) * 0.5 + sin(_time * 2.4 + jet.phase) * 3;
+      final midY = oy - h * 0.55;
+
+      final path = Path()
+        ..moveTo(ox, oy)
+        ..quadraticBezierTo(midX, midY, tipX, tipY);
+
+      paint
+        ..strokeWidth = 2.2 + _fountainSplash * 0.8
+        ..color = const Color(0xFF9EDFFF).withValues(alpha: 0.45 + _fountainSplash * 0.2);
+      canvas.drawPath(path, paint);
+
+      paint
+        ..strokeWidth = 1.1
+        ..color = const Color(0xFFEAF8FF).withValues(alpha: 0.55);
+      canvas.drawPath(path, paint);
+
+      // Soft mist at the jet tip.
+      canvas.drawCircle(
+        Offset(tipX, tipY),
+        3.5 + _fountainSplash * 2,
+        Paint()
+          ..color = const Color(0xFFC8ECFF).withValues(alpha: 0.22)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+    }
+  }
+
+  void _renderDroplets(Canvas canvas, Rect draw) {
+    for (final drop in _droplets) {
+      final t = drop.age.clamp(0.0, 1.0);
+      // Parabolic arc: rise then fall back to the pool.
+      final rise = 4 * t * (1 - t);
+      final ox = draw.left + draw.width * drop.origin.dx;
+      final oy = draw.top + draw.height * drop.origin.dy;
+      final lateral = draw.width * 0.04 * sin(drop.angle) * t * drop.arc;
+      final height = draw.height * drop.height * rise * (1 + _fountainSplash * 0.3);
+      final x = ox + lateral + _wind * 6 * _windSign * t;
+      final y = oy - height;
+      final alpha = (1 - t) * 0.75;
+      canvas.drawCircle(
+        Offset(x, y),
+        drop.size * (0.7 + rise * 0.5),
+        Paint()..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
+      );
     }
   }
 
@@ -469,6 +719,40 @@ class _WaterBody {
   final double radiusY;
   final int rippleCount;
   final double speed;
+}
+
+class _FountainJet {
+  _FountainJet({
+    required this.origin,
+    required this.angle,
+    required this.height,
+    required this.phase,
+  });
+
+  final Offset origin;
+  final double angle;
+  final double height;
+  final double phase;
+}
+
+class _WaterDroplet {
+  _WaterDroplet({
+    required this.origin,
+    required this.angle,
+    required this.height,
+    required this.age,
+    required this.life,
+    required this.size,
+    required this.arc,
+  });
+
+  Offset origin;
+  double angle;
+  double height;
+  double age;
+  double life;
+  double size;
+  double arc;
 }
 
 class _Candle {
@@ -574,4 +858,24 @@ class _DriftPetal {
   final double phase;
   final double speed;
   final Color color;
+}
+
+class _FallingLeaf {
+  _FallingLeaf({
+    required this.uv,
+    required this.phase,
+    required this.speed,
+    required this.spin,
+    required this.color,
+    required this.width,
+    required this.height,
+  });
+
+  Offset uv;
+  final double phase;
+  final double speed;
+  final double spin;
+  final Color color;
+  final double width;
+  final double height;
 }
