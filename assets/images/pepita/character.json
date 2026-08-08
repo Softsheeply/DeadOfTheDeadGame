@@ -7,7 +7,7 @@
   "frameHeight": 128,
   "defaultDirection": "down",
   "visualReference": {
-    "status": "concept-only-not-included",
+    "status": "locked-walks-v1",
     "description": "Cheerful chibi Dia de los Muertos skeleton florist with flower crown, braids, purple embroidered dress, brown shoes and flower basket.",
     "palette": {
       "outline": "#3b2146",
@@ -159,7 +159,7 @@
       ]
     },
     "walk_left": {
-      "frames": 6,
+      "frames": 8,
       "fps": 8,
       "loop": true,
       "paths": [
@@ -168,11 +168,13 @@
         "walk/left/pepita_walk_left_02.png",
         "walk/left/pepita_walk_left_03.png",
         "walk/left/pepita_walk_left_04.png",
-        "walk/left/pepita_walk_left_05.png"
+        "walk/left/pepita_walk_left_05.png",
+        "walk/left/pepita_walk_left_06.png",
+        "walk/left/pepita_walk_left_07.png"
       ]
     },
     "walk_right": {
-      "frames": 6,
+      "frames": 8,
       "fps": 8,
       "loop": true,
       "paths": [
@@ -181,11 +183,13 @@
         "walk/right/pepita_walk_right_02.png",
         "walk/right/pepita_walk_right_03.png",
         "walk/right/pepita_walk_right_04.png",
-        "walk/right/pepita_walk_right_05.png"
+        "walk/right/pepita_walk_right_05.png",
+        "walk/right/pepita_walk_right_06.png",
+        "walk/right/pepita_walk_right_07.png"
       ]
     },
     "walk_up": {
-      "frames": 6,
+      "frames": 8,
       "fps": 8,
       "loop": true,
       "paths": [
@@ -194,7 +198,9 @@
         "walk/up/pepita_walk_up_02.png",
         "walk/up/pepita_walk_up_03.png",
         "walk/up/pepita_walk_up_04.png",
-        "walk/up/pepita_walk_up_05.png"
+        "walk/up/pepita_walk_up_05.png",
+        "walk/up/pepita_walk_up_06.png",
+        "walk/up/pepita_walk_up_07.png"
       ]
     }
   }

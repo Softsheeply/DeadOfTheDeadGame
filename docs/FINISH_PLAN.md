@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+23` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+24` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -46,8 +46,8 @@
 - [ ] 6. Soft-launch TestFlight / App Store build from polished plaza
 
 ### Character art (locked walks — Aseprite, not ChatGPT sheets)
-- [ ] 7. Pepita walk down / up / left / right (locked model)
-- [ ] 8. Pepita L/R are true mirrors; wire into `character.json`
+- [x] 7. Pepita walk down / up / left / right (locked model)
+- [x] 8. Pepita L/R are true mirrors; wire into `character.json`
 - [ ] 9. Abuela Rosa locked walks
 - [ ] 10. Xolo locked walks
 - [ ] 11. Gato locked walks
