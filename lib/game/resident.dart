@@ -482,13 +482,55 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _updateDirection();
     final speed = config.movement['walkSpeed'] ?? 55.0;
     final step = min(distance, speed * dt);
-    position.x += dx / distance * step;
-    position.y += dy / distance * step;
-    _walkDistance += step;
-    _applyWalkBob();
-    if (!allowOffRoad) {
-      _clampToWorld();
+    final sx = dx / distance * step;
+    final sy = dy / distance * step;
+    if (allowOffRoad) {
+      position.x += sx;
+      position.y += sy;
+      _walkDistance += step;
+    } else {
+      // Axis-slide against solid props (doghouse, fountain, …) so a diagonal
+      // step + radial push-out cannot tunnel through the ellipse midline.
+      final moved = _tryWalkStep(sx, sy);
+      _walkDistance += moved;
+      if (moved < step * 0.15 && distance > 18) {
+        // Wedged against a blocker — abandon and pick a new wander soon.
+        _target = null;
+        _busy = false;
+        _resetWalkVisual();
+        _setIdle();
+        return;
+      }
     }
+    _applyWalkBob();
+  }
+
+  /// Moves by [sx],[sy] without entering blockers; slides on one axis if needed.
+  double _tryWalkStep(double sx, double sy) {
+    final origin = position.clone();
+    final diagonal = _clampPoint(Vector2(origin.x + sx, origin.y + sy));
+    if ((diagonal.x - (origin.x + sx)).abs() < 0.6 &&
+        (diagonal.y - (origin.y + sy)).abs() < 0.6) {
+      position.setFrom(diagonal);
+      return sqrt(sx * sx + sy * sy);
+    }
+
+    final onlyX = _clampPoint(Vector2(origin.x + sx, origin.y));
+    final xDist = (onlyX - origin).length;
+    final onlyY = _clampPoint(Vector2(origin.x, origin.y + sy));
+    final yDist = (onlyY - origin).length;
+
+    if (xDist >= yDist && xDist > 0.05) {
+      position.setFrom(onlyX);
+      return xDist;
+    }
+    if (yDist > 0.05) {
+      position.setFrom(onlyY);
+      return yDist;
+    }
+    // Both axes blocked — stay put (caller may clear the target).
+    position.setFrom(origin);
+    return 0;
   }
 
   /// Soft head/body bob + footfall squash so walks feel less like a slide.

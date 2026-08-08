@@ -36,8 +36,9 @@ class VillageBackdrop extends PositionComponent {
     (Offset(0.11, 0.89), 0.12, 0.065),
     (Offset(0.19, 0.92), 0.09, 0.05),
     (Offset(0.07, 0.86), 0.06, 0.05),
-    // Doghouse + Xolo sitting in the doorway (art ~0.65–0.72 × 0.74–0.82).
-    (Offset(0.685, 0.795), 0.055, 0.055),
+    // Doghouse + Xolo on the stoop (roof ~0.69–0.72, base/dog ~0.84).
+    // Tall enough that feet cannot slip over the roof band on the north road.
+    (Offset(0.682, 0.770), 0.070, 0.090),
     // Grave plot + fence (right of doghouse).
     (Offset(0.78, 0.82), 0.085, 0.07),
   ];
