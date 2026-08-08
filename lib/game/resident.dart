@@ -100,9 +100,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       // Walk cycles: match frame rate to travel speed so feet don't skate.
       if (entry.key.startsWith('walk_') && sprites.length > 1) {
         final walkSpeed = config.movement['walkSpeed'] ?? 55.0;
-        const stridePixels = 48.0;
+        // Shorter stride → snappier leg cycles so feet read at plaza scale.
+        const stridePixels = 36.0;
         final cyclesPerSecond = walkSpeed / stridePixels;
-        fps = (cyclesPerSecond * sprites.length).clamp(6.0, 11.0);
+        fps = (cyclesPerSecond * sprites.length).clamp(8.0, 14.0);
       }
       _animations[entry.key] = SpriteAnimation.spriteList(
         sprites,
@@ -221,7 +222,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       return;
     }
     _currentAnimationName = resolvedName;
-    _visual?.animation = animation;
+    final visual = _visual;
+    if (visual == null) return;
+    visual.animation = animation;
+    visual.playing = true;
+    visual.animationTicker?.reset();
   }
 
   String? _resolveAnimation(String name) {
@@ -435,17 +440,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       return;
     }
     // Stick with the current axis until the other clearly dominates (hysteresis).
-    var preferHorizontal = force
+    final preferHorizontal = force
         ? dx.abs() >= dy.abs()
         : (direction == 'left' || direction == 'right')
             ? dx.abs() >= dy.abs() * 0.72
             : dx.abs() > dy.abs() * 1.15;
-    // Pepita's walk_down faces sideways in current art — prefer L/R when close.
-    if (!force && config.id == 'pepita' && !preferHorizontal && dx.abs() > 6) {
-      if (dx.abs() > dy.abs() * 0.45) {
-        preferHorizontal = true;
-      }
-    }
     final next = preferHorizontal
         ? (dx < 0 ? 'left' : 'right')
         : (dy < 0 ? 'up' : 'down');
