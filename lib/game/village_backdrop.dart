@@ -32,10 +32,13 @@ class VillageBackdrop extends PositionComponent {
   static const List<(Offset center, double rx, double ry)> blockedEllipses = [
     (fountainCenterUv, fountainRadiusX, fountainRadiusY),
     (Offset(0.48, 0.72), 0.045, 0.045), // central tree planter base
-    (Offset(0.13, 0.86), 0.11, 0.07), // river pool
-    (Offset(0.20, 0.90), 0.08, 0.05), // river bend
+    // River under the bridge + south bend — keep feet out of the water.
+    (Offset(0.11, 0.89), 0.12, 0.065),
+    (Offset(0.19, 0.92), 0.09, 0.05),
+    (Offset(0.07, 0.86), 0.06, 0.05),
     (Offset(0.86, 0.86), 0.07, 0.055), // graveyard plot
-    (Offset(0.78, 0.84), 0.045, 0.04), // doghouse
+    // Doghouse / small shed — was too small so Abuela could stand on the roof.
+    (Offset(0.81, 0.855), 0.075, 0.06),
   ];
 
   /// Interesting plaza stops residents like to visit (UV of painted image).

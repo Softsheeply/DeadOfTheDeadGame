@@ -52,45 +52,46 @@ class VillageAtmosphere extends PositionComponent {
     size = backdrop.size.clone();
 
     _waters = [
+      // Fountain bowl only — keep ripples inside the painted basin.
       _WaterBody(
-        center: const Offset(0.575, 0.60),
-        radiusX: 0.055,
-        radiusY: 0.045,
-        rippleCount: 4,
+        center: const Offset(0.575, 0.595),
+        radiusX: 0.042,
+        radiusY: 0.032,
+        rippleCount: 3,
         speed: 1.15,
         kind: _WaterKind.fountain,
       ),
       _WaterBody(
-        center: const Offset(0.575, 0.655),
-        radiusX: 0.035,
-        radiusY: 0.028,
-        rippleCount: 3,
+        center: const Offset(0.575, 0.625),
+        radiusX: 0.028,
+        radiusY: 0.02,
+        rippleCount: 2,
         speed: 0.95,
         kind: _WaterKind.fountain,
       ),
-      // River flows downstream toward bottom-left.
+      // River water only (below the bridge deck — not on the cobbles).
       _WaterBody(
-        center: const Offset(0.13, 0.88),
-        radiusX: 0.07,
-        radiusY: 0.022,
+        center: const Offset(0.12, 0.905),
+        radiusX: 0.06,
+        radiusY: 0.018,
         rippleCount: 3,
         speed: 1.35,
         kind: _WaterKind.river,
         flow: const Offset(-0.55, 0.45),
       ),
       _WaterBody(
-        center: const Offset(0.20, 0.90),
-        radiusX: 0.05,
-        radiusY: 0.018,
+        center: const Offset(0.19, 0.92),
+        radiusX: 0.045,
+        radiusY: 0.015,
         rippleCount: 2,
         speed: 1.2,
         kind: _WaterKind.river,
         flow: const Offset(-0.4, 0.55),
       ),
       _WaterBody(
-        center: const Offset(0.10, 0.82),
-        radiusX: 0.045,
-        radiusY: 0.03,
+        center: const Offset(0.08, 0.89),
+        radiusX: 0.04,
+        radiusY: 0.02,
         rippleCount: 2,
         speed: 1.1,
         kind: _WaterKind.river,
@@ -160,25 +161,9 @@ class VillageAtmosphere extends PositionComponent {
       ),
     ];
 
-    const papelColors = [
-      Color(0xFFED5791),
-      Color(0xFFF39A3C),
-      Color(0xFF47C4BA),
-      Color(0xFF733D91),
-      Color(0xFFFFE066),
-      Color(0xFF5B8CFF),
-    ];
-    _papel = [
-      for (var row = 0; row < 2; row++)
-        for (var i = 0; i < 14; i++)
-          _PapelFlag(
-            uv: Offset(0.12 + i * 0.055, 0.14 + row * 0.055 + (i.isEven ? 0.01 : 0)),
-            color: papelColors[(i + row * 3) % papelColors.length],
-            phase: i * 0.45 + row,
-            width: 0.018 + (i % 3) * 0.003,
-            height: 0.04 + (i % 2) * 0.01,
-          ),
-    ];
+    // Painted papel picado is already in the backdrop art. Fake coded flags
+    // double-stacked on top — leave empty until we have real animated sheets.
+    _papel = const [];
 
     _smoke = List.generate(10, (i) {
       return _SmokePuff(
@@ -229,30 +214,19 @@ class VillageAtmosphere extends PositionComponent {
       );
     });
 
-    // Central fountain jets + a few side spouts.
+    // Fountain jets stay vertical in the bowl — side spouts looked like
+    // random water sprouting on dry cobble east of the fountain.
     _jets = [
-      for (var i = 0; i < 5; i++)
+      for (var i = 0; i < 4; i++)
         _FountainJet(
-          origin: const Offset(0.575, 0.61),
-          angle: -1.15 + i * 0.35,
-          height: 0.055 + (i == 2 ? 0.02 : 0),
+          origin: const Offset(0.575, 0.605),
+          angle: -pi / 2 + (i - 1.5) * 0.12,
+          height: 0.048 + (i == 1 || i == 2 ? 0.012 : 0),
           phase: i * 0.7,
         ),
-      _FountainJet(
-        origin: const Offset(0.56, 0.62),
-        angle: -0.4,
-        height: 0.035,
-        phase: 2.1,
-      ),
-      _FountainJet(
-        origin: const Offset(0.59, 0.62),
-        angle: 0.4,
-        height: 0.035,
-        phase: 3.4,
-      ),
     ];
 
-    _droplets = List.generate(28, (i) => _spawnDroplet(seed: i / 28));
+    _droplets = List.generate(16, (i) => _spawnDroplet(seed: i / 16));
 
     _riverSparks = List.generate(36, (i) {
       final rivers = _waters.where((w) => w.kind == _WaterKind.river).toList();
@@ -294,14 +268,15 @@ class VillageAtmosphere extends PositionComponent {
 
   _WaterDroplet _spawnDroplet({double seed = 0}) {
     final jet = _jets[_random.nextInt(_jets.length)];
-    final arc = 0.35 + _random.nextDouble() * 0.55;
+    // Keep droplet arcs tight so spray doesn't look like puddles on cobble.
+    final arc = 0.12 + _random.nextDouble() * 0.22;
     return _WaterDroplet(
       origin: jet.origin,
-      angle: jet.angle + (_random.nextDouble() - 0.5) * 0.35,
-      height: jet.height * (0.7 + _random.nextDouble() * 0.5),
+      angle: jet.angle + (_random.nextDouble() - 0.5) * 0.12,
+      height: jet.height * (0.7 + _random.nextDouble() * 0.45),
       age: seed,
       life: 0.55 + _random.nextDouble() * 0.45,
-      size: 1.2 + _random.nextDouble() * 1.8,
+      size: 1.2 + _random.nextDouble() * 1.6,
       arc: arc,
     );
   }
@@ -505,7 +480,9 @@ class VillageAtmosphere extends PositionComponent {
     if (draw == Rect.zero) return;
 
     final night = backdrop.nightBlend;
-    _renderPapel(canvas, draw);
+    if (_papel.isNotEmpty) {
+      _renderPapel(canvas, draw);
+    }
     _renderTrees(canvas, draw);
     _renderWater(canvas, draw);
     _renderSmoke(canvas, draw);
@@ -689,7 +666,8 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderWater(Canvas canvas, Rect draw) {
-    final splashBoost = 1 + _fountainSplash * 0.55;
+    // Mild splash bloom — large splashBoost made the bowl look like a plaza puddle.
+    final splashBoost = 1 + _fountainSplash * 0.22;
 
     for (final body in _waters) {
       final cx = draw.left + draw.width * body.center.dx;

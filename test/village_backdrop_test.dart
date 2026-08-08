@@ -41,6 +41,23 @@ void main() {
     expect(backdrop.isWalkable(clamped), isTrue);
   });
 
+  test('doghouse and river stay blocked so cast cannot stand on them', () {
+    final backdrop = VillageBackdrop(size: Vector2(1280, 426))
+      ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
+
+    final doghouse = Vector2(1280 * 0.81, 426 * 0.855);
+    expect(backdrop.isBlocked(doghouse), isTrue);
+    expect(backdrop.isWalkable(doghouse), isFalse);
+    final offDoghouse = backdrop.clampToWalkable(doghouse);
+    expect(backdrop.isWalkable(offDoghouse), isTrue);
+
+    final river = Vector2(1280 * 0.12, 426 * 0.90);
+    expect(backdrop.isBlocked(river), isTrue);
+    expect(backdrop.isWalkable(river), isFalse);
+    final offRiver = backdrop.clampToWalkable(river);
+    expect(backdrop.isWalkable(offRiver), isTrue);
+  });
+
   test('hotspotWorldPoints land on the walkable road', () {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);

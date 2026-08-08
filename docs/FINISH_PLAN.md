@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+18` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+19` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -27,6 +27,9 @@
 - [x] Soft separation while holding so toys don’t stack
 - [x] Tutorial bead: “Drag anyone — they’re toys”
 - [x] Settings (mute, reduce motion, credits) + save mute/day/cast/mission/tutorial
+- [x] Remove fake papel overlays (painted flags only until animated sheets)
+- [x] River + doghouse walk blockers tightened; fountain spray kept in bowl
+- [x] Taller Pocket God pickup lift (held sprite TBD)
 
 ---
 

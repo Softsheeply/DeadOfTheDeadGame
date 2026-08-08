@@ -507,17 +507,17 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   @override
   void render(Canvas canvas) {
-    // Soft ground shadow — stronger while held so the toy reads as lifted.
+    // Soft ground shadow — stays at feet while the sprite lifts high when held.
     final feet = Offset(size.x / 2, size.y);
     final lift = _held ? 1.0 : (_airborne ? 0.7 : 0.45);
     final paint = Paint()
-      ..color = Color.fromRGBO(18, 8, 28, 0.18 + 0.22 * lift)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, _held ? 7 : 3.5);
+      ..color = Color.fromRGBO(18, 8, 28, 0.18 + 0.28 * lift)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, _held ? 9 : 3.5);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(feet.dx, feet.dy + (_held ? 6 : 2)),
-        width: size.x * (0.38 + 0.2 * lift),
-        height: size.y * (0.08 + 0.06 * lift),
+        center: Offset(feet.dx, feet.dy + (_held ? 4 : 2)),
+        width: size.x * (0.38 + 0.28 * lift),
+        height: size.y * (0.08 + 0.08 * lift),
       ),
       paint,
     );
@@ -561,6 +561,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _airborne = true;
   }
 
+  /// Pocket God hold: sprite lifts high above the feet/shadow.
+  /// Swap to a dedicated held/carry clip when art lands.
+  double get _heldVisualLift => size.y * 0.92;
+
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
@@ -572,10 +576,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _target = null;
     _velocity.setZero();
     _dragVelocity.setZero();
-    _visual?.scale = Vector2.all(1.14);
-    // Lift slightly so the held toy reads above the plaza.
-    _setVisualOffset(Vector2(0, -12));
-    play('idle_$direction');
+    // Tall lift + slight stretch reads as “picked up!” without a scream.
+    _visual?.scale = Vector2(1.18, 1.28);
+    _setVisualOffset(Vector2(0, -_heldVisualLift));
+    // Prefer a down-facing idle so the “ahh” face reads toward the player.
+    direction = 'down';
+    play('idle_down');
     onGrab?.call();
   }
 
@@ -587,6 +593,14 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _clampToWorld(softTop: false);
     final now = position.clone();
     _dragVelocity = (now - previous) * 60;
+    // Soft wiggle while held (Pocket God “dangling” energy).
+    if (!reduceMotion) {
+      final wobble = sin(_lifeTime * 16) * 3.0;
+      final bounce = sin(_lifeTime * 11) * 2.0;
+      _setVisualOffset(Vector2(wobble, -_heldVisualLift + bounce));
+    } else {
+      _setVisualOffset(Vector2(0, -_heldVisualLift));
+    }
   }
 
   @override

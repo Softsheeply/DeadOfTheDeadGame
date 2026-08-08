@@ -74,8 +74,11 @@ void main() {
 
   test('a resident with no worldBounds set simply does not wander (no crash)', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(0, 0));
+    final start = resident.position.clone();
     expect(() => resident.update(20.0), returnsNormally);
-    expect(resident.busy, false);
+    // May idle-act (busy), but should not walk off without bounds.
+    expect(resident.position.x, closeTo(start.x, 0.001));
+    expect(resident.position.y, closeTo(start.y, 0.001));
   });
 
   test('grab pauses wandering until soft release', () {
