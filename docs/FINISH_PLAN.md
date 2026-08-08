@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+27` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+28` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---

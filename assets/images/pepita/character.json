@@ -3,8 +3,8 @@
   "id": "pepita",
   "displayName": "Pepita",
   "role": "florist",
-  "frameWidth": 128,
-  "frameHeight": 128,
+  "frameWidth": 192,
+  "frameHeight": 192,
   "defaultDirection": "down",
   "visualReference": {
     "status": "locked-walks-v1",
@@ -19,8 +19,8 @@
       "brown": "#70422f",
       "hair": "#2b2131"
     },
-    "baselineY": 125,
-    "padding": 8,
+    "baselineY": 188,
+    "padding": 6,
     "bakedShadow": false
   },
   "movement": {
@@ -29,19 +29,19 @@
   },
   "anchors": {
     "feet": [
-      64,
-      125
+      96,
+      188
     ],
     "interaction": [
-      64,
-      127
+      96,
+      190
     ]
   },
   "collisionBox": {
-    "x": 42,
-    "y": 72,
-    "width": 44,
-    "height": 47
+    "x": 60,
+    "y": 100,
+    "width": 72,
+    "height": 72
   },
   "states": [
     "idle",

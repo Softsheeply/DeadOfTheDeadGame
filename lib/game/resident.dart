@@ -595,18 +595,13 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     return 0;
   }
 
-  /// Soft head/body bob + footfall squash so walks feel less like a slide.
+  /// Soft head bob only — footfall squash smears tiny shoes into a blob.
   void _applyWalkBob() {
     final visual = _visual;
     if (visual == null || reduceMotion) return;
-    // One bob per ~24px of travel (two steps per stride).
     final phase = _walkDistance / 24 * pi;
-    final bob = sin(phase) * 2.2;
+    final bob = sin(phase) * 1.6;
     _setVisualOffset(Vector2(0, -bob));
-    if ((_squash - 1).abs() < 0.02 && _dizzyTimer <= 0) {
-      final footfall = 1 + 0.04 * sin(phase * 2);
-      visual.scale = Vector2(2 - footfall, footfall);
-    }
   }
 
   @override
