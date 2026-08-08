@@ -36,9 +36,10 @@ class VillageBackdrop extends PositionComponent {
     (Offset(0.11, 0.89), 0.12, 0.065),
     (Offset(0.19, 0.92), 0.09, 0.05),
     (Offset(0.07, 0.86), 0.06, 0.05),
-    (Offset(0.86, 0.86), 0.07, 0.055), // graveyard plot
-    // Doghouse / shed — keep clear of graveyard so clamp can escape.
-    (Offset(0.80, 0.885), 0.08, 0.07),
+    // Doghouse + Xolo sitting in the doorway (art ~0.65–0.72 × 0.74–0.82).
+    (Offset(0.685, 0.795), 0.055, 0.055),
+    // Grave plot + fence (right of doghouse).
+    (Offset(0.78, 0.82), 0.085, 0.07),
   ];
 
   /// Interesting plaza stops residents like to visit (UV of painted image).

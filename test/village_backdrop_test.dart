@@ -45,9 +45,12 @@ void main() {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
 
-    final doghouse = Vector2(1280 * 0.80, 426 * 0.885);
+    // Doorway / roof of the painted doghouse (not the old wrong UV near graves).
+    final doghouse = Vector2(1280 * 0.685, 426 * 0.795);
     expect(backdrop.isBlocked(doghouse), isTrue);
     expect(backdrop.isWalkable(doghouse), isFalse);
+    final dogInDoor = Vector2(1280 * 0.67, 426 * 0.82);
+    expect(backdrop.isBlocked(dogInDoor), isTrue);
     final offDoghouse = backdrop.clampToWalkable(doghouse);
     expect(backdrop.isBlocked(offDoghouse), isFalse);
     expect(backdrop.isWalkable(offDoghouse), isTrue);
