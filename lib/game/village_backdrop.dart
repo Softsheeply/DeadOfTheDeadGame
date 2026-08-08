@@ -197,6 +197,107 @@ class VillageBackdrop extends PositionComponent {
     return Vector2(road.center.dx, road.bottom - 4);
   }
 
+  /// True if the open segment [from]→[to] dips into a solid blocker.
+  bool segmentBlocked(Vector2 from, Vector2 to, {double samplePx = 10}) {
+    final dist = from.distanceTo(to);
+    if (dist < 1) return isBlocked(to);
+    final steps = max(2, (dist / samplePx).ceil());
+    for (var i = 1; i <= steps; i++) {
+      final t = i / steps;
+      final p = Vector2(
+        from.x + (to.x - from.x) * t,
+        from.y + (to.y - from.y) * t,
+      );
+      if (isBlocked(p)) return true;
+    }
+    return false;
+  }
+
+  /// First blocked ellipse the segment enters, in world space, or null.
+  (Vector2 center, double rx, double ry)? firstBlockerOnSegment(
+    Vector2 from,
+    Vector2 to,
+  ) {
+    if (drawRect == Rect.zero) return null;
+    final dist = from.distanceTo(to);
+    final steps = max(2, (dist / 8).ceil());
+    for (var i = 1; i <= steps; i++) {
+      final t = i / steps;
+      final p = Vector2(
+        from.x + (to.x - from.x) * t,
+        from.y + (to.y - from.y) * t,
+      );
+      for (final zone in blockedEllipses) {
+        final cx = drawRect.left + drawRect.width * zone.$1.dx;
+        final cy = drawRect.top + drawRect.height * zone.$1.dy;
+        final rx = drawRect.width * zone.$2;
+        final ry = drawRect.height * zone.$3;
+        if (rx <= 0 || ry <= 0) continue;
+        final nx = (p.x - cx) / rx;
+        final ny = (p.y - cy) / ry;
+        if (nx * nx + ny * ny < 1) {
+          return (Vector2(cx, cy), rx, ry);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Walkable points that skirt a blocker: N/S/E/W just outside the ellipse.
+  List<Vector2> skirtCandidates(Vector2 center, double rx, double ry) {
+    const pad = 1.28;
+    final raw = <Vector2>[
+      Vector2(center.x, center.y + ry * pad), // south — usually open cobble
+      Vector2(center.x, center.y - ry * pad), // north
+      Vector2(center.x + rx * pad, center.y), // east
+      Vector2(center.x - rx * pad, center.y), // west
+      Vector2(center.x + rx * pad * 0.75, center.y + ry * pad * 0.75),
+      Vector2(center.x - rx * pad * 0.75, center.y + ry * pad * 0.75),
+    ];
+    return [
+      for (final p in raw)
+        if (isWalkable(p)) clampToWalkable(p),
+    ];
+  }
+
+  /// Path from [from] to [to]: direct if clear, else skirt then destination.
+  List<Vector2> routeToward(Vector2 from, Vector2 to) {
+    final dest = clampToWalkable(to);
+    if (!segmentBlocked(from, dest)) return [dest];
+
+    final hit = firstBlockerOnSegment(from, dest);
+    if (hit == null) return [dest];
+
+    final candidates = skirtCandidates(hit.$1, hit.$2, hit.$3);
+    Vector2? best;
+    var bestScore = double.infinity;
+    for (final skirt in candidates) {
+      // Prefer skirts that clear both legs of the trip.
+      if (segmentBlocked(from, skirt)) continue;
+      final viaBlocked = segmentBlocked(skirt, dest);
+      final score = from.distanceTo(skirt) +
+          skirt.distanceTo(dest) +
+          (viaBlocked ? 80 : 0);
+      if (score < bestScore) {
+        bestScore = score;
+        best = skirt;
+      }
+    }
+    if (best == null) {
+      // No clean skirt — pick nearest walkable candidate anyway.
+      for (final skirt in candidates) {
+        final score = from.distanceTo(skirt);
+        if (score < bestScore) {
+          bestScore = score;
+          best = skirt;
+        }
+      }
+    }
+    if (best == null) return [dest];
+    if (best.distanceTo(dest) < 10) return [best];
+    return [best, dest];
+  }
+
   Vector2 randomRoadPoint(Random random) {
     final road = roadRect;
     for (var attempt = 0; attempt < 16; attempt++) {

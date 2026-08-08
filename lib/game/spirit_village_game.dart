@@ -219,6 +219,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..worldBounds = size.clone()
       ..roadBounds = roadRect
       ..walkClamp = _walkClamp
+      ..routeToward = _routeToward
       ..wanderHotspots = backdrop?.hotspotWorldPoints() ?? const []
       ..preferredHotspots = _preferredHotspotsFor(member)
       ..restSpots = backdrop?.restSpotWorldPoints() ?? const []
@@ -277,6 +278,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     return bd.clampToWalkable(point, allowAirborneLift: softTop);
   }
 
+  List<Vector2> _routeToward(Vector2 from, Vector2 to) {
+    final bd = backdrop;
+    if (bd == null) return [to];
+    return bd.routeToward(from, to);
+  }
+
   void _syncResidentBounds() {
     final road = roadRect;
     final hotspots = backdrop?.hotspotWorldPoints() ?? const <Vector2>[];
@@ -292,6 +299,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       resident.worldBounds = size.clone();
       resident.roadBounds = road;
       resident.walkClamp = _walkClamp;
+      resident.routeToward = _routeToward;
       resident.wanderHotspots = hotspots;
       resident.restSpots = rests;
       if (member != null) {

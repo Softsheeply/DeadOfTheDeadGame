@@ -21,6 +21,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Optional plaza-aware clamp (avoids trees, fountain, river, roofs).
   Vector2 Function(Vector2 point, {bool softTop})? walkClamp;
 
+  /// Optional multi-point route around solid props (doghouse, fountain, …).
+  List<Vector2> Function(Vector2 from, Vector2 to)? routeToward;
+
   /// Optional plaza destinations (florist, bakery, stage, …) for purposeful roam.
   List<Vector2> wanderHotspots = const [];
 
@@ -52,6 +55,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   bool reduceMotion = false;
 
   Vector2? _target;
+  final List<Vector2> _path = [];
   bool _busy = false;
   bool _held = false;
   bool _airborne = false;
@@ -64,6 +68,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   double _lifeTime = 0;
   double _idleActionTimer = 0;
   String? _idleAction;
+  double _stuckTimer = 0;
 
   final Map<String, SpriteAnimation> _animations = {};
   SpriteAnimationComponent? _visual;
@@ -400,10 +405,37 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   void walkTo(Vector2 destination) {
     if (_held || _airborne) return;
-    _target = allowOffRoad ? destination.clone() : _clampPoint(destination);
+    _path.clear();
+    _stuckTimer = 0;
+    if (allowOffRoad || routeToward == null) {
+      _target = allowOffRoad ? destination.clone() : _clampPoint(destination);
+    } else {
+      final route = routeToward!(position, destination);
+      if (route.isEmpty) {
+        _target = _clampPoint(destination);
+      } else {
+        _target = route.first;
+        if (route.length > 1) {
+          _path.addAll(route.skip(1));
+        }
+      }
+    }
     _busy = true;
     _updateDirection(force: true);
     play('walk_$direction');
+  }
+
+  void _advancePathOrIdle() {
+    if (_path.isNotEmpty) {
+      _target = _path.removeAt(0);
+      _stuckTimer = 0;
+      _busy = true;
+      _updateDirection(force: true);
+      play('walk_$direction');
+      return;
+    }
+    allowOffRoad = false;
+    _setIdle();
   }
 
   /// Walk off the left or right edge, then invoke [onExitComplete].
@@ -467,15 +499,14 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       _busy = false;
       _walkDistance = 0;
       _resetWalkVisual();
-      if (allowOffRoad && onExitComplete != null) {
+      if (allowOffRoad && onExitComplete != null && _path.isEmpty) {
         final callback = onExitComplete;
         onExitComplete = null;
         allowOffRoad = false;
         callback?.call();
         return;
       }
-      allowOffRoad = false;
-      _setIdle();
+      _advancePathOrIdle();
       return;
     }
     _updateDirection();
@@ -487,21 +518,53 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       position.x += sx;
       position.y += sy;
       _walkDistance += step;
+      _stuckTimer = 0;
     } else {
-      // Axis-slide against solid props (doghouse, fountain, …) so a diagonal
-      // step + radial push-out cannot tunnel through the ellipse midline.
+      // Axis-slide against solid props so diagonal steps cannot tunnel through.
       final moved = _tryWalkStep(sx, sy);
       _walkDistance += moved;
-      if (moved < step * 0.15 && distance > 18) {
-        // Wedged against a blocker — abandon and pick a new wander soon.
-        _target = null;
-        _busy = false;
-        _resetWalkVisual();
-        _setIdle();
+      if (moved < step * 0.2) {
+        _stuckTimer += dt;
+      } else {
+        _stuckTimer = 0;
+      }
+      if (_stuckTimer > 0.35 && distance > 12) {
+        _unstickFromBlocker();
         return;
       }
     }
     _applyWalkBob();
+  }
+
+  /// When wedged on a prop, skirt it — don't twitch facing the wall.
+  void _unstickFromBlocker() {
+    _stuckTimer = 0;
+    final finalDest = _path.isNotEmpty ? _path.last : _target;
+    _path.clear();
+    if (finalDest != null && routeToward != null) {
+      final route = routeToward!(position, finalDest);
+      // Drop the first point if it's basically where we already are.
+      final points = [
+        for (final p in route)
+          if (p.distanceTo(position) > 14) p,
+      ];
+      if (points.isNotEmpty) {
+        _target = points.first;
+        if (points.length > 1) {
+          _path.addAll(points.skip(1));
+        }
+        _busy = true;
+        _updateDirection(force: true);
+        play('walk_$direction');
+        return;
+      }
+    }
+    // Give up on this trip; longer pause so we don't immediately re-wedge.
+    _clearWalkIntent();
+    _busy = false;
+    _resetWalkVisual();
+    _setIdle();
+    _behaviourTimer = 1.4 + _random.nextDouble() * 1.6;
   }
 
   /// Moves by [sx],[sy] without entering blockers; slides on one axis if needed.
@@ -575,11 +638,17 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   void _setIdle() {
-    _target = null;
+    _clearWalkIntent();
     _busy = false;
     _walkDistance = 0;
     _resetWalkVisual();
     play('idle_$direction');
+  }
+
+  void _clearWalkIntent() {
+    _target = null;
+    _path.clear();
+    _stuckTimer = 0;
   }
 
   // -- Pocket God interactions --------------------------------------------
@@ -591,7 +660,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   void _reactToPoke() {
-    _target = null;
+    _clearWalkIntent();
     _busy = true;
     _squash = 0.72;
     _dizzyTimer = 0.35;
@@ -614,7 +683,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _held = true;
     _airborne = false;
     _busy = true;
-    _target = null;
+    _clearWalkIntent();
     _velocity.setZero();
     _dragVelocity.setZero();
     // Tall lift + slight stretch reads as “picked up!” without a scream.
@@ -757,7 +826,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void debugFling(Vector2 velocity) {
     _held = false;
     _busy = true;
-    _target = null;
+    _clearWalkIntent();
     _velocity = velocity.clone();
     _airborne = true;
   }
@@ -766,7 +835,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void debugGrab() {
     _held = true;
     _busy = true;
-    _target = null;
+    _clearWalkIntent();
     _airborne = false;
     _velocity.setZero();
   }
@@ -780,7 +849,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Gust of wind flings the resident lightly sideways.
   void applyWind({required double directionSign}) {
     if (_held) return;
-    _target = null;
+    _clearWalkIntent();
     _busy = true;
     _velocity = Vector2(directionSign * (220 + _random.nextDouble() * 160), -120);
     _airborne = true;
@@ -791,7 +860,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// Brief celebratory hop / spin-feel squash for mariachi music.
   void applyDancePulse() {
     if (_held || _airborne) return;
-    _target = null;
+    _clearWalkIntent();
     _busy = true;
     _dizzyTimer = 0.9;
     _squash = 0.7;

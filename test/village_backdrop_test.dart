@@ -64,6 +64,26 @@ void main() {
     expect(backdrop.isWalkable(offRiver), isTrue);
   });
 
+  test('routeToward skirts the doghouse instead of tunneling through', () {
+    final backdrop = VillageBackdrop(size: Vector2(1280, 426))
+      ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
+
+    final west = Vector2(1280 * 0.58, 426 * 0.78);
+    final east = Vector2(1280 * 0.86, 426 * 0.78);
+    expect(backdrop.isWalkable(west), isTrue);
+    expect(backdrop.isWalkable(east), isTrue);
+    expect(backdrop.segmentBlocked(west, east), isTrue);
+
+    final route = backdrop.routeToward(west, east);
+    expect(route, isNotEmpty);
+    expect(route.length, greaterThanOrEqualTo(2));
+    for (final point in route) {
+      expect(backdrop.isWalkable(point), isTrue);
+    }
+    // First hop should clear the doghouse approach.
+    expect(backdrop.segmentBlocked(west, route.first), isFalse);
+  });
+
   test('hotspotWorldPoints land on the walkable road', () {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
