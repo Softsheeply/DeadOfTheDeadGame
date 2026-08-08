@@ -19,7 +19,7 @@
       "brown": "#70422f",
       "hair": "#2b2131"
     },
-    "baselineY": 119,
+    "baselineY": 125,
     "padding": 8,
     "bakedShadow": false
   },
@@ -30,11 +30,11 @@
   "anchors": {
     "feet": [
       64,
-      119
+      125
     ],
     "interaction": [
       64,
-      126
+      127
     ]
   },
   "collisionBox": {

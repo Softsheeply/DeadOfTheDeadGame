@@ -351,7 +351,8 @@ class VillageBackdrop extends PositionComponent {
   /// Suggested character height so people sit under door height on the art.
   double get personDisplaySize {
     if (drawRect == Rect.zero) return 64;
-    return (drawRect.height * 0.18).clamp(44.0, 64.0);
+    // Slightly taller so Pepita's shoes/stride read under the dress hem.
+    return (drawRect.height * 0.20).clamp(48.0, 72.0);
   }
 
   double get dogDisplaySize => (personDisplaySize * 0.78).clamp(36.0, 52.0);

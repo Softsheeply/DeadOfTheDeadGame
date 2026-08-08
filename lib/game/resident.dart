@@ -611,20 +611,23 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
 
   @override
   void render(Canvas canvas) {
-    // Soft ground shadow — stays at feet while the sprite lifts high when held.
-    final feet = Offset(size.x / 2, size.y);
-    final lift = _held ? 1.0 : (_airborne ? 0.7 : 0.45);
-    final paint = Paint()
-      ..color = Color.fromRGBO(18, 8, 28, 0.18 + 0.28 * lift)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, _held ? 9 : 3.5);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(feet.dx, feet.dy + (_held ? 4 : 2)),
-        width: size.x * (0.38 + 0.28 * lift),
-        height: size.y * (0.08 + 0.08 * lift),
-      ),
-      paint,
-    );
+    // Soft contact shadow only while held/airborne — standing sprites already
+    // read on cobble, and a blurred oval reads as a milky white puddle.
+    if (_held || _airborne) {
+      final feet = Offset(size.x / 2, size.y);
+      final lift = _held ? 1.0 : 0.7;
+      final paint = Paint()
+        ..color = Color.fromRGBO(18, 8, 28, 0.22 + 0.2 * lift)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, _held ? 8 : 4);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(feet.dx, feet.dy + (_held ? 4 : 2)),
+          width: size.x * (0.34 + 0.2 * lift),
+          height: size.y * (0.07 + 0.05 * lift),
+        ),
+        paint,
+      );
+    }
     super.render(canvas);
   }
 
