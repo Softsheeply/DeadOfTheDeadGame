@@ -45,7 +45,7 @@ void main() {
     final backdrop = VillageBackdrop(size: Vector2(1280, 426))
       ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
 
-    final doghouse = Vector2(1280 * 0.79, 426 * 0.88);
+    final doghouse = Vector2(1280 * 0.80, 426 * 0.885);
     expect(backdrop.isBlocked(doghouse), isTrue);
     expect(backdrop.isWalkable(doghouse), isFalse);
     final offDoghouse = backdrop.clampToWalkable(doghouse);

@@ -37,8 +37,8 @@ class VillageBackdrop extends PositionComponent {
     (Offset(0.19, 0.92), 0.09, 0.05),
     (Offset(0.07, 0.86), 0.06, 0.05),
     (Offset(0.86, 0.86), 0.07, 0.055), // graveyard plot
-    // Doghouse / shed — keep clear of graveyard ellipse so clamp can escape.
-    (Offset(0.79, 0.88), 0.065, 0.055),
+    // Doghouse / shed — keep clear of graveyard so clamp can escape.
+    (Offset(0.80, 0.885), 0.08, 0.07),
   ];
 
   /// Interesting plaza stops residents like to visit (UV of painted image).

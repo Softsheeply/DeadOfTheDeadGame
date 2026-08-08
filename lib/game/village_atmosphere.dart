@@ -24,8 +24,8 @@ class VillageAtmosphere extends PositionComponent {
   late final List<_FountainJet> _jets;
   late final List<_WaterDroplet> _droplets;
   late final List<_RiverSpark> _riverSparks;
-  late final List<_Candle> _candles;
-  late final List<_BuildingLight> _lights;
+  List<_Candle> _candles = const [];
+  List<_BuildingLight> _lights = const [];
   late final List<_PapelFlag> _papel;
   late final List<_SmokePuff> _smoke;
   late final List<_Firefly> _fireflies;
@@ -56,67 +56,12 @@ class VillageAtmosphere extends PositionComponent {
     // until FX can be clipped to a real water mask.
     _waters = const [];
 
-    // Night-only warm lights — positions live in decor_markers.json.
-    _candles = await _loadNightCandles();
-
-    _lights = [
-      _BuildingLight(
-        uv: const Offset(0.115, 0.46),
-        size: const Size(0.028, 0.035),
-        color: const Color(0xFFFFC46A),
-        flicker: true,
-        breathe: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.275, 0.50),
-        size: const Size(0.04, 0.05),
-        color: const Color(0xFFFF8A3A),
-        flicker: true,
-        breathe: true,
-        dayVisible: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.62, 0.48),
-        size: const Size(0.05, 0.03),
-        color: const Color(0xFFFFB87A),
-        breathe: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.74, 0.48),
-        size: const Size(0.03, 0.055),
-        color: const Color(0xFFFFD27A),
-        flicker: true,
-        breathe: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.74, 0.34),
-        size: const Size(0.02, 0.025),
-        color: const Color(0xFFFFE0A0),
-        flicker: true,
-        breathe: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.90, 0.46),
-        size: const Size(0.025, 0.03),
-        color: const Color(0xFFFFC070),
-        flicker: true,
-        breathe: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.48, 0.40),
-        size: const Size(0.022, 0.028),
-        color: const Color(0xFFFFB060),
-        breathe: true,
-        dayVisible: true,
-      ),
-      _BuildingLight(
-        uv: const Offset(0.18, 0.52),
-        size: const Size(0.02, 0.022),
-        color: const Color(0xFFFFC878),
-        flicker: true,
-        breathe: true,
-      ),
-    ];
+    // Night art already paints candles, lanterns, and window glow. Coded
+    // overlays were "fake buttons" sitting off the real props (river orbs,
+    // cobble east of fountain, mariachi/church slabs). Leave empty until we
+    // peel real animated props off the plate.
+    _candles = const [];
+    _lights = const [];
 
     // Painted papel picado is already in the backdrop art. Fake coded flags
     // double-stacked on top — leave empty until we have real animated sheets.
@@ -278,35 +223,43 @@ class VillageAtmosphere extends PositionComponent {
 
   /// Extra fountain thrash — wind toy or a tap on the fountain.
   void splashFountain({double intensity = 1}) {
-    // Soft mist ring only — free jets/droplets spilled onto cobble.
+    // Visual mist disabled — it floated on cobble east of the painted bowl.
+    // Keep the hook so toys/taps still feel responsive via SFX/petals.
     _fountainSplash = (_fountainSplash + intensity).clamp(0.0, 1.6);
   }
 
-  /// Tap-to-light a nearby candle/lantern. Returns true if one was newly lit.
-  bool tryLightCandle(Vector2 worldPoint, {double maxDist = 42}) {
+  /// Tap a painted candle / lantern zone. Juice is spawned at the tap by the
+  /// game — we do not draw a separate glow orb (those sat off the art).
+  bool tryLightCandle(Vector2 worldPoint, {double maxDist = 36}) {
     final draw = backdrop.drawRect;
     if (draw == Rect.zero) return false;
-    _Candle? best;
-    var bestDist = maxDist;
-    for (final candle in _candles) {
-      if (candle.playerLit) continue;
+    for (final uv in _paintedCandleUvs) {
       final pos = Offset(
-        draw.left + draw.width * candle.uv.dx,
-        draw.top + draw.height * candle.uv.dy,
+        draw.left + draw.width * uv.dx,
+        draw.top + draw.height * uv.dy,
       );
       final d = (Offset(worldPoint.x, worldPoint.y) - pos).distance;
-      if (d < bestDist) {
-        bestDist = d;
-        best = candle;
-      }
+      if (d <= maxDist) return true;
     }
-    final hit = best;
-    if (hit == null) return false;
-    hit.playerLit = true;
-    hit.glowBoost = 1.4;
-    hit.strength = (hit.strength * 1.25).clamp(0.9, 1.8);
-    return true;
+    return false;
   }
+
+  /// Approximate UVs of candles already painted in the night plate
+  /// (river path + ofrenda rim). Tuned to the art, not floating orbs.
+  static const _paintedCandleUvs = <Offset>[
+    // River / bridge candles (follow the water, not the cobble deck).
+    Offset(0.09, 0.90),
+    Offset(0.12, 0.91),
+    Offset(0.16, 0.92),
+    Offset(0.20, 0.91),
+    // Ofrenda / tree planter rim.
+    Offset(0.47, 0.70),
+    Offset(0.50, 0.69),
+    Offset(0.53, 0.70),
+    // Church steps candles (only where the plate has them).
+    Offset(0.72, 0.72),
+    Offset(0.76, 0.73),
+  ];
 
   @override
   void update(double dt) {
@@ -596,100 +549,7 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderWater(Canvas canvas, Rect draw) {
-    // Mild splash bloom — large splashBoost made the bowl look like a plaza puddle.
-    final splashBoost = 1 + _fountainSplash * 0.22;
-
-    for (final body in _waters) {
-      final cx = draw.left + draw.width * body.center.dx;
-      final cy = draw.top + draw.height * body.center.dy;
-      final rx = draw.width * body.radiusX * (body.kind == _WaterKind.fountain ? splashBoost : 1);
-      final ry = draw.height * body.radiusY * (body.kind == _WaterKind.fountain ? splashBoost : 1);
-
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2),
-        Paint()
-          ..color = const Color(0xFF6EC8FF)
-              .withValues(alpha: 0.10 + 0.06 * sin(_time * body.speed) +
-                  (body.kind == _WaterKind.fountain ? _fountainSplash * 0.08 : 0))
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-      );
-
-      if (body.kind == _WaterKind.fountain) {
-        final sheenX = cx + sin(_time * body.speed * 0.7) * rx * 0.35;
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(sheenX, cy - ry * 0.15),
-            width: rx * 0.55,
-            height: ry * 0.28,
-          ),
-          Paint()
-            ..color = const Color(0xFFE8F8FF).withValues(alpha: 0.12 + _fountainSplash * 0.08)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-        );
-      }
-
-      for (var i = 0; i < body.rippleCount; i++) {
-        if (body.kind == _WaterKind.river) {
-          // Downstream-traveling crescents instead of expanding rings.
-          final phase = (_time * body.speed * 0.55 + i * 0.4) % 1.0;
-          final flow = body.flow;
-          final px = cx + flow.dx * rx * (phase * 2 - 1);
-          final py = cy + flow.dy * ry * (phase * 2 - 1);
-          final alpha = (1 - (phase - 0.5).abs() * 2) * 0.32;
-          canvas.drawOval(
-            Rect.fromCenter(
-              center: Offset(px, py),
-              width: rx * (0.55 + phase * 0.35),
-              height: ry * (0.45 + phase * 0.25),
-            ),
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.3
-              ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
-          );
-        } else {
-          final phase = (_time * body.speed + i * 0.85) % 1.0;
-          final expand = 0.35 + phase * 0.75;
-          final alpha = (1 - phase) * (0.28 + _fountainSplash * 0.15);
-          canvas.drawOval(
-            Rect.fromCenter(
-              center: Offset(cx, cy),
-              width: rx * 2 * expand,
-              height: ry * 2 * expand,
-            ),
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.4 + _fountainSplash * 0.6
-              ..color = const Color(0xFFB8ECFF).withValues(alpha: alpha),
-          );
-        }
-      }
-    }
-
-    _renderFountainJets(canvas, draw);
-    _renderDroplets(canvas, draw);
-    _renderRiverSparks(canvas, draw);
-
-    if (_fountainSplash > 0.05) {
-      final fx = draw.left + draw.width * VillageBackdrop.fountainCenterUv.dx;
-      final fy = draw.top + draw.height * VillageBackdrop.fountainCenterUv.dy;
-      for (var i = 0; i < 3; i++) {
-        final t = ((_time * 1.8 + i * 0.33) % 1.0);
-        final r = draw.width * (0.03 + t * 0.06) * (0.8 + _fountainSplash * 0.4);
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(fx, fy + draw.height * 0.01),
-            width: r * 2.2,
-            height: r * 1.2,
-          ),
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.8
-            ..color = const Color(0xFFD6F4FF)
-                .withValues(alpha: (1 - t) * 0.35 * _fountainSplash.clamp(0.0, 1.0)),
-        );
-      }
-    }
+    // Painted water only. Coded ripples/jets/splash mist were fake orbs on cobble.
   }
 
   void _renderRiverSparks(Canvas canvas, Rect draw) {
