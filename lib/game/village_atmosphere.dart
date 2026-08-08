@@ -51,53 +51,10 @@ class VillageAtmosphere extends PositionComponent {
     await super.onLoad();
     size = backdrop.size.clone();
 
-    _waters = [
-      // Fountain bowl only — keep ripples inside the painted basin.
-      _WaterBody(
-        center: const Offset(0.575, 0.595),
-        radiusX: 0.042,
-        radiusY: 0.032,
-        rippleCount: 3,
-        speed: 1.15,
-        kind: _WaterKind.fountain,
-      ),
-      _WaterBody(
-        center: const Offset(0.575, 0.625),
-        radiusX: 0.028,
-        radiusY: 0.02,
-        rippleCount: 2,
-        speed: 0.95,
-        kind: _WaterKind.fountain,
-      ),
-      // River water only (below the bridge deck — not on the cobbles).
-      _WaterBody(
-        center: const Offset(0.12, 0.905),
-        radiusX: 0.06,
-        radiusY: 0.018,
-        rippleCount: 3,
-        speed: 1.35,
-        kind: _WaterKind.river,
-        flow: const Offset(-0.55, 0.45),
-      ),
-      _WaterBody(
-        center: const Offset(0.19, 0.92),
-        radiusX: 0.045,
-        radiusY: 0.015,
-        rippleCount: 2,
-        speed: 1.2,
-        kind: _WaterKind.river,
-        flow: const Offset(-0.4, 0.55),
-      ),
-      _WaterBody(
-        center: const Offset(0.08, 0.89),
-        radiusX: 0.04,
-        radiusY: 0.02,
-        rippleCount: 2,
-        speed: 1.1,
-        kind: _WaterKind.river,
-        flow: const Offset(-0.35, 0.65),
-      ),
-    ];
+    // Painted plaza already has river + fountain water. Coded ripples/jets were
+    // landing on cobble (yellow bridge puddles + red plaza spray) — disable
+    // until FX can be clipped to a real water mask.
+    _waters = const [];
 
     // Night-only warm lights — positions live in decor_markers.json.
     _candles = await _loadNightCandles();
@@ -214,31 +171,10 @@ class VillageAtmosphere extends PositionComponent {
       );
     });
 
-    // Fountain jets stay vertical in the bowl — side spouts looked like
-    // random water sprouting on dry cobble east of the fountain.
-    _jets = [
-      for (var i = 0; i < 4; i++)
-        _FountainJet(
-          origin: const Offset(0.575, 0.605),
-          angle: -pi / 2 + (i - 1.5) * 0.12,
-          height: 0.048 + (i == 1 || i == 2 ? 0.012 : 0),
-          phase: i * 0.7,
-        ),
-    ];
-
-    _droplets = List.generate(16, (i) => _spawnDroplet(seed: i / 16));
-
-    _riverSparks = List.generate(36, (i) {
-      final rivers = _waters.where((w) => w.kind == _WaterKind.river).toList();
-      final body = rivers[i % rivers.length];
-      return _RiverSpark(
-        bodyIndex: _waters.indexOf(body),
-        t: _random.nextDouble(),
-        lateral: (_random.nextDouble() - 0.5) * 0.7,
-        size: 1.2 + _random.nextDouble() * 2.2,
-        speed: 0.18 + _random.nextDouble() * 0.22,
-      );
-    });
+    // Fountain/river particle FX disabled (see _waters note above).
+    _jets = const [];
+    _droplets = const [];
+    _riverSparks = const [];
 
     // Soft canopy overlays that sway with breeze (tree is painted; this sells motion).
     _trees = [
@@ -342,14 +278,8 @@ class VillageAtmosphere extends PositionComponent {
 
   /// Extra fountain thrash — wind toy or a tap on the fountain.
   void splashFountain({double intensity = 1}) {
+    // Soft mist ring only — free jets/droplets spilled onto cobble.
     _fountainSplash = (_fountainSplash + intensity).clamp(0.0, 1.6);
-    for (var i = 0; i < (8 * intensity).round(); i++) {
-      _droplets.add(_spawnDroplet(seed: _random.nextDouble() * 0.2));
-    }
-    // Cap droplet list so wind spam stays cheap.
-    while (_droplets.length > 48) {
-      _droplets.removeAt(0);
-    }
   }
 
   /// Tap-to-light a nearby candle/lantern. Returns true if one was newly lit.
@@ -931,34 +861,31 @@ class VillageAtmosphere extends PositionComponent {
           : night * light.alpha;
       if (strength < 0.02) continue;
 
-      final rect = Rect.fromCenter(
-        center: Offset(
-          draw.left + draw.width * light.uv.dx,
-          draw.top + draw.height * light.uv.dy,
-        ),
-        width: draw.width * light.size.width,
-        height: draw.height * light.size.height,
+      final center = Offset(
+        draw.left + draw.width * light.uv.dx,
+        draw.top + draw.height * light.uv.dy,
       );
+      // Soft circular glow — hard RRect slabs read as grey bars on the art.
+      final radius = draw.width * ((light.size.width + light.size.height) * 0.5);
 
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          rect.inflate(rect.width * 0.35),
-          const Radius.circular(6),
-        ),
+      canvas.drawCircle(
+        center,
+        radius * 2.4,
         Paint()
-          ..color = light.color.withValues(alpha: 0.18 * strength)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+          ..color = light.color.withValues(alpha: 0.16 * strength)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 1.2),
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        Paint()..color = light.color.withValues(alpha: 0.55 * strength),
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = light.color.withValues(alpha: 0.28 * strength)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.45),
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          rect.deflate(rect.width * 0.25),
-          const Radius.circular(2),
-        ),
-        Paint()..color = const Color(0xFFFFF6D8).withValues(alpha: 0.35 * strength),
+      canvas.drawCircle(
+        center,
+        max(1.2, radius * 0.28),
+        Paint()..color = const Color(0xFFFFF6D8).withValues(alpha: 0.4 * strength),
       );
     }
   }
