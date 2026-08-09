@@ -294,7 +294,8 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..preferredHotspots = _preferredHotspotsFor(member)
       ..restSpots = backdrop?.restSpotWorldPoints() ?? const []
       ..reduceMotion = reduceMotion.value
-      ..depthPriority = (feetY) => occluders?.depthPriorityForFeet(feetY) ?? (feetY * 10).round()
+      ..depthPriority = (feetY) =>
+          (occluders?.depthPriorityForFeet(feetY) ?? (feetY * 10).round())
       ..onPetalBurst = (pos, {int count = 14}) {
         spawnPetals(pos, count: count);
       }

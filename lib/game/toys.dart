@@ -297,7 +297,8 @@ class LanternRipple extends PositionComponent {
     final t = (_age / lifetime).clamp(0.0, 1.0);
     final fade = (1 - t).clamp(0.0, 1.0);
     final center = Offset(size.x * 0.5, size.y * 0.58);
-    final radius = size.shortestSide * (0.12 + t * 0.42);
+    final shortest = size.x < size.y ? size.x : size.y;
+    final radius = shortest * (0.12 + t * 0.42);
     canvas.drawCircle(
       center,
       radius,

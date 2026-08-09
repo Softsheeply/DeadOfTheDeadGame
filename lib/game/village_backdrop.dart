@@ -412,8 +412,7 @@ class VillageBackdrop extends PositionComponent {
       indices.add(cursor);
       cursor = prev[cursor];
     }
-    indices.reverse();
-    return [for (final i in indices) nodes[i]];
+    return [for (final i in indices.reversed) nodes[i]];
   }
 
   int? _nodeIndex(List<Vector2> nodes, Vector2 point) {

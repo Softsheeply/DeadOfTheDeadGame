@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/painting.dart';
 
 /// Quick streak across the night sky — rare ambient event.
 class ShootingStar extends PositionComponent {
