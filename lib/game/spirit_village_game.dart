@@ -12,6 +12,7 @@ import 'ambient_critters.dart';
 import 'cast_roster.dart';
 import 'petal_burst.dart';
 import 'plaza_audio.dart';
+import 'plaza_juice.dart';
 import 'plaza_mission.dart';
 import 'plaza_occluders.dart';
 import 'plaza_prefs.dart';
@@ -42,6 +43,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   bool musicPlaying = false;
   double _musicTimer = 0;
   double _missionCelebrateTimer = 0;
+  double _rareEventTimer = 28;
   final Random _random = Random();
   final ValueNotifier<bool> isNight = ValueNotifier<bool>(true);
   final ValueNotifier<String> toyStatus = ValueNotifier<String>('');
@@ -122,7 +124,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     }
     final building = decor?.hitTest(event.localPosition);
     if (building != null) {
-      toyStatus.value = '${building.label}: ${building.status}';
+      _onBuildingTapped(building);
       return;
     }
     if (_tapNearFountain(event.localPosition)) {
@@ -512,6 +514,85 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     toyStatus.value = 'Pan dulce! Who will claim it?';
   }
 
+  void _onBuildingTapped(PlazaBuilding building) {
+    final center = decor?.worldCenterFor(building);
+    if (center != null) {
+      add(SparkleBurst(position: center.clone(), count: 16));
+      spawnPetals(center.clone()..y -= 10, count: 10);
+    }
+    final flavor = PlazaBuildingReactions.flavorLine(building.id, building.status);
+    toyStatus.value = '${building.label}: $flavor';
+    if (center != null) {
+      _reactCastToBuilding(building.id, center);
+    }
+    switch (building.id) {
+      case 'mariachi_stage':
+        add(MusicNotesBurst(size: size.clone()));
+        audio.musicSfx();
+      case 'panaderia':
+        audio.treatSfx();
+      case 'floristeria':
+        audio.petalsSfx();
+      case 'church':
+        audio.petalsSfx();
+      default:
+        audio.petalsSfx();
+    }
+  }
+
+  void _reactCastToBuilding(String buildingId, Vector2 center) {
+    const glanceRadius = 220.0;
+    final affinity = PlazaBuildingReactions.affinityFor(buildingId);
+    final candidates = residents
+        .where((r) => !r.held && !r.airborne && r.position.distanceTo(center) < glanceRadius)
+        .toList();
+    if (candidates.isEmpty) return;
+
+    final preferred = candidates.where((r) => affinity.contains(r.config.id)).toList();
+    final pool = preferred.isNotEmpty ? preferred : candidates;
+    pool.sort((a, b) => a.position.distanceTo(center).compareTo(b.position.distanceTo(center)));
+    final reactCount = min(2, pool.length);
+    for (var i = 0; i < reactCount; i++) {
+      pool[i].glanceToward(center);
+      if (buildingId == 'mariachi_stage' && _random.nextDouble() < 0.45) {
+        pool[i].applyDancePulse();
+      }
+    }
+  }
+
+  void _tickRareEvents(double dt) {
+    if (reduceMotion.value || residents.isEmpty) return;
+    _rareEventTimer -= dt;
+    if (_rareEventTimer > 0) return;
+    _rareEventTimer = PlazaRareEvents.minIntervalSeconds +
+        _random.nextDouble() *
+            (PlazaRareEvents.maxIntervalSeconds - PlazaRareEvents.minIntervalSeconds);
+    if (_random.nextDouble() > PlazaRareEvents.triggerChance) return;
+    _triggerRareEvent(PlazaRareEvents.pickKind(_random));
+  }
+
+  void _triggerRareEvent(PlazaRareEventKind kind) {
+    toyStatus.value = PlazaRareEvents.statusLine(kind);
+    switch (kind) {
+      case PlazaRareEventKind.shootingStar:
+        add(ShootingStar(size: size.clone()));
+      case PlazaRareEventKind.balloon:
+        add(DriftBalloon(size: size.clone(), color: PlazaRareEvents.balloonColor(_random)));
+        spawnPetals(
+          Vector2(size.x * 0.78, size.y * 0.22),
+          count: 6,
+        );
+      case PlazaRareEventKind.paradeTease:
+        add(MusicNotesBurst(size: size.clone()));
+        audio.musicSfx();
+        for (final resident in residents) {
+          if (!resident.held && !resident.airborne && _random.nextDouble() < 0.35) {
+            resident.glanceToward(Vector2(size.x * 0.85, size.y * 0.45));
+          }
+        }
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -526,6 +607,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     }
 
     _separateFromHeld();
+    _tickRareEvents(dt);
 
     if (musicPlaying) {
       _musicTimer -= dt;

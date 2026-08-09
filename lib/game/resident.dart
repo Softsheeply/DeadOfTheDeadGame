@@ -933,6 +933,21 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     onPetalBurst?.call(position.clone()..y -= 36, count: 10);
   }
 
+  /// Face a plaza landmark without walking — building taps, rare events.
+  void glanceToward(Vector2 worldPoint) {
+    if (_held || _airborne) return;
+    _clearWalkIntent();
+    final dx = worldPoint.x - position.x;
+    final dy = worldPoint.y - position.y;
+    if (dx.abs() < 6 && dy.abs() < 6) return;
+    direction = dx.abs() >= dy.abs()
+        ? (dx < 0 ? 'left' : 'right')
+        : (dy < 0 ? 'up' : 'down');
+    play('idle_$direction');
+    _squash = 0.9;
+    _dizzyTimer = max(_dizzyTimer, 0.35);
+  }
+
   /// Walk toward a treat / hotspot (used by pan dulce + Xolo chase).
   void attractTo(Vector2 destination) {
     if (_held || _airborne) return;

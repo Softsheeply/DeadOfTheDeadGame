@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+32` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+33` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -35,6 +35,8 @@
 - [x] Multi-hop + graph routing around doghouse / grave (cross-plaza paths)
 - [x] Personality JSON drives autonomous behaviour (weights + decision interval)
 - [x] Skippable 4-bead tutorial (drag → day/night → toys → mission)
+- [x] Richer building taps (sparkles, cast glance, role flavor + SFX)
+- [x] Rare idle events (shooting star, balloon, parade tease)
 
 ---
 
@@ -68,13 +70,13 @@
 ### Plaza feel
 - [ ] 20. True depth cutouts (fountain rim, tree, bridge)
 - [ ] 21. Building door open/close (florist, bakery, church, mercado)
-- [ ] 22. Tap building → richer status / micro beat
+- [x] 22. Tap building → richer status / micro beat
 - [ ] 23. Bench sit looks correct
 - [ ] 24. Ofrenda as clear tappable prop
 - [ ] 25. Better plaza music bed (replace placeholder WAVs)
 - [ ] 26. Polish toy SFX
 - [x] 27. Mission set #1: 4 looping plaza chores (marigolds → mariachi → Xolo → candles)
-- [ ] 28. Rare idle events (star, balloon, parade tease)
+- [x] 28. Rare idle events (star, balloon, parade tease)
 - [x] 29. Skippable tutorial beads (4 steps: drag, day/night, toys, mission)
 
 **Exit criteria:** strangers enjoy poking the plaza 5+ minutes; Pepita walk no longer embarrasses you.

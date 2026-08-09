@@ -99,22 +99,34 @@ class VillageDecor extends Component {
     if (draw == Rect.zero) return null;
 
     for (final building in buildings) {
-      final center = Offset(
-        draw.left + draw.width * building.centerUv.dx,
-        draw.top + draw.height * building.centerUv.dy,
-      );
-      final halfW = draw.width * building.hitSize.width * 0.5;
-      final halfH = draw.height * building.hitSize.height * 0.5;
-      final rect = Rect.fromLTRB(
-        center.dx - halfW,
-        center.dy - halfH,
-        center.dx + halfW,
-        center.dy + halfH,
-      );
-      if (rect.contains(Offset(worldPoint.x, worldPoint.y))) {
+      if (_hitRect(building, draw).contains(Offset(worldPoint.x, worldPoint.y))) {
         return building;
       }
     }
     return null;
+  }
+
+  Vector2? worldCenterFor(PlazaBuilding building) {
+    final draw = backdrop.drawRect;
+    if (draw == Rect.zero) return null;
+    return Vector2(
+      draw.left + draw.width * building.centerUv.dx,
+      draw.top + draw.height * building.centerUv.dy,
+    );
+  }
+
+  Rect _hitRect(PlazaBuilding building, Rect draw) {
+    final center = Offset(
+      draw.left + draw.width * building.centerUv.dx,
+      draw.top + draw.height * building.centerUv.dy,
+    );
+    final halfW = draw.width * building.hitSize.width * 0.5;
+    final halfH = draw.height * building.hitSize.height * 0.5;
+    return Rect.fromLTRB(
+      center.dx - halfW,
+      center.dy - halfH,
+      center.dx + halfW,
+      center.dy + halfH,
+    );
   }
 }
