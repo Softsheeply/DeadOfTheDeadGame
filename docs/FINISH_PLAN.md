@@ -4,8 +4,23 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+39` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+40` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
+
+---
+
+## Next session — Pepita animation sprint (priority)
+
+Device TestFlight: magnified face / sliced-in-half / backwards walk.
+
+- [ ] **A1.** Re-slice `idle_down` breathe — frames `00`/`03` were ~15–28 px slivers (see `docs/art-briefs/pepita-animation-fix.md`)
+- [ ] **A2.** Add bbox validation to slice script (min width 60 px) — wired, re-run on incoming sheets
+- [ ] **A3.** Verify walk_left / walk_right facing matches travel direction (backwards walk)
+- [ ] **A4.** Walk cycle footfall: stride vs fps so feet don’t skate on cobble
+- [ ] **A5.** Re-enable multi-frame idle_down in `character.json` after all frames pass QA
+- [ ] **A6.** Real door open/close art (coded door pulse removed — sparkles + flavor only)
+
+**Hotfix shipped (+40):** single-frame `idle_down_01`; removed `BuildingDoorPulse` on building tap.
 
 ---
 

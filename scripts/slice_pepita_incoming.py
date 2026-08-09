@@ -70,6 +70,16 @@ def grid_frames(image: Image.Image, *, columns: int = 4, rows: int = 2) -> list[
     return frames
 
 
+MIN_FRAME_WIDTH = 60
+
+
+def frame_content_width(frame: Image.Image) -> int:
+    bbox = alpha_bbox(frame)
+    if bbox is None:
+        return 0
+    return bbox[2] - bbox[0]
+
+
 def normalize_frame(image: Image.Image, *, mirror: bool = False) -> Image.Image:
     crop = strip_background(image)
     bbox = alpha_bbox(crop)

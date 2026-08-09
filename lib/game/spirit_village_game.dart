@@ -13,7 +13,6 @@ import '../data/location_config.dart';
 import '../data/mission_catalog.dart';
 import '../data/world_map_config.dart';
 import 'ambient_critters.dart';
-import 'building_door_pulse.dart';
 import 'cast_roster.dart';
 import 'ofrenda_marker.dart';
 import 'petal_burst.dart';
@@ -672,12 +671,6 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     if (center != null) {
       add(SparkleBurst(position: center.clone(), count: 16));
       spawnPetals(center.clone()..y -= 10, count: 10);
-      add(
-        BuildingDoorPulse(
-          position: center.clone()..y += 8,
-          tint: doorTintForBuilding(building.id),
-        ),
-      );
     }
     final flavor = PlazaBuildingReactions.flavorLine(building.id, building.status);
     toyStatus.value = '${building.label}: $flavor';

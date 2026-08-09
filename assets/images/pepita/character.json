@@ -112,18 +112,11 @@
   ],
   "animations": {
     "idle_down": {
-      "frames": 8,
-      "fps": 6,
+      "frames": 1,
+      "fps": 1,
       "loop": true,
       "paths": [
-        "idle/down/pepita_idle_down_00.png",
-        "idle/down/pepita_idle_down_01.png",
-        "idle/down/pepita_idle_down_02.png",
-        "idle/down/pepita_idle_down_03.png",
-        "idle/down/pepita_idle_down_04.png",
-        "idle/down/pepita_idle_down_05.png",
-        "idle/down/pepita_idle_down_06.png",
-        "idle/down/pepita_idle_down_07.png"
+        "idle/down/pepita_idle_down_01.png"
       ]
     },
     "idle_left": {
