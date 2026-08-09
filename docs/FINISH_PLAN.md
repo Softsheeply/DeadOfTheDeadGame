@@ -55,8 +55,8 @@
 - [ ] 13. Real sit / wave / smell sprites (replace squash hacks)
 
 ### Pick up & move (all characters)
-- [ ] 14. Verify **every** cast member (all 12) can be grabbed, dragged, and flung on device (hitbox/visual alignment fixed — re-test on device)
-- [ ] 15. Reliable hit boxes (big heads / small critters — no missy taps)
+- [x] 14. Verify **every** cast member (all 12) can be grabbed, dragged, and flung on device (hitbox/visual alignment fixed — re-test on device)
+- [x] 15. Reliable hit boxes (big heads / small critters — no missy taps)
 - [x] 16. Pickup juice: scale-up, shadow, “held” pose / SFX
 - [x] 17. Drop / fling lands on walkable cobble only (not roofs, fountain bowl, river)
 - [x] 18. Soft collision so held characters don’t stack invisibly

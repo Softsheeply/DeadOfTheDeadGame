@@ -16,7 +16,7 @@
 
 | Item | Status |
 |------|--------|
-| Pickup drag/fling | ✅ David confirmed good |
+| Pickup drag/fling | ✅ all 12 cast verified on device (#14–15) |
 | Doghouse blocker | ✅ enlarged (roof + door + Xolo stoop) |
 | Axis-slide anti-tunnel | ✅ |
 | `routeToward` skirt | ⚠️ single-hop — can wedge on long crossings |
@@ -32,7 +32,7 @@ Spawned cast use [[pepita]] walks where wired; others TBD.
 
 - Strangers enjoy poking 5+ minutes
 - Pepita walk no longer embarrasses you
-- All 12 cast pickup verified on device
+- [x] All 12 cast pickup verified on device
 
 ## Not doing yet
 

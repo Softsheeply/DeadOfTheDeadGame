@@ -20,12 +20,12 @@ Welcome to the Obsidian vault for **DeadOfTheDeadGame**. This note is your dashb
 - **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 - **Build:** `1.0.0+29`
 - **PR:** #1 on GitHub
-- **Focus:** One plaza great — pickup good, Pepita feet still weak, multi-hop routing TBD
+- **Focus:** One plaza great — pickup ✅ verified (all 12), Pepita feet still weak, multi-hop routing TBD
 
 ### Your next actions
 
 - [ ] Regen Pepita walk sheets in ChatGPT → drop in `assets/images/pepita/_incoming/` → push
-- [ ] Device pass: grab/drag/fling all 12 cast ([[FINISH_PLAN#Pick up & move (all characters)|#14–15]])
+- [x] Device pass: grab/drag/fling all 12 cast ([[FINISH_PLAN#Pick up & move (all characters)|#14–15]]) — verified on device
 - [ ] Optional: app icon + launch image ([[FINISH_PLAN#Store / chrome|A1–2]])
 
 ### Agent next actions
