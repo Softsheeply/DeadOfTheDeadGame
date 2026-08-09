@@ -10,6 +10,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../data/character_config.dart';
 import 'ambient_critters.dart';
 import 'cast_roster.dart';
+import 'ofrenda_marker.dart';
 import 'petal_burst.dart';
 import 'plaza_audio.dart';
 import 'plaza_juice.dart';
@@ -53,6 +54,8 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final ValueNotifier<int> tutorialStep = ValueNotifier<int>(0);
   final ValueNotifier<bool> settingsOpen = ValueNotifier<bool>(false);
   final ValueNotifier<bool> reduceMotion = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> photoMode = ValueNotifier<bool>(false);
+  OfrendaMarker? _ofrendaMarker;
 
   Resident? get xolo => _residentsById['xolo'];
 
@@ -74,6 +77,8 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     await add(critters!);
     occluders = PlazaOccluders(backdrop: backdrop!);
     await add(occluders!);
+    _ofrendaMarker = OfrendaMarker(backdrop: backdrop!);
+    await add(_ofrendaMarker!);
 
     await castRoster.load();
     await prefs.load();
@@ -135,10 +140,32 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       return;
     }
     if (backdrop?.nearOfrenda(event.localPosition) ?? false) {
-      spawnPetals(event.localPosition.clone(), count: 10);
-      audio.petalsSfx();
-      _noteOfrendaPetals();
+      _onOfrendaTapped();
+      return;
+    }
+  }
+
+  void _onOfrendaTapped() {
+    final ofrenda = backdrop?.ofrendaWorld;
+    if (ofrenda == null) return;
+    spawnPetals(ofrenda.clone(), count: 12);
+    add(SparkleBurst(position: ofrenda.clone(), count: 14));
+    audio.petalsSfx();
+    final missionBump = mission.reportOfrendaTap();
+    if (missionBump) {
+      _onMissionComplete();
+    } else if (mission.current == MissionId.ofrendaTribute) {
+      toyStatus.value =
+          'Ofrenda ${mission.progress.value}/${mission.goal.value} — keep honoring the tree';
+      _persistMission();
+    } else if (mission.current != MissionId.marigolds) {
       toyStatus.value = 'Marigolds settle on the ofrenda';
+    }
+    for (final resident in residents) {
+      if (!resident.held && !resident.airborne && resident.position.distanceTo(ofrenda) < 200) {
+        resident.glanceToward(ofrenda);
+        break;
+      }
     }
   }
 
@@ -388,6 +415,17 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       resident.reduceMotion = value;
     }
     await prefs.setReduceMotion(value);
+  }
+
+  void togglePhotoMode() {
+    photoMode.value = !photoMode.value;
+    if (photoMode.value) {
+      settingsOpen.value = false;
+      castPanelOpenListenable.value = false;
+      toyStatus.value = 'Photo mode — tap settings to show UI';
+    } else {
+      toyStatus.value = mission.detail.value;
+    }
   }
 
   Future<void> setMutedPersisted(bool value) async {

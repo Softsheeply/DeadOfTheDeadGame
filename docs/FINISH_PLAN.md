@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+33` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+34` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -37,6 +37,11 @@
 - [x] Skippable 4-bead tutorial (drag → day/night → toys → mission)
 - [x] Richer building taps (sparkles, cast glance, role flavor + SFX)
 - [x] Rare idle events (shooting star, balloon, parade tease)
+- [x] Mission loop #2 (festival set: encore, candle path, treat round, ofrenda tribute)
+- [x] Ofrenda tap marker + clear tappable zone
+- [x] Bench sit walks-to-spot and snaps on arrival
+- [x] anchors.feet from character.json drives foot alignment
+- [x] Photo mode (hide HUD for screenshots)
 
 ---
 
@@ -71,8 +76,8 @@
 - [ ] 20. True depth cutouts (fountain rim, tree, bridge)
 - [ ] 21. Building door open/close (florist, bakery, church, mercado)
 - [x] 22. Tap building → richer status / micro beat
-- [ ] 23. Bench sit looks correct
-- [ ] 24. Ofrenda as clear tappable prop
+- [x] 23. Bench sit looks correct
+- [x] 24. Ofrenda as clear tappable prop
 - [ ] 25. Better plaza music bed (replace placeholder WAVs)
 - [ ] 26. Polish toy SFX
 - [x] 27. Mission set #1: 4 looping plaza chores (marigolds → mariachi → Xolo → candles)

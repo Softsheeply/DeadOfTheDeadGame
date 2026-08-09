@@ -30,6 +30,55 @@ void main() {
     expect(mission.current, MissionId.marigolds);
   });
 
+  test('festival mission set follows welcome loop', () {
+    final mission = PlazaMission();
+    for (var i = 0; i < 3; i++) {
+      mission.reportOfrendaPetals();
+    }
+    mission.advanceAfterCelebration(); // mariachi
+    mission.reportMariachi();
+    mission.advanceAfterCelebration(); // xolo
+    mission.reportXoloFed();
+    mission.advanceAfterCelebration(); // candles
+    for (var i = 0; i < 5; i++) {
+      mission.reportCandleLit();
+    }
+    mission.advanceAfterCelebration();
+    expect(mission.current, MissionId.stageEncore);
+    expect(mission.currentSet, MissionSet.festival);
+
+    expect(mission.reportMariachi(), isFalse);
+    expect(mission.reportMariachi(), isTrue);
+    mission.advanceAfterCelebration();
+    expect(mission.current, MissionId.candlePath);
+
+    for (var i = 0; i < 7; i++) {
+      mission.reportCandleLit();
+    }
+    expect(mission.reportCandleLit(), isTrue);
+    mission.advanceAfterCelebration();
+
+    expect(mission.reportXoloFed(), isFalse);
+    expect(mission.reportXoloFed(), isTrue);
+    mission.advanceAfterCelebration();
+
+    for (var i = 0; i < 2; i++) {
+      expect(mission.reportOfrendaTap(), isFalse);
+    }
+    expect(mission.reportOfrendaTap(), isTrue);
+    mission.advanceAfterCelebration();
+    expect(mission.current, MissionId.marigolds);
+  });
+
+  test('reportOfrendaTap only counts during tribute mission', () {
+    final mission = PlazaMission();
+    expect(mission.reportOfrendaTap(), isFalse);
+    mission.restore(MissionId.ofrendaTribute, 0);
+    expect(mission.reportOfrendaTap(), isFalse);
+    expect(mission.reportOfrendaTap(), isFalse);
+    expect(mission.reportOfrendaTap(), isTrue);
+  });
+
   test('wrong mission action is ignored', () {
     final mission = PlazaMission();
     expect(mission.reportMariachi(), isFalse);

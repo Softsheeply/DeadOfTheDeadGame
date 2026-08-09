@@ -69,6 +69,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   double _idleActionTimer = 0;
   String? _idleAction;
   double _stuckTimer = 0;
+  Vector2? _pendingSitSpot;
 
   final Map<String, SpriteAnimation> _animations = {};
   SpriteAnimationComponent? _visual;
@@ -134,7 +135,15 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     );
     _visual = visual;
     add(visual);
+    _applyFeetAnchor();
     play('idle_$direction');
+  }
+
+  /// Align sprite feet (from character.json anchors.feet) with the ground point.
+  void _applyFeetAnchor() {
+    final footInset = config.frameHeight - config.feetAnchorY;
+    if (footInset <= 0.5) return;
+    _setVisualOffset(Vector2(0, footInset / config.frameHeight * size.y));
   }
 
   /// Local feet point of the sprite inside this component's size box.
@@ -221,7 +230,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     final visual = _visual;
     if (visual != null) {
       visual.size = displaySize.clone();
-      _setVisualOffset();
+      _applyFeetAnchor();
     }
   }
 
@@ -362,19 +371,27 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _beginSit() {
     if (restSpots.isNotEmpty && _random.nextDouble() < 0.7) {
       final spot = restSpots[_random.nextInt(restSpots.length)];
-      // Walk over, then sit when close — for simplicity sit in place if far.
-      if (position.distanceTo(spot) < 40) {
-        position.setFrom(spot);
+      if (position.distanceTo(spot) < 36) {
+        _startSitAt(spot);
       } else {
+        _pendingSitSpot = spot.clone();
         walkTo(spot);
-        return;
       }
+      return;
     }
+    _startSitAt(position);
+  }
+
+  void _startSitAt(Vector2 spot) {
+    _clearWalkIntent();
+    position.setFrom(spot);
+    direction = 'down';
     _busy = true;
     _idleAction = 'sit';
     _idleActionTimer = 2.4 + _random.nextDouble() * 1.2;
-    play('idle_$direction');
-    _visual?.scale = Vector2(1.05, 0.82);
+    play('idle_down');
+    _visual?.scale = Vector2(1.08, 0.76);
+    _applyFeetAnchor();
     onIdleFlavor?.call('${config.displayName} takes a little rest');
   }
 
@@ -389,8 +406,8 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       _visual?.scale = Vector2(1.05, lean);
       _setVisualOffset(Vector2(sin(_lifeTime * 2) * 1.5, -1));
     } else if (action == 'sit') {
-      _visual?.scale = Vector2(1.06, 0.8);
-      _setVisualOffset();
+      _visual?.scale = Vector2(1.08, 0.76);
+      _applyFeetAnchor();
     }
   }
 
@@ -495,6 +512,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       _busy = true;
       _updateDirection(force: true);
       _playMovementAnimation();
+      return;
+    }
+    final sitSpot = _pendingSitSpot;
+    if (sitSpot != null) {
+      _pendingSitSpot = null;
+      _startSitAt(sitSpot);
       return;
     }
     allowOffRoad = false;
@@ -694,7 +717,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   void _resetWalkVisual() {
     final visual = _visual;
     if (visual == null) return;
-    _setVisualOffset();
+    _applyFeetAnchor();
     if ((_squash - 1).abs() < 0.02) {
       visual.scale = Vector2.all(1);
     }
@@ -713,6 +736,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _path.clear();
     _stuckTimer = 0;
     _skipping = false;
+    _pendingSitSpot = null;
   }
 
   // -- Pocket God interactions --------------------------------------------

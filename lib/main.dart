@@ -84,58 +84,111 @@ class VillageHud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 10,
-            child: _BottomToyBar(game: game),
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.photoMode,
+      builder: (context, photo, _) {
+        if (photo) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top: 10,
+                right: 12,
+                child: _PhotoModeExit(game: game),
+              ),
+            ],
+          );
+        }
+        return SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 10,
+                child: _BottomToyBar(game: game),
+              ),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 78,
+                child: _ToyStatus(game: game),
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 118,
+                child: _TutorialBead(game: game),
+              ),
+              Positioned(
+                top: 10,
+                left: 12,
+                child: _MissionCard(game: game),
+              ),
+              Positioned(
+                top: 10,
+                right: 12,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MuteButton(game: game),
+                    const SizedBox(width: 8),
+                    _SettingsButton(game: game),
+                    const SizedBox(width: 8),
+                    _CastButton(game: game),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 58,
+                right: 12,
+                child: _CastPanel(game: game),
+              ),
+              Positioned(
+                top: 58,
+                right: 12,
+                child: _SettingsPanel(game: game),
+              ),
+            ],
           ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 78,
-            child: _ToyStatus(game: game),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 118,
-            child: _TutorialBead(game: game),
-          ),
-          Positioned(
-            top: 10,
-            left: 12,
-            child: _MissionCard(game: game),
-          ),
-          Positioned(
-            top: 10,
-            right: 12,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _MuteButton(game: game),
-                const SizedBox(width: 8),
-                _SettingsButton(game: game),
-                const SizedBox(width: 8),
-                _CastButton(game: game),
-              ],
+        );
+      },
+    );
+  }
+}
+
+class _PhotoModeExit extends StatelessWidget {
+  const _PhotoModeExit({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: game.togglePhotoMode,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xF21A0F2C),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0x88F39A3C)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.photo_camera_rounded, color: Color(0xFFF39A3C), size: 18),
+            SizedBox(width: 6),
+            Text(
+              'Exit photo',
+              style: TextStyle(
+                color: Color(0xFFFFF1D1),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          Positioned(
-            top: 58,
-            right: 12,
-            child: _CastPanel(game: game),
-          ),
-          Positioned(
-            top: 58,
-            right: 12,
-            child: _SettingsPanel(game: game),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -754,6 +807,16 @@ class _SettingsPanel extends StatelessWidget {
                       label: 'Reduce motion',
                       value: value,
                       onChanged: game.setReduceMotion,
+                    );
+                  },
+                ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: game.photoMode,
+                  builder: (context, value, _) {
+                    return _SettingsToggle(
+                      label: 'Photo mode',
+                      value: value,
+                      onChanged: (_) => game.togglePhotoMode(),
                     );
                   },
                 ),

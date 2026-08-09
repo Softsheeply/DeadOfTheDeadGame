@@ -55,4 +55,30 @@ void main() {
     expect(config.animationFor('wave'), isNotNull, reason: 'should fall back to wave_down');
     expect(config.animationFor('sit'), isNull, reason: 'no sit or sit_down animation exists');
   });
+
+  test('CharacterConfig parses frameHeight and feet anchors', () {
+    final config = CharacterConfig.fromJson({
+      'id': 'pepita',
+      'displayName': 'Pepita',
+      'role': 'florist',
+      'defaultDirection': 'down',
+      'frameHeight': 192,
+      'anchors': {
+        'feet': [96, 188],
+      },
+      'movement': {'walkSpeed': 54, 'skipSpeed': 72},
+      'animations': {
+        'idle_down': {
+          'frames': 1,
+          'fps': 1,
+          'loop': true,
+          'paths': ['idle/down/pepita_idle_down_00.png'],
+        },
+      },
+    });
+
+    expect(config.frameHeight, 192);
+    expect(config.feetAnchorX, 96);
+    expect(config.feetAnchorY, 188);
+  });
 }

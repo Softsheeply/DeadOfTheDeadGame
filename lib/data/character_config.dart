@@ -81,6 +81,9 @@ class CharacterConfig {
   final Map<String, double> movement;
   final Map<String, AnimationDef> animations;
   final PersonalityDef personality;
+  final double frameHeight;
+  final double feetAnchorX;
+  final double feetAnchorY;
 
   const CharacterConfig({
     required this.id,
@@ -90,6 +93,9 @@ class CharacterConfig {
     required this.movement,
     required this.animations,
     this.personality = PersonalityDef.fallback,
+    this.frameHeight = 128,
+    this.feetAnchorX = 64,
+    this.feetAnchorY = 124,
   });
 
   /// Mirrors resident.js's playAction fallback: `${action}_down` if the
@@ -103,6 +109,17 @@ class CharacterConfig {
   factory CharacterConfig.fromJson(Map<String, dynamic> json) {
     final animationsJson = json['animations'] as Map<String, dynamic>;
     final personalityJson = json['personality'] as Map<String, dynamic>?;
+    final frameHeight = (json['frameHeight'] as num?)?.toDouble() ?? 128.0;
+    final anchorsJson = json['anchors'] as Map<String, dynamic>?;
+    var feetAnchorX = frameHeight / 2;
+    var feetAnchorY = frameHeight - 4;
+    if (anchorsJson != null && anchorsJson['feet'] is List) {
+      final feet = (anchorsJson['feet'] as List).cast<num>();
+      if (feet.length >= 2) {
+        feetAnchorX = feet[0].toDouble();
+        feetAnchorY = feet[1].toDouble();
+      }
+    }
     return CharacterConfig(
       id: json['id'] as String,
       displayName: json['displayName'] as String,
@@ -117,6 +134,9 @@ class CharacterConfig {
       personality: personalityJson == null
           ? PersonalityDef.fallback
           : PersonalityDef.fromJson(personalityJson),
+      frameHeight: frameHeight,
+      feetAnchorX: feetAnchorX,
+      feetAnchorY: feetAnchorY,
     );
   }
 }

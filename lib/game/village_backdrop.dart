@@ -511,7 +511,7 @@ class VillageBackdrop extends PositionComponent {
 
   Vector2 get ofrendaWorld => clampToWalkable(uvToWorld(ofrendaUv));
 
-  bool nearOfrenda(Vector2 point, {double radiusFactor = 0.09}) {
+  bool nearOfrenda(Vector2 point, {double radiusFactor = 0.075}) {
     if (drawRect == Rect.zero) return false;
     final o = ofrendaWorld;
     final r = drawRect.width * radiusFactor;

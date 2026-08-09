@@ -1,7 +1,18 @@
 import 'package:flutter/foundation.dart';
 
-/// Lightweight plaza mission progress for the soft-launch loop.
-enum MissionId { marigolds, mariachi, feedXolo, candles }
+/// Lightweight plaza mission progress — two looping chore sets.
+enum MissionId {
+  marigolds,
+  mariachi,
+  feedXolo,
+  candles,
+  stageEncore,
+  candlePath,
+  treatRound,
+  ofrendaTribute,
+}
+
+enum MissionSet { welcome, festival }
 
 class PlazaMission {
   PlazaMission() {
@@ -20,6 +31,15 @@ class PlazaMission {
   bool _completePending = false;
 
   int get rawProgress => _progress;
+
+  MissionSet get currentSet => switch (current) {
+        MissionId.marigolds ||
+        MissionId.mariachi ||
+        MissionId.feedXolo ||
+        MissionId.candles =>
+          MissionSet.welcome,
+        _ => MissionSet.festival,
+      };
 
   void _set(MissionId id) {
     current = id;
@@ -43,6 +63,22 @@ class PlazaMission {
         _goal = 5;
         title.value = 'Wake the candles';
         detail.value = 'Tap night candles around the plaza (×5)';
+      case MissionId.stageEncore:
+        _goal = 2;
+        title.value = 'Encore at the stage';
+        detail.value = 'Play music twice for the plaza (×2)';
+      case MissionId.candlePath:
+        _goal = 8;
+        title.value = 'Light the candle path';
+        detail.value = 'Tap candles until the whole rim glows (×8)';
+      case MissionId.treatRound:
+        _goal = 2;
+        title.value = 'Treat round';
+        detail.value = 'Drop pan dulce twice — share the sweets (×2)';
+      case MissionId.ofrendaTribute:
+        _goal = 3;
+        title.value = 'Honor the ofrenda';
+        detail.value = 'Tap the tree ofrenda to leave marigolds (×3)';
     }
     goal.value = _goal;
     progress.value = 0;
@@ -54,34 +90,45 @@ class PlazaMission {
     _progress = savedProgress.clamp(0, _goal);
     progress.value = _progress;
     if (_progress >= _goal) {
-      // Avoid locking on a finished mission after relaunch.
       _progress = 0;
       progress.value = 0;
     }
   }
 
-  /// Petal toy / burst near the ofrenda tree.
   bool reportOfrendaPetals() {
-    if (current != MissionId.marigolds || _completePending) return false;
-    return _bump();
+    if (_completePending) return false;
+    if (current == MissionId.marigolds) return _bump();
+    return false;
   }
 
-  /// Music toy used.
+  bool reportOfrendaTap() {
+    if (_completePending) return false;
+    if (current == MissionId.ofrendaTribute) return _bump();
+    return false;
+  }
+
   bool reportMariachi() {
-    if (current != MissionId.mariachi || _completePending) return false;
-    return _bump();
+    if (_completePending) return false;
+    if (current == MissionId.mariachi || current == MissionId.stageEncore) {
+      return _bump();
+    }
+    return false;
   }
 
-  /// Xolo claimed pan dulce.
   bool reportXoloFed() {
-    if (current != MissionId.feedXolo || _completePending) return false;
-    return _bump();
+    if (_completePending) return false;
+    if (current == MissionId.feedXolo || current == MissionId.treatRound) {
+      return _bump();
+    }
+    return false;
   }
 
-  /// Player lit a candle / lantern.
   bool reportCandleLit() {
-    if (current != MissionId.candles || _completePending) return false;
-    return _bump();
+    if (_completePending) return false;
+    if (current == MissionId.candles || current == MissionId.candlePath) {
+      return _bump();
+    }
+    return false;
   }
 
   bool _bump() {
@@ -95,7 +142,6 @@ class PlazaMission {
     return false;
   }
 
-  /// Advance to the next mission after celebration.
   void advanceAfterCelebration() {
     completedFlash.value = false;
     _completePending = false;
@@ -107,6 +153,14 @@ class PlazaMission {
       case MissionId.feedXolo:
         _set(MissionId.candles);
       case MissionId.candles:
+        _set(MissionId.stageEncore);
+      case MissionId.stageEncore:
+        _set(MissionId.candlePath);
+      case MissionId.candlePath:
+        _set(MissionId.treatRound);
+      case MissionId.treatRound:
+        _set(MissionId.ofrendaTribute);
+      case MissionId.ofrendaTribute:
         _set(MissionId.marigolds);
     }
   }
