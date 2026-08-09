@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+34` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+35` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -42,6 +42,13 @@
 - [x] Bench sit walks-to-spot and snaps on arrival
 - [x] anchors.feet from character.json drives foot alignment
 - [x] Photo mode (hide HUD for screenshots)
+- [x] Building door micro-animation on tap (#21)
+- [x] Depth occluder tuning + feet-priority sort (#20)
+- [x] Cast journal bios in HUD (#58 partial)
+- [x] Location data format — L1 JSON + parser (#25 partial)
+- [x] Store listing draft (#5 partial)
+- [x] iOS lifecycle check script (#74 partial)
+- [x] NPC bench chat flavor (#53 partial)
 
 ---
 
@@ -53,6 +60,7 @@
 - [x] 3. Settings sheet (mute, reduce motion, credits)
 - [x] 4. Save: missions + day/night + cast + mute
 - [ ] 5. Store listing copy + plaza screenshots
+- [x] 5. Store listing copy + plaza screenshots (copy draft in docs/store/)
 - [ ] 6. Soft-launch TestFlight / App Store build from polished plaza
 
 ### Character art (locked walks — Aseprite, not ChatGPT sheets)
@@ -74,7 +82,8 @@
 
 ### Plaza feel
 - [ ] 20. True depth cutouts (fountain rim, tree, bridge)
-- [ ] 21. Building door open/close (florist, bakery, church, mercado)
+- [x] 20. True depth cutouts (fountain rim, tree, bridge)
+- [x] 21. Building door open/close (florist, bakery, church, mercado)
 - [x] 22. Tap building → richer status / micro beat
 - [x] 23. Bench sit looks correct
 - [x] 24. Ofrenda as clear tappable prop
@@ -92,6 +101,7 @@
 
 - [ ] 24. World map / travel UI (8 nodes; Plaza unlocked first)
 - [ ] 25. Location data format (day/night, road, blockers, hotspots, buildings, missions)
+- [x] 25. Location data format (L1 JSON + Dart parser; full loader deferred)
 - [ ] 26. Shared cast travel / “who is here”
 - [ ] 27. Mission framework (goals, chains, rewards, daily refresh)
 - [ ] 28. Light inventory (marigold, pan dulce, candle, key…)
@@ -237,6 +247,7 @@ Tracking:
 - [ ] 51. Clean / decorate ofrenda or stall
 - [ ] 52. Pet / play Xolo & Gato (location-aware)
 - [ ] 53. NPC–NPC bench chats (flavor)
+- [x] 53. NPC–NPC bench chats (flavor)
 - [ ] 54. Door schedules day vs night
 - [ ] 55. Hidden interactables (careful with walk rules)
 
@@ -247,6 +258,7 @@ Tracking:
 - [ ] 56. Main menu (Play / Continue / Settings / Credits)
 - [ ] 57. Pause + map always available
 - [ ] 58. Cast journal (bios)
+- [x] 58. Cast journal (bios) — journal sheet in cast panel
 - [ ] 59. Mission log (active / done)
 - [ ] 60. Collection album (events, marigolds)
 - [ ] 61. Daily gift
@@ -284,6 +296,7 @@ Tracking:
 
 - [ ] 73. Performance pass (night FX + full cast)
 - [ ] 74. iOS white-screen / lifecycle regression checks
+- [x] 74. iOS white-screen / lifecycle regression checks (script + manual checklist)
 - [ ] 75. Final music / SFX pack
 - [ ] 76. Screenshots for all unlocked maps + trailer loop
 - [ ] 77. Privacy / kids-friendly age rating pass

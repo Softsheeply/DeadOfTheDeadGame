@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/cast_roster.dart';
+import 'game/plaza_mission.dart';
 import 'game/plaza_tutorial.dart';
 import 'game/spirit_village_game.dart';
+import 'data/cast_journal.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -150,6 +152,12 @@ class VillageHud extends StatelessWidget {
                 right: 12,
                 child: _SettingsPanel(game: game),
               ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 130,
+                child: _CastBioSheet(game: game),
+              ),
             ],
           ),
         );
@@ -190,6 +198,77 @@ class _PhotoModeExit extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CastBioSheet extends StatelessWidget {
+  const _CastBioSheet({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String?>(
+      valueListenable: game.castBioId,
+      builder: (context, id, _) {
+        if (id == null) return const SizedBox.shrink();
+        final bio = game.castJournal.bioFor(id);
+        if (bio == null) return const SizedBox.shrink();
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 340),
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              decoration: BoxDecoration(
+                color: const Color(0xF2140B22),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xAAF39A3C)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          bio.displayName,
+                          style: const TextStyle(
+                            color: Color(0xFFFFF1D1),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: game.dismissCastBio,
+                        child: const Icon(Icons.close_rounded, color: Color(0xFFC9B4E0), size: 18),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    bio.role,
+                    style: const TextStyle(color: Color(0xFFF39A3C), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    bio.bio,
+                    style: const TextStyle(color: Color(0xFFC9B4E0), fontSize: 11, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Likes: ${bio.likes}',
+                    style: const TextStyle(color: Color(0xFF47C4BA), fontSize: 10, height: 1.35),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -257,13 +336,36 @@ class _MissionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                flash ? 'Done!' : 'Mission',
-                style: TextStyle(
-                  color: flash ? const Color(0xFF47C4BA) : const Color(0xFFF39A3C),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                children: [
+                  Text(
+                    flash ? 'Done!' : 'Mission',
+                    style: TextStyle(
+                      color: flash ? const Color(0xFF47C4BA) : const Color(0xFFF39A3C),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (!flash && game.mission.currentSet == MissionSet.festival) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0x33733D91),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0x66ED5791)),
+                      ),
+                      child: const Text(
+                        'Festival',
+                        style: TextStyle(
+                          color: Color(0xFFED5791),
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 2),
               Text(
@@ -450,6 +552,17 @@ class _CastPanel extends StatelessWidget {
                                             : const Color(0xFFAA99BB),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => game.showCastBio(member.id),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4),
+                                      child: Icon(
+                                        Icons.menu_book_rounded,
+                                        size: 16,
+                                        color: Color(0xFFF39A3C),
                                       ),
                                     ),
                                   ),

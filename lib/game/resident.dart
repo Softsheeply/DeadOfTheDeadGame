@@ -54,6 +54,11 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   /// When true, skip walk bob / idle breathing (accessibility).
   bool reduceMotion = false;
 
+  /// Optional depth sort — tucks feet behind fountain / tree when north of rim.
+  int Function(double feetY)? depthPriority;
+
+  bool get isSitting => _idleAction == 'sit';
+
   Vector2? _target;
   final List<Vector2> _path = [];
   bool _busy = false;
@@ -170,7 +175,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
-    priority = (position.y * 10).round();
+    priority = depthPriority?.call(position.y) ?? (position.y * 10).round();
     _lifeTime += dt;
 
     if (_dizzyTimer > 0) {

@@ -7,8 +7,10 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../data/cast_journal.dart';
 import '../data/character_config.dart';
 import 'ambient_critters.dart';
+import 'building_door_pulse.dart';
 import 'cast_roster.dart';
 import 'ofrenda_marker.dart';
 import 'petal_burst.dart';
@@ -31,6 +33,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final List<Resident> residents = [];
   final Map<String, Resident> _residentsById = {};
   final CastRoster castRoster = CastRoster();
+  final CastJournal castJournal = CastJournal();
   final PlazaAudio audio = PlazaAudio();
   final PlazaMission mission = PlazaMission();
   final PlazaPrefs prefs = PlazaPrefs();
@@ -55,7 +58,9 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final ValueNotifier<bool> settingsOpen = ValueNotifier<bool>(false);
   final ValueNotifier<bool> reduceMotion = ValueNotifier<bool>(false);
   final ValueNotifier<bool> photoMode = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> castBioId = ValueNotifier<String?>(null);
   OfrendaMarker? _ofrendaMarker;
+  double _benchChatTimer = 22;
 
   Resident? get xolo => _residentsById['xolo'];
 
@@ -81,6 +86,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     await add(_ofrendaMarker!);
 
     await castRoster.load();
+    await castJournal.load();
     await prefs.load();
     audio.muted.value = prefs.muted;
     reduceMotion.value = prefs.reduceMotion;
@@ -254,6 +260,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       ..preferredHotspots = _preferredHotspotsFor(member)
       ..restSpots = backdrop?.restSpotWorldPoints() ?? const []
       ..reduceMotion = reduceMotion.value
+      ..depthPriority = (feetY) => occluders?.depthPriorityForFeet(feetY) ?? (feetY * 10).round()
       ..onPetalBurst = (pos, {int count = 14}) {
         spawnPetals(pos, count: count);
       }
@@ -340,6 +347,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
         }
       }
       resident.reduceMotion = reduceMotion.value;
+      resident.depthPriority = (feetY) => occluders?.depthPriorityForFeet(feetY) ?? (feetY * 10).round();
       if (!resident.allowOffRoad) {
         resident.position = _walkClamp(resident.position);
       }
@@ -416,6 +424,14 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     }
     await prefs.setReduceMotion(value);
   }
+
+  void showCastBio(String id) {
+    castBioId.value = id;
+    castPanelOpen = false;
+    castPanelOpenListenable.value = false;
+  }
+
+  void dismissCastBio() => castBioId.value = null;
 
   void togglePhotoMode() {
     photoMode.value = !photoMode.value;
@@ -557,6 +573,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     if (center != null) {
       add(SparkleBurst(position: center.clone(), count: 16));
       spawnPetals(center.clone()..y -= 10, count: 10);
+      add(
+        BuildingDoorPulse(
+          position: center.clone()..y += 8,
+          tint: doorTintForBuilding(building.id),
+        ),
+      );
     }
     final flavor = PlazaBuildingReactions.flavorLine(building.id, building.status);
     toyStatus.value = '${building.label}: $flavor';
@@ -646,6 +668,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
 
     _separateFromHeld();
     _tickRareEvents(dt);
+    _tickBenchChats(dt);
 
     if (musicPlaying) {
       _musicTimer -= dt;
@@ -677,6 +700,24 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
             if (done) _onMissionComplete();
           }
           break;
+        }
+      }
+    }
+  }
+
+  void _tickBenchChats(double dt) {
+    if (reduceMotion.value) return;
+    _benchChatTimer -= dt;
+    if (_benchChatTimer > 0) return;
+    _benchChatTimer = 32 + _random.nextDouble() * 28;
+    final sitting = residents.where((r) => r.isSitting).toList();
+    if (sitting.length < 2) return;
+    for (var i = 0; i < sitting.length; i++) {
+      for (var j = i + 1; j < sitting.length; j++) {
+        if (sitting[i].position.distanceTo(sitting[j].position) < 95) {
+          toyStatus.value =
+              '${sitting[i].config.displayName} and ${sitting[j].config.displayName} chat on the bench';
+          return;
         }
       }
     }

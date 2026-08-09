@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -15,34 +16,54 @@ class PlazaOccluders extends PositionComponent {
   final VillageBackdrop backdrop;
 
   static const _defs = <_OccluderDef>[
-    // Fountain south rim — characters north of this draw behind the bowl.
     _OccluderDef(
       uv: Offset(0.575, 0.66),
-      sortUvY: 0.70,
-      radiusX: 0.07,
-      radiusY: 0.035,
+      sortUvY: 0.695,
+      radiusX: 0.075,
+      radiusY: 0.038,
       color: Color(0xFF6A8FA8),
-      alpha: 0.22,
+      alpha: 0.24,
     ),
-    // Tree planter / trunk base.
     _OccluderDef(
-      uv: Offset(0.50, 0.62),
-      sortUvY: 0.73,
-      radiusX: 0.045,
-      radiusY: 0.05,
+      uv: Offset(0.50, 0.615),
+      sortUvY: 0.725,
+      radiusX: 0.048,
+      radiusY: 0.052,
       color: Color(0xFF4A3A28),
-      alpha: 0.28,
+      alpha: 0.30,
     ),
-    // Bridge rail / arch.
+    _OccluderDef(
+      uv: Offset(0.48, 0.705),
+      sortUvY: 0.745,
+      radiusX: 0.035,
+      radiusY: 0.04,
+      color: Color(0xFF3D5028),
+      alpha: 0.26,
+    ),
     _OccluderDef(
       uv: Offset(0.16, 0.82),
-      sortUvY: 0.86,
-      radiusX: 0.07,
-      radiusY: 0.03,
+      sortUvY: 0.855,
+      radiusX: 0.072,
+      radiusY: 0.032,
       color: Color(0xFF7A6A58),
-      alpha: 0.25,
+      alpha: 0.27,
     ),
   ];
+
+  /// Caps draw priority so feet north of a sort line tuck behind props.
+  int depthPriorityForFeet(double feetY) {
+    final draw = backdrop.drawRect;
+    if (draw == Rect.zero) return (feetY * 10).round();
+    var priority = (feetY * 10).round();
+    for (final def in _defs) {
+      final lineY = draw.top + draw.height * def.sortUvY;
+      final occluderPriority = lineY.round();
+      if (feetY < lineY + 8) {
+        priority = min(priority, occluderPriority - 3);
+      }
+    }
+    return priority;
+  }
 
   @override
   Future<void> onLoad() async {
