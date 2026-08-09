@@ -74,6 +74,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   SpriteAnimationComponent? _visual;
   String _currentAnimationName = '';
   double _walkDistance = 0;
+  bool _skipping = false;
   static const double _directionDeadzone = 8;
 
   Resident({required this.config, required Vector2 position})
@@ -109,6 +110,12 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         const stridePixels = 36.0;
         final cyclesPerSecond = walkSpeed / stridePixels;
         fps = (cyclesPerSecond * sprites.length).clamp(8.0, 14.0);
+      }
+      if (entry.key.startsWith('skip_') && sprites.length > 1) {
+        final skipSpeed = config.movement['skipSpeed'] ?? 72.0;
+        const stridePixels = 36.0;
+        final cyclesPerSecond = skipSpeed / stridePixels;
+        fps = (cyclesPerSecond * sprites.length).clamp(10.0, 16.0);
       }
       _animations[entry.key] = SpriteAnimation.spriteList(
         sprites,
@@ -188,8 +195,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       return;
     }
 
-    // Soft idle breathing so standing villagers still feel alive.
+    // Soft idle breathing when the idle clip is a single held frame.
     if (!reduceMotion &&
+        !_idleHasMultiFrameAnimation &&
         _target == null &&
         !_busy &&
         _dizzyTimer <= 0 &&
@@ -241,6 +249,24 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (_animations.containsKey('idle_$direction')) return 'idle_$direction';
     if (_animations.containsKey('idle_down')) return 'idle_down';
     return _animations.keys.isEmpty ? null : _animations.keys.first;
+  }
+
+  bool get _hasSkipAnimations =>
+      _animations.keys.any((name) => name.startsWith('skip_'));
+
+  bool get _idleHasMultiFrameAnimation {
+    final name = _resolveAnimation('idle_$direction');
+    if (name == null) return false;
+    final anim = _animations[name];
+    return anim != null && anim.frames.length > 1;
+  }
+
+  void _playMovementAnimation() {
+    if (_skipping && _animations.containsKey('skip_$direction')) {
+      play('skip_$direction');
+    } else {
+      play('walk_$direction');
+    }
   }
 
   /// Shorter pauses + walk-biased so the plaza feels continuously alive.
@@ -345,6 +371,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
   }
 
   void _moveRandomly() {
+    final skip = _hasSkipAnimations && _random.nextDouble() < 0.28;
     final road = roadBounds;
     if (road != null && road.width > 8 && road.height > 8) {
       // Strong bias toward personal favorites (stage for mariachi, etc.).
@@ -356,6 +383,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
                 (_random.nextDouble() - 0.5) * 22,
                 (_random.nextDouble() - 0.5) * 12,
               ),
+          skip: skip,
         );
         return;
       }
@@ -368,6 +396,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
                 (_random.nextDouble() - 0.5) * 24,
                 (_random.nextDouble() - 0.5) * 14,
               ),
+          skip: skip,
         );
         return;
       }
@@ -391,7 +420,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         x = road.left + _random.nextDouble() * road.width;
         y = road.top + _random.nextDouble() * road.height;
       }
-      walkTo(Vector2(x, y));
+      walkTo(Vector2(x, y), skip: skip);
       return;
     }
     final bounds = worldBounds;
@@ -400,10 +429,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     final usableWidth = max(1.0, bounds.x - margin * 2);
     final x = margin + _random.nextDouble() * usableWidth;
     final y = bounds.y * 0.68 + _random.nextDouble() * (bounds.y * 0.18);
-    walkTo(Vector2(x, y));
+    walkTo(Vector2(x, y), skip: skip);
   }
 
-  void walkTo(Vector2 destination) {
+  void walkTo(Vector2 destination, {bool skip = false}) {
     if (_held || _airborne) return;
     _path.clear();
     _stuckTimer = 0;
@@ -420,9 +449,10 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         }
       }
     }
+    _skipping = skip && _hasSkipAnimations;
     _busy = true;
     _updateDirection(force: true);
-    play('walk_$direction');
+    _playMovementAnimation();
   }
 
   void _advancePathOrIdle() {
@@ -431,7 +461,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       _stuckTimer = 0;
       _busy = true;
       _updateDirection(force: true);
-      play('walk_$direction');
+      _playMovementAnimation();
       return;
     }
     allowOffRoad = false;
@@ -483,7 +513,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (next != direction) {
       direction = next;
       if (_target != null && !_held && !_airborne) {
-        play('walk_$direction');
+        _playMovementAnimation();
       }
     }
   }
@@ -510,7 +540,9 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
       return;
     }
     _updateDirection();
-    final speed = config.movement['walkSpeed'] ?? 55.0;
+    final speed = _skipping
+        ? (config.movement['skipSpeed'] ?? 72.0)
+        : (config.movement['walkSpeed'] ?? 55.0);
     final step = min(distance, speed * dt);
     final sx = dx / distance * step;
     final sy = dy / distance * step;
@@ -555,7 +587,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         }
         _busy = true;
         _updateDirection(force: true);
-        play('walk_$direction');
+        _playMovementAnimation();
         return;
       }
     }
@@ -647,6 +679,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     _target = null;
     _path.clear();
     _stuckTimer = 0;
+    _skipping = false;
   }
 
   // -- Pocket God interactions --------------------------------------------

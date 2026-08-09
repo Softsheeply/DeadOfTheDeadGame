@@ -1,7 +1,7 @@
 # Pepita
 
 **Role:** Florist · chibi skeleton · flower crown, braids, purple dress, basket  
-**Status:** Locked walks v1 wired — **feet still weak** (dress hides stride)  
+**Status:** Incoming sheets v2 wired (walk + skip + idle breathe) — **feet TBD on device**  
 **Code:** `assets/images/pepita/character.json` · `lib/game/resident.dart`
 
 ## Links
@@ -14,9 +14,11 @@
 
 | State | Status | Notes |
 |-------|--------|-------|
-| Walk down/up/left/right | ✅ wired | 192×192, 8 frames, L=source R=mirror |
-| Idle 4-dir | ✅ | L/R not strict mirror (basket) — OK |
-| Feet / stride | ⚠️ | Code exaggeration +29; need clearer shoe art |
+| Walk down/up/left/right | ✅ wired | Re-sliced from `_incoming/` v2 |
+| Skip down/up/left/right | ✅ wired | ~28% of autonomous roam trips |
+| Idle down | ✅ | 8-frame breathe cycle |
+| Idle left/right/up | ✅ | Single frame from idle sheet |
+| Feet / stride | ⚠️ | Fresh slices — verify on device (+31) |
 | Held / carried | ❌ | Later when sheet exists |
 | Sit / wave / smell | ❌ | Squash hacks — [[FINISH_PLAN#Character art (locked walks — Aseprite, not ChatGPT sheets)|#13]] |
 
