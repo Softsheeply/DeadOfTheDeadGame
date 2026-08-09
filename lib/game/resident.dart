@@ -269,33 +269,67 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     }
   }
 
-  /// Shorter pauses + walk-biased so the plaza feels continuously alive.
-  double _nextDelay() => 0.6 + _random.nextDouble() * 1.8;
+  /// Pause between autonomous decisions — from character.json personality.
+  double _nextDelay() {
+    final interval = config.personality.decisionIntervalMs;
+    if (interval.length >= 2) {
+      final minS = interval[0] / 1000.0;
+      final maxS = interval[1] / 1000.0;
+      return minS + _random.nextDouble() * (maxS - minS);
+    }
+    return 0.6 + _random.nextDouble() * 1.8;
+  }
 
   void _updateBehaviour(double dt) {
     if (_busy || _dizzyTimer > 0) return;
     _behaviourTimer -= dt;
     if (_behaviourTimer > 0) return;
     _behaviourTimer = _nextDelay();
-    final roll = _random.nextDouble();
-    if (roll < 0.22) {
-      _setIdle();
-    } else if (roll < 0.38) {
-      _startIdleAction();
-    } else {
-      _moveRandomly();
+    _performAutonomousAction(_pickAutonomousAction());
+  }
+
+  String _pickAutonomousAction() {
+    final behaviours = config.personality.autonomousBehaviours;
+    if (behaviours.isEmpty) return 'idle';
+    final total = behaviours.fold<double>(0, (sum, entry) => sum + entry.weight);
+    if (total <= 0) return behaviours.first.action;
+    var roll = _random.nextDouble() * total;
+    for (final entry in behaviours) {
+      roll -= entry.weight;
+      if (roll <= 0) return entry.action;
+    }
+    return behaviours.last.action;
+  }
+
+  void _performAutonomousAction(String action) {
+    switch (action) {
+      case 'idle':
+        _setIdle();
+      case 'walk':
+        _moveRandomly(skip: false);
+      case 'skip':
+        _moveRandomly(skip: _hasSkipAnimations);
+      case 'smell_flowers':
+        _beginSmell();
+      case 'arrange_bouquet':
+        _beginArrangeBouquet();
+      case 'wave':
+        _beginWave();
+      case 'sit':
+        _beginSit();
+      default:
+        _moveRandomly(skip: false);
     }
   }
 
-  void _startIdleAction() {
-    final roll = _random.nextDouble();
-    if (roll < 0.34) {
-      _beginWave();
-    } else if (roll < 0.62) {
-      _beginSmell();
-    } else {
-      _beginSit();
-    }
+  void _beginArrangeBouquet() {
+    _busy = true;
+    _idleAction = 'smell';
+    _idleActionTimer = 1.6;
+    play('idle_$direction');
+    _squash = 0.9;
+    onPetalBurst?.call(position.clone()..y -= 32, count: 7);
+    onIdleFlavor?.call('${config.displayName} arranges a bouquet');
   }
 
   void _beginWave() {
@@ -370,8 +404,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     play('idle_$direction');
   }
 
-  void _moveRandomly() {
-    final skip = _hasSkipAnimations && _random.nextDouble() < 0.28;
+  void _moveRandomly({required bool skip}) {
     final road = roadBounds;
     if (road != null && road.width > 8 && road.height > 8) {
       // Strong bias toward personal favorites (stage for mariachi, etc.).

@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+31` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+32` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -33,6 +33,8 @@
 - [x] Strip fake candle/window light orbs — painted night plate only
 - [x] River + doghouse walk blockers; taller Pocket God pickup
 - [x] Multi-hop + graph routing around doghouse / grave (cross-plaza paths)
+- [x] Personality JSON drives autonomous behaviour (weights + decision interval)
+- [x] Skippable 4-bead tutorial (drag → day/night → toys → mission)
 
 ---
 
@@ -73,7 +75,7 @@
 - [ ] 26. Polish toy SFX
 - [x] 27. Mission set #1: 4 looping plaza chores (marigolds → mariachi → Xolo → candles)
 - [ ] 28. Rare idle events (star, balloon, parade tease)
-- [ ] 29. Skippable 90s tutorial beads
+- [x] 29. Skippable tutorial beads (4 steps: drag, day/night, toys, mission)
 
 **Exit criteria:** strangers enjoy poking the plaza 5+ minutes; Pepita walk no longer embarrasses you.
 

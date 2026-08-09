@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/cast_roster.dart';
+import 'game/plaza_tutorial.dart';
 import 'game/spirit_village_game.dart';
 
 void main() async {
@@ -575,49 +576,92 @@ class _TutorialBead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: game.showTutorial,
-      builder: (context, show, _) {
-        if (!show) return const SizedBox.shrink();
+    return ValueListenableBuilder<int>(
+      valueListenable: game.tutorialStep,
+      builder: (context, step, _) {
+        final bead = PlazaTutorial.stepAt(step);
+        if (bead == null) return const SizedBox.shrink();
         return Center(
           child: Material(
             color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: game.dismissTutorial,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xF21A0F2C),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xAAF39A3C)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.back_hand_rounded, color: Color(0xFFF39A3C), size: 18),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Drag anyone — they’re toys',
-                        style: TextStyle(
-                          color: Color(0xFFFFF1D1),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: BoxDecoration(
+                color: const Color(0xF21A0F2C),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xAAF39A3C)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(bead.icon, color: const Color(0xFFF39A3C), size: 18),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          bead.message,
+                          style: const TextStyle(
+                            color: Color(0xFFFFF1D1),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Got it',
-                      style: TextStyle(
-                        color: Color(0xFF47C4BA),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < PlazaTutorial.stepCount; i++)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: EdgeInsets.only(right: i < PlazaTutorial.stepCount - 1 ? 5 : 0),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: i == step
+                                ? const Color(0xFF47C4BA)
+                                : const Color(0x55FFF1D1),
+                          ),
+                        ),
+                      const SizedBox(width: 12),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: game.skipAllTutorial,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          child: Text(
+                            'Skip all',
+                            style: TextStyle(
+                              color: Color(0x99FFF1D1),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: game.dismissTutorial,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          child: Text(
+                            'Got it',
+                            style: TextStyle(
+                              color: Color(0xFF47C4BA),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

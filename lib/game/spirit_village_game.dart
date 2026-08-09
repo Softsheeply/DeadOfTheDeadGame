@@ -15,6 +15,7 @@ import 'plaza_audio.dart';
 import 'plaza_mission.dart';
 import 'plaza_occluders.dart';
 import 'plaza_prefs.dart';
+import 'plaza_tutorial.dart';
 import 'resident.dart';
 import 'toys.dart';
 import 'village_atmosphere.dart';
@@ -47,7 +48,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final ValueNotifier<int> castRevision = ValueNotifier<int>(0);
   bool castPanelOpen = false;
   final ValueNotifier<bool> castPanelOpenListenable = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> showTutorial = ValueNotifier<bool>(false);
+  final ValueNotifier<int> tutorialStep = ValueNotifier<int>(0);
   final ValueNotifier<bool> settingsOpen = ValueNotifier<bool>(false);
   final ValueNotifier<bool> reduceMotion = ValueNotifier<bool>(false);
 
@@ -77,7 +78,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     audio.muted.value = prefs.muted;
     reduceMotion.value = prefs.reduceMotion;
     mission.restore(prefs.missionId, prefs.missionProgress);
-    showTutorial.value = !prefs.tutorialSeen;
+    tutorialStep.value = prefs.tutorialStep;
 
     await audio.load();
 
@@ -232,7 +233,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       }
       ..onGrab = () {
         audio.grabSfx();
-        dismissTutorial();
+        _maybeAdvanceTutorial(expectedStep: 0);
         toyStatus.value = 'Got ${config.displayName}!';
       }
       ..onRelease = ({required bool flung}) {
@@ -352,11 +353,27 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     toyStatus.value = 'Mission complete! ${mission.title.value}';
   }
 
-  void dismissTutorial() {
-    if (!showTutorial.value) return;
-    showTutorial.value = false;
-    prefs.setTutorialSeen(true);
+  bool get tutorialActive => !PlazaTutorial.isComplete(tutorialStep.value);
+
+  void advanceTutorial() {
+    if (!tutorialActive) return;
+    tutorialStep.value++;
+    prefs.setTutorialStep(tutorialStep.value);
   }
+
+  void skipAllTutorial() {
+    if (!tutorialActive) return;
+    tutorialStep.value = PlazaTutorial.stepCount;
+    prefs.setTutorialStep(tutorialStep.value);
+  }
+
+  void _maybeAdvanceTutorial({required int expectedStep}) {
+    if (tutorialStep.value == expectedStep) {
+      advanceTutorial();
+    }
+  }
+
+  void dismissTutorial() => advanceTutorial();
 
   void toggleSettings() {
     settingsOpen.value = !settingsOpen.value;
@@ -385,11 +402,13 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     backdrop?.toggleDayNight();
     isNight.value = backdrop?.isNight ?? true;
     prefs.setNight(isNight.value);
+    _maybeAdvanceTutorial(expectedStep: 1);
     toyStatus.value =
         isNight.value ? 'Night settles over the plaza' : 'Morning light fills the plaza';
   }
 
   void useToy(VillageToy toy) {
+    _maybeAdvanceTutorial(expectedStep: 2);
     switch (toy) {
       case VillageToy.wind:
         _castWind();
