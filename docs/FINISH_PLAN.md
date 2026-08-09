@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+38` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+39` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -62,7 +62,7 @@
 ## Phase A — Plaza “finished” (soft launch)
 
 ### Store / chrome
-- [ ] 1. App icon (unique) — drop `assets/branding/app_icon_1024.png`, run `dart run flutter_launcher_icons`
+- [x] 1. App icon (unique) — `assets/branding/app_icon_1024.png`; run `dart run flutter_launcher_icons` on Mac to fill appiconset
 - [ ] 2. Launch image (unique)
 - [x] 3. Settings sheet (mute, reduce motion, credits)
 - [x] 4. Save: missions + day/night + cast + mute
