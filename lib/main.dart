@@ -89,76 +89,317 @@ class VillageHud extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: game.photoMode,
       builder: (context, photo, _) {
-        if (photo) {
-          return Stack(
-            fit: StackFit.expand,
-            children: [
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (!photo) ...[
+              SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: 10,
+                      child: _BottomToyBar(game: game),
+                    ),
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 78,
+                      child: _ToyStatus(game: game),
+                    ),
+                    Positioned(
+                      left: 24,
+                      right: 24,
+                      bottom: 118,
+                      child: _TutorialBead(game: game),
+                    ),
+                    Positioned(
+                      top: 10,
+                      left: 12,
+                      child: _MissionCard(game: game),
+                    ),
+                    Positioned(
+                      top: 58,
+                      left: 12,
+                      child: _MissionLogPanel(game: game),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 72,
+                      child: _MissionRewardToast(game: game),
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 12,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _MapButton(game: game),
+                          const SizedBox(width: 8),
+                          _MuteButton(game: game),
+                          const SizedBox(width: 8),
+                          _SettingsButton(game: game),
+                          const SizedBox(width: 8),
+                          _CastButton(game: game),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 58,
+                      right: 12,
+                      child: _CastPanel(game: game),
+                    ),
+                    Positioned(
+                      top: 58,
+                      right: 12,
+                      child: _SettingsPanel(game: game),
+                    ),
+                    Positioned(
+                      top: 58,
+                      right: 12,
+                      child: _WorldMapPanel(game: game),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 130,
+                      child: _CastBioSheet(game: game),
+                    ),
+                  ],
+                ),
+              ),
+            ] else
               Positioned(
                 top: 10,
                 right: 12,
                 child: _PhotoModeExit(game: game),
               ),
-            ],
-          );
-        }
-        return SafeArea(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 10,
-                child: _BottomToyBar(game: game),
-              ),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 78,
-                child: _ToyStatus(game: game),
-              ),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 118,
-                child: _TutorialBead(game: game),
-              ),
-              Positioned(
-                top: 10,
-                left: 12,
-                child: _MissionCard(game: game),
-              ),
-              Positioned(
-                top: 10,
-                right: 12,
-                child: Row(
+            _MainMenuOverlay(game: game),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MainMenuOverlay extends StatelessWidget {
+  const _MainMenuOverlay({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.showMainMenu,
+      builder: (context, show, _) {
+        if (!show) return const SizedBox.shrink();
+        return ColoredBox(
+          color: const Color(0xDD120A24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MuteButton(game: game),
-                    const SizedBox(width: 8),
-                    _SettingsButton(game: game),
-                    const SizedBox(width: 8),
-                    _CastButton(game: game),
+                    const Text(
+                      'Day of the Dead',
+                      style: TextStyle(
+                        color: Color(0xFFF39A3C),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Living Festival Plaza',
+                      style: TextStyle(color: Color(0xFFFFF1D1), fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    _MenuButton(
+                      label: 'Enter plaza',
+                      icon: Icons.play_arrow_rounded,
+                      primary: true,
+                      onTap: game.startPlaza,
+                    ),
+                    const SizedBox(height: 10),
+                    _MenuButton(
+                      label: 'World map',
+                      icon: Icons.map_rounded,
+                      onTap: () {
+                        game.startPlaza();
+                        game.toggleWorldMap();
+                      },
+                    ),
                   ],
                 ),
               ),
-              Positioned(
-                top: 58,
-                right: 12,
-                child: _CastPanel(game: game),
-              ),
-              Positioned(
-                top: 58,
-                right: 12,
-                child: _SettingsPanel(game: game),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 130,
-                child: _CastBioSheet(game: game),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.primary = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: primary ? const Color(0xFF733D91) : const Color(0xF21A0F2C),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xAAF39A3C)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: const Color(0xFFFFF1D1), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFFFF1D1),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MapButton extends StatelessWidget {
+  const _MapButton({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: game.toggleWorldMap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xF21A0F2C),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0x88F39A3C)),
+        ),
+        child: const Icon(Icons.map_rounded, color: Color(0xFFFFF1D1), size: 20),
+      ),
+    );
+  }
+}
+
+class _WorldMapPanel extends StatelessWidget {
+  const _WorldMapPanel({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.worldMapOpen,
+      builder: (context, open, _) {
+        if (!open) return const SizedBox.shrink();
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xF2140B22),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'World map',
+                        style: TextStyle(
+                          color: Color(0xFFF39A3C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: game.toggleWorldMap,
+                      child: const Icon(Icons.close_rounded, color: Color(0xFFC9B4E0), size: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...game.worldMap.nodes.map((node) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          node.unlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                          size: 14,
+                          color: node.unlocked ? const Color(0xFF47C4BA) : const Color(0xFF887799),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                node.label,
+                                style: TextStyle(
+                                  color: node.unlocked
+                                      ? const Color(0xFFFFF1D1)
+                                      : const Color(0xFFAA99BB),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                node.role,
+                                style: const TextStyle(color: Color(0xFF887799), fontSize: 9),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
           ),
         );
       },
@@ -312,7 +553,9 @@ class _MissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
+    return GestureDetector(
+      onTap: game.toggleMissionLog,
+      child: AnimatedBuilder(
       animation: Listenable.merge([
         game.mission.title,
         game.mission.detail,
@@ -346,9 +589,16 @@ class _MissionCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (!flash && game.mission.currentSet == MissionSet.festival) ...[
-                    const SizedBox(width: 6),
-                    Container(
+                  const Spacer(),
+                  const Icon(Icons.list_alt_rounded, color: Color(0x88F39A3C), size: 14),
+                ],
+              ),
+              if (!flash && game.mission.currentSet == MissionSet.festival)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: const Color(0x33733D91),
@@ -364,9 +614,8 @@ class _MissionCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ],
-                ],
-              ),
+                  ),
+                ),
               const SizedBox(height: 2),
               Text(
                 game.mission.title.value,
@@ -409,6 +658,183 @@ class _MissionCard extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        );
+      },
+      ),
+    );
+  }
+}
+
+class _MissionLogPanel extends StatelessWidget {
+  const _MissionLogPanel({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.missionLogOpen,
+      builder: (context, open, _) {
+        if (!open) return const SizedBox.shrink();
+        final steps = game.missionCatalog.steps;
+        final currentIndex =
+            steps.indexWhere((step) => step.id == game.mission.current);
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xF2140B22),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x88F39A3C)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Mission log',
+                        style: TextStyle(
+                          color: Color(0xFFF39A3C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: game.toggleMissionLog,
+                      child: const Icon(Icons.close_rounded, color: Color(0xFFC9B4E0), size: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Completed: ${game.prefs.missionsCompleted}',
+                  style: const TextStyle(color: Color(0xFFC9B4E0), fontSize: 10),
+                ),
+                const SizedBox(height: 8),
+                ...List.generate(steps.length, (index) {
+                  final step = steps[index];
+                  final isCurrent = index == currentIndex;
+                  final isDone = currentIndex >= 0 && index < currentIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isCurrent
+                              ? Icons.radio_button_checked_rounded
+                              : isDone
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_off_rounded,
+                          size: 14,
+                          color: isCurrent
+                              ? const Color(0xFFF39A3C)
+                              : isDone
+                                  ? const Color(0xFF47C4BA)
+                                  : const Color(0xFF887799),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                step.title,
+                                style: TextStyle(
+                                  color: isCurrent
+                                      ? const Color(0xFFFFF1D1)
+                                      : isDone
+                                          ? const Color(0xFFAA99BB)
+                                          : const Color(0xFF887799),
+                                  fontSize: 11,
+                                  fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
+                                ),
+                              ),
+                              if (isCurrent)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '${game.mission.progress.value}/${game.mission.goal.value} · ${step.detail}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFC9B4E0),
+                                      fontSize: 9,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MissionRewardToast extends StatelessWidget {
+  const _MissionRewardToast({required this.game});
+
+  final SpiritVillageGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<MissionRewardToast?>(
+      valueListenable: game.rewardToast,
+      builder: (context, toast, _) {
+        if (toast == null) return const SizedBox.shrink();
+        return IgnorePointer(
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xEE3A1B55),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF47C4BA)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x6647C4BA),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${toast.setLabel} complete!',
+                    style: const TextStyle(
+                      color: Color(0xFF47C4BA),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    toast.title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFFFF1D1),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -635,8 +1061,15 @@ class _BottomToyBar extends StatelessWidget {
           Expanded(
             child: _ToyChip(
               icon: Icons.cake_rounded,
-              label: 'Pan dulce',
+              label: 'Treat',
               onTap: () => game.useToy(VillageToy.panDulce),
+            ),
+          ),
+          Expanded(
+            child: _ToyChip(
+              icon: Icons.light_mode_rounded,
+              label: 'Lantern',
+              onTap: () => game.useToy(VillageToy.lantern),
             ),
           ),
           const SizedBox(width: 6),
@@ -932,6 +1365,11 @@ class _SettingsPanel extends StatelessWidget {
                       onChanged: (_) => game.togglePhotoMode(),
                     );
                   },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Missions completed: ${game.prefs.missionsCompleted}',
+                  style: const TextStyle(color: Color(0xFFC9B4E0), fontSize: 10),
                 ),
                 const SizedBox(height: 6),
                 const Text(

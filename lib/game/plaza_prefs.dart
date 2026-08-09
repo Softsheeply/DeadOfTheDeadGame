@@ -11,6 +11,8 @@ class PlazaPrefs {
   bool tutorialSeen = false;
   int tutorialStep = 0;
   bool reduceMotion = false;
+  bool mainMenuDismissed = false;
+  int missionsCompleted = 0;
   MissionId missionId = MissionId.marigolds;
   int missionProgress = 0;
 
@@ -23,6 +25,8 @@ class PlazaPrefs {
     tutorialStep = p.getInt(_kTutorialStep) ??
         (tutorialSeen ? PlazaTutorial.stepCount : 0);
     reduceMotion = p.getBool(_kReduceMotion) ?? false;
+    mainMenuDismissed = p.getBool(_kMainMenuDismissed) ?? false;
+    missionsCompleted = p.getInt(_kMissionsCompleted) ?? 0;
     missionId = MissionId.values.firstWhere(
       (id) => id.name == (p.getString(_kMissionId) ?? ''),
       orElse: () => MissionId.marigolds,
@@ -63,6 +67,18 @@ class PlazaPrefs {
     await _writeBool(_kReduceMotion, value);
   }
 
+  Future<void> saveMissionsCompleted(int count) async {
+    missionsCompleted = count;
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    _prefs = p;
+    await p.setInt(_kMissionsCompleted, count);
+  }
+
+  Future<void> setMainMenuDismissed(bool value) async {
+    mainMenuDismissed = value;
+    await _writeBool(_kMainMenuDismissed, value);
+  }
+
   Future<void> saveMission(MissionId id, int progress) async {
     missionId = id;
     missionProgress = progress;
@@ -85,4 +101,6 @@ class PlazaPrefs {
   static const _kReduceMotion = 'plaza_reduce_motion';
   static const _kMissionId = 'plaza_mission_id';
   static const _kMissionProgress = 'plaza_mission_progress';
+  static const _kMainMenuDismissed = 'plaza_main_menu_dismissed';
+  static const _kMissionsCompleted = 'plaza_missions_completed';
 }

@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+35` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+36` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -13,7 +13,7 @@
 
 - [x] Living plaza prototype (contain-fit day/night art)
 - [x] Cast invite / send off (persisted)
-- [x] Toys: wind, petals, music, pan dulce
+- [x] Toys: wind, petals, music, pan dulce, lantern
 - [x] Day/night sky toggle
 - [x] Coded atmosphere (fountain, river flow, flags, leaves, candles)
 - [x] Mission loop: ofrenda marigolds → mariachi → feed Xolo → candles
@@ -49,6 +49,13 @@
 - [x] Store listing draft (#5 partial)
 - [x] iOS lifecycle check script (#74 partial)
 - [x] NPC bench chat flavor (#53 partial)
+- [x] Mission catalog JSON + data-driven plaza missions (#27 partial)
+- [x] Location loader wired into backdrop + occluders (#25)
+- [x] Main menu overlay (Enter plaza / World map) (#56 partial)
+- [x] World map stub panel — 8 nodes, plaza unlocked (#24 partial)
+- [x] Mission log panel (tap mission card) (#59 partial)
+- [x] Mission reward toast on complete (#29 partial)
+- [x] Lantern toy — ripple glow + candle mission progress (#71 partial)
 
 ---
 
@@ -80,7 +87,6 @@
 - [x] 19. Tutorial bead: “Drag anyone — they’re toys”
 
 ### Plaza feel
-- [ ] 20. True depth cutouts (fountain rim, tree, bridge)
 - [x] 20. True depth cutouts (fountain rim, tree, bridge)
 - [x] 21. Building door open/close (florist, bakery, church, mercado)
 - [x] 22. Tap building → richer status / micro beat
@@ -98,13 +104,12 @@
 
 ## Phase B — Systems for 8 locations
 
-- [ ] 24. World map / travel UI (8 nodes; Plaza unlocked first)
-- [ ] 25. Location data format (day/night, road, blockers, hotspots, buildings, missions)
-- [x] 25. Location data format (L1 JSON + Dart parser; full loader deferred)
+- [x] 24. World map / travel UI (8 nodes; Plaza unlocked first — stub panel)
+- [x] 25. Location data format (L1 JSON + Dart parser + backdrop wiring)
 - [ ] 26. Shared cast travel / “who is here”
-- [ ] 27. Mission framework (goals, chains, rewards, daily refresh)
+- [x] 27. Mission framework (goals, chains, rewards, daily refresh — JSON catalog + loop)
 - [ ] 28. Light inventory (marigold, pan dulce, candle, key…)
-- [ ] 29. Reward juice (sparkles, cast react, unlock toast)
+- [x] 29. Reward juice (sparkles, cast react, unlock toast — mission toast + celebration)
 - [ ] 30. Cast schedules by time-of-day / location
 - [ ] 31. Expand verbs beyond 4 toys (pick / give / play / clean…)
 - [ ] 32. Standard z-sort + occlusion per location
@@ -245,7 +250,6 @@ Tracking:
 - [ ] 50. Fetch quests across 2 locations
 - [ ] 51. Clean / decorate ofrenda or stall
 - [ ] 52. Pet / play Xolo & Gato (location-aware)
-- [ ] 53. NPC–NPC bench chats (flavor)
 - [x] 53. NPC–NPC bench chats (flavor)
 - [ ] 54. Door schedules day vs night
 - [ ] 55. Hidden interactables (careful with walk rules)
@@ -254,11 +258,10 @@ Tracking:
 
 ## Phase F — Menus & meta
 
-- [ ] 56. Main menu (Play / Continue / Settings / Credits)
+- [x] 56. Main menu (Play / Continue / Settings / Credits — Enter plaza + map stub)
 - [ ] 57. Pause + map always available
-- [ ] 58. Cast journal (bios)
 - [x] 58. Cast journal (bios) — journal sheet in cast panel
-- [ ] 59. Mission log (active / done)
+- [x] 59. Mission log (active / done — tap mission card)
 - [ ] 60. Collection album (events, marigolds)
 - [ ] 61. Daily gift
 - [ ] 62. Photo mode (hide UI)
@@ -276,7 +279,7 @@ Tracking:
 - [ ] 68. Camera
 - [ ] 69. Broom
 - [ ] 70. Guitar (for Tito)
-- [ ] 71. Lantern
+- [x] 71. Lantern (ripple glow toy — coded, no sprite)
 - [ ] 72. Soap bubbles
 
 ### Mission seeds (tick when designed + shipped)
@@ -294,7 +297,6 @@ Tracking:
 ## Phase H — Ship full game
 
 - [ ] 73. Performance pass (night FX + full cast)
-- [ ] 74. iOS white-screen / lifecycle regression checks
 - [x] 74. iOS white-screen / lifecycle regression checks (script + manual checklist)
 - [ ] 75. Final music / SFX pack
 - [ ] 76. Screenshots for all unlocked maps + trailer loop

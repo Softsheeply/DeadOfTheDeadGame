@@ -5,6 +5,8 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/painting.dart';
 
+import '../data/location_config.dart';
+
 /// Full-bleed Spirit Village backdrop with day/night painted variants.
 ///
 /// Uses *contain* fit so the whole plaza is visible (letterboxed), which
@@ -67,6 +69,23 @@ class VillageBackdrop extends PositionComponent {
   /// Ofrenda / tree planter — mission target.
   static const Offset ofrendaUv = Offset(0.50, 0.72);
 
+  double _roadLeft = roadLeft;
+  double _roadRight = roadRight;
+  double _roadTop = roadTop;
+  double _roadBottom = roadBottom;
+  Offset _fountainCenterUv = fountainCenterUv;
+  double _fountainRadiusX = fountainRadiusX;
+  double _fountainRadiusY = fountainRadiusY;
+  List<(Offset center, double rx, double ry)> _blockedEllipses =
+      List<(Offset, double, double)>.from(blockedEllipses);
+  List<Offset> _hotspotUvs = List<Offset>.from(hotspotUvs);
+  List<Offset> _restSpotUvs = List<Offset>.from(restSpotUvs);
+  Offset _ofrendaUv = ofrendaUv;
+
+  Offset get fountainCenterUvEffective => _fountainCenterUv;
+  double get fountainRadiusXEffective => _fountainRadiusX;
+  double get fountainRadiusYEffective => _fountainRadiusY;
+
   Sprite? _day;
   Sprite? _night;
   bool isNight = true;
@@ -97,22 +116,37 @@ class VillageBackdrop extends PositionComponent {
 
   void toggleDayNight() => setNight(!isNight);
 
+  /// Apply layout UVs from location JSON (Phase B data-driven maps).
+  void applyLocation(LocationConfig config) {
+    _roadLeft = config.road.left;
+    _roadRight = config.road.right;
+    _roadTop = config.road.top;
+    _roadBottom = config.road.bottom;
+    _fountainCenterUv = config.fountainCenter;
+    _fountainRadiusX = config.fountainRadiusX;
+    _fountainRadiusY = config.fountainRadiusY;
+    _blockedEllipses = config.blockedEllipseRecords;
+    _hotspotUvs = List<Offset>.from(config.hotspotUvs);
+    _restSpotUvs = List<Offset>.from(config.restSpotUvs);
+    _ofrendaUv = config.ofrendaUv;
+  }
+
   /// Cobblestone road in game/world coordinates.
   Rect get roadRect {
     if (drawRect == Rect.zero) {
       return Rect.fromLTWH(size.x * 0.15, size.y * 0.62, size.x * 0.7, size.y * 0.2);
     }
     return Rect.fromLTRB(
-      drawRect.left + drawRect.width * roadLeft,
-      drawRect.top + drawRect.height * roadTop,
-      drawRect.left + drawRect.width * roadRight,
-      drawRect.top + drawRect.height * roadBottom,
+      drawRect.left + drawRect.width * _roadLeft,
+      drawRect.top + drawRect.height * _roadTop,
+      drawRect.left + drawRect.width * _roadRight,
+      drawRect.top + drawRect.height * _roadBottom,
     );
   }
 
   bool isBlocked(Vector2 point) {
     if (drawRect == Rect.zero) return false;
-    for (final zone in blockedEllipses) {
+    for (final zone in _blockedEllipses) {
       final cx = drawRect.left + drawRect.width * zone.$1.dx;
       final cy = drawRect.top + drawRect.height * zone.$1.dy;
       final rx = drawRect.width * zone.$2;
@@ -155,7 +189,7 @@ class VillageBackdrop extends PositionComponent {
 
     for (var attempt = 0; attempt < 10; attempt++) {
       var blocked = false;
-      for (final zone in blockedEllipses) {
+      for (final zone in _blockedEllipses) {
         final cx = drawRect.left + drawRect.width * zone.$1.dx;
         final cy = drawRect.top + drawRect.height * zone.$1.dy;
         final rx = drawRect.width * zone.$2;
@@ -229,7 +263,7 @@ class VillageBackdrop extends PositionComponent {
         from.x + (to.x - from.x) * t,
         from.y + (to.y - from.y) * t,
       );
-      for (final zone in blockedEllipses) {
+      for (final zone in _blockedEllipses) {
         final cx = drawRect.left + drawRect.width * zone.$1.dx;
         final cy = drawRect.top + drawRect.height * zone.$1.dy;
         final rx = drawRect.width * zone.$2;
@@ -482,7 +516,7 @@ class VillageBackdrop extends PositionComponent {
 
   /// World-space hotspot with a little jitter so paths don't stack perfectly.
   Vector2 randomHotspot(Random random) {
-    final uv = hotspotUvs[random.nextInt(hotspotUvs.length)];
+    final uv = _hotspotUvs[random.nextInt(_hotspotUvs.length)];
     final point = uvToWorld(uv);
     return clampToWalkable(
       point +
@@ -504,12 +538,12 @@ class VillageBackdrop extends PositionComponent {
   }
 
   List<Vector2> hotspotWorldPoints() =>
-      hotspotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
+      _hotspotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
 
   List<Vector2> restSpotWorldPoints() =>
-      restSpotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
+      _restSpotUvs.map(uvToWorld).map(clampToWalkable).toList(growable: false);
 
-  Vector2 get ofrendaWorld => clampToWalkable(uvToWorld(ofrendaUv));
+  Vector2 get ofrendaWorld => clampToWalkable(uvToWorld(_ofrendaUv));
 
   bool nearOfrenda(Vector2 point, {double radiusFactor = 0.075}) {
     if (drawRect == Rect.zero) return false;

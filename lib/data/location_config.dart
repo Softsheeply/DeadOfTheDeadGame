@@ -26,6 +26,29 @@ class LocationRoad {
   }
 }
 
+class LocationBlockedEllipse {
+  const LocationBlockedEllipse({
+    required this.center,
+    required this.rx,
+    required this.ry,
+  });
+
+  final Offset center;
+  final double rx;
+  final double ry;
+
+  factory LocationBlockedEllipse.fromJson(Map<String, dynamic> json) {
+    final center = (json['center'] as List).cast<num>();
+    return LocationBlockedEllipse(
+      center: Offset(center[0].toDouble(), center[1].toDouble()),
+      rx: (json['rx'] as num).toDouble(),
+      ry: (json['ry'] as num).toDouble(),
+    );
+  }
+
+  (Offset, double, double) get asRecord => (center, rx, ry);
+}
+
 class LocationOccluderDef {
   const LocationOccluderDef({
     required this.uv,
@@ -58,8 +81,12 @@ class LocationConfig {
     required this.backdrops,
     required this.road,
     required this.ofrendaUv,
+    required this.fountainCenter,
+    required this.fountainRadiusX,
+    required this.fountainRadiusY,
     required this.hotspotUvs,
     required this.restSpotUvs,
+    required this.blockedEllipses,
     required this.occluders,
     required this.decorMarkers,
     required this.defaultCastOnPlaza,
@@ -71,11 +98,18 @@ class LocationConfig {
   final Map<String, String> backdrops;
   final LocationRoad road;
   final Offset ofrendaUv;
+  final Offset fountainCenter;
+  final double fountainRadiusX;
+  final double fountainRadiusY;
   final List<Offset> hotspotUvs;
   final List<Offset> restSpotUvs;
+  final List<LocationBlockedEllipse> blockedEllipses;
   final List<LocationOccluderDef> occluders;
   final String decorMarkers;
   final List<String> defaultCastOnPlaza;
+
+  List<(Offset, double, double)> get blockedEllipseRecords =>
+      blockedEllipses.map((e) => e.asRecord).toList(growable: false);
 
   factory LocationConfig.fromJson(Map<String, dynamic> json) {
     List<Offset> readUvs(List<dynamic> list) {
@@ -87,6 +121,11 @@ class LocationConfig {
     }
 
     final ofrenda = (json['ofrendaUv'] as List).cast<num>();
+    final blocked = [
+      for (final entry in json['blockedEllipses'] as List<dynamic>)
+        LocationBlockedEllipse.fromJson(entry as Map<String, dynamic>),
+    ];
+    final fountain = blocked.isNotEmpty ? blocked.first : null;
     return LocationConfig(
       id: json['id'] as String,
       displayName: json['displayName'] as String,
@@ -96,8 +135,12 @@ class LocationConfig {
       ),
       road: LocationRoad.fromJson(json['road'] as Map<String, dynamic>),
       ofrendaUv: Offset(ofrenda[0].toDouble(), ofrenda[1].toDouble()),
+      fountainCenter: fountain?.center ?? const Offset(0.575, 0.62),
+      fountainRadiusX: fountain?.rx ?? 0.05,
+      fountainRadiusY: fountain?.ry ?? 0.07,
       hotspotUvs: readUvs(json['hotspotUvs'] as List<dynamic>),
       restSpotUvs: readUvs(json['restSpotUvs'] as List<dynamic>),
+      blockedEllipses: blocked,
       occluders: [
         for (final entry in json['occluders'] as List<dynamic>)
           LocationOccluderDef.fromJson(entry as Map<String, dynamic>),

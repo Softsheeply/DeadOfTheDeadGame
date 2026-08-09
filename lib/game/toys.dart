@@ -276,3 +276,42 @@ class _Spark {
   final double size;
   final Color color;
 }
+
+/// Expanding golden ring when the lantern toy sweeps the plaza.
+class LanternRipple extends PositionComponent {
+  LanternRipple({required Vector2 size})
+      : super(size: size, position: Vector2.zero(), priority: 42);
+
+  double _age = 0;
+  static const double lifetime = 1.4;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _age += dt;
+    if (_age >= lifetime) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final t = (_age / lifetime).clamp(0.0, 1.0);
+    final fade = (1 - t).clamp(0.0, 1.0);
+    final center = Offset(size.x * 0.5, size.y * 0.58);
+    final radius = size.shortestSide * (0.12 + t * 0.42);
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..color = Color.fromRGBO(255, 224, 102, 0.22 * fade)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5 * fade,
+    );
+    canvas.drawCircle(
+      center,
+      radius * 0.55,
+      Paint()
+        ..color = Color.fromRGBO(255, 241, 209, 0.12 * fade)
+        ..style = PaintingStyle.fill,
+    );
+  }
+}

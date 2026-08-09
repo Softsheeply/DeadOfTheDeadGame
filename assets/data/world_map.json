@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "nodes": [
+    { "id": "l1_festival_plaza", "label": "Festival Plaza", "unlocked": true, "role": "Hub" },
+    { "id": "l2_floristeria", "label": "Floristería Gardens", "unlocked": false, "role": "Pepita's flowers" },
+    { "id": "l3_panaderia", "label": "Panadería Lane", "unlocked": false, "role": "Warm oven" },
+    { "id": "l4_church", "label": "Church Steps", "unlocked": false, "role": "Candle quiet" },
+    { "id": "l5_mercado", "label": "Mercado", "unlocked": false, "role": "Stalls & trade" },
+    { "id": "l6_river", "label": "River & Bridge", "unlocked": false, "role": "Water life" },
+    { "id": "l7_cemetery", "label": "Cemetery Ofrenda", "unlocked": false, "role": "Night magic" },
+    { "id": "l8_parade", "label": "Parade Hill", "unlocked": false, "role": "Festival climax" }
+  ]
+}

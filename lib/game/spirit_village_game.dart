@@ -9,6 +9,9 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../data/cast_journal.dart';
 import '../data/character_config.dart';
+import '../data/location_config.dart';
+import '../data/mission_catalog.dart';
+import '../data/world_map_config.dart';
 import 'ambient_critters.dart';
 import 'building_door_pulse.dart';
 import 'cast_roster.dart';
@@ -26,7 +29,18 @@ import 'village_atmosphere.dart';
 import 'village_backdrop.dart';
 import 'village_decor.dart';
 
-enum VillageToy { wind, petals, music, panDulce }
+enum VillageToy { wind, petals, music, panDulce, lantern }
+
+/// Brief toast payload when a plaza mission completes.
+class MissionRewardToast {
+  const MissionRewardToast({
+    required this.title,
+    required this.setLabel,
+  });
+
+  final String title;
+  final String setLabel;
+}
 
 /// Spirit Village -- living Día de los Muertos plaza with Pocket God toys.
 class SpiritVillageGame extends FlameGame with TapCallbacks {
@@ -35,7 +49,10 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final CastRoster castRoster = CastRoster();
   final CastJournal castJournal = CastJournal();
   final PlazaAudio audio = PlazaAudio();
-  final PlazaMission mission = PlazaMission();
+  final MissionCatalog missionCatalog = MissionCatalog();
+  late final PlazaMission mission;
+  final WorldMapConfig worldMap = WorldMapConfig();
+  LocationConfig? location;
   final PlazaPrefs prefs = PlazaPrefs();
   VillageBackdrop? backdrop;
   VillageAtmosphere? atmosphere;
@@ -59,6 +76,11 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   final ValueNotifier<bool> reduceMotion = ValueNotifier<bool>(false);
   final ValueNotifier<bool> photoMode = ValueNotifier<bool>(false);
   final ValueNotifier<String?> castBioId = ValueNotifier<String?>(null);
+  final ValueNotifier<bool> showMainMenu = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> worldMapOpen = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> missionLogOpen = ValueNotifier<bool>(false);
+  final ValueNotifier<MissionRewardToast?> rewardToast =
+      ValueNotifier<MissionRewardToast?>(null);
   OfrendaMarker? _ofrendaMarker;
   double _benchChatTimer = 22;
 
@@ -85,13 +107,23 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     _ofrendaMarker = OfrendaMarker(backdrop: backdrop!);
     await add(_ofrendaMarker!);
 
+    location = await LocationConfig.loadAsset('assets/data/locations/l1_festival_plaza.json');
+    backdrop!.applyLocation(location!);
+    occluders!.applyDefs(location!.occluders);
+
+    await missionCatalog.load();
+    mission = PlazaMission(missionCatalog);
+    await worldMap.load();
+
     await castRoster.load();
     await castJournal.load();
     await prefs.load();
     audio.muted.value = prefs.muted;
     reduceMotion.value = prefs.reduceMotion;
     mission.restore(prefs.missionId, prefs.missionProgress);
+    mission.completedCount.value = prefs.missionsCompleted;
     tutorialStep.value = prefs.tutorialStep;
+    showMainMenu.value = !prefs.mainMenuDismissed;
 
     await audio.load();
 
@@ -178,10 +210,12 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   bool _tapNearFountain(Vector2 worldPoint) {
     final draw = backdrop?.drawRect;
     if (draw == null || draw == Rect.zero) return false;
-    final fx = draw.left + draw.width * VillageBackdrop.fountainCenterUv.dx;
-    final fy = draw.top + draw.height * VillageBackdrop.fountainCenterUv.dy;
-    final nx = (worldPoint.x - fx) / (draw.width * VillageBackdrop.fountainRadiusX * 1.8);
-    final ny = (worldPoint.y - fy) / (draw.height * VillageBackdrop.fountainRadiusY * 1.8);
+    final fx = draw.left + draw.width * (backdrop?.fountainCenterUvEffective.dx ?? 0.575);
+    final fy = draw.top + draw.height * (backdrop?.fountainCenterUvEffective.dy ?? 0.62);
+    final rx = backdrop?.fountainRadiusXEffective ?? 0.05;
+    final ry = backdrop?.fountainRadiusYEffective ?? 0.07;
+    final nx = (worldPoint.x - fx) / (draw.width * rx * 1.8);
+    final ny = (worldPoint.y - fy) / (draw.height * ry * 1.8);
     return nx * nx + ny * ny <= 1;
   }
 
@@ -387,7 +421,36 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     for (final resident in residents) {
       if (!resident.held) resident.applyDancePulse();
     }
+    rewardToast.value = MissionRewardToast(
+      title: mission.title.value,
+      setLabel: mission.currentSetLabel,
+    );
     toyStatus.value = 'Mission complete! ${mission.title.value}';
+    prefs.saveMissionsCompleted(mission.completedCount.value);
+  }
+
+  void startPlaza() {
+    showMainMenu.value = false;
+    prefs.setMainMenuDismissed(true);
+    toyStatus.value = mission.detail.value;
+  }
+
+  void toggleWorldMap() {
+    worldMapOpen.value = !worldMapOpen.value;
+    if (worldMapOpen.value) {
+      settingsOpen.value = false;
+      castPanelOpenListenable.value = false;
+      missionLogOpen.value = false;
+    }
+  }
+
+  void toggleMissionLog() {
+    missionLogOpen.value = !missionLogOpen.value;
+    if (missionLogOpen.value) {
+      settingsOpen.value = false;
+      castPanelOpenListenable.value = false;
+      worldMapOpen.value = false;
+    }
   }
 
   bool get tutorialActive => !PlazaTutorial.isComplete(tutorialStep.value);
@@ -414,7 +477,10 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
 
   void toggleSettings() {
     settingsOpen.value = !settingsOpen.value;
-    if (settingsOpen.value) castPanelOpenListenable.value = false;
+    if (settingsOpen.value) {
+      castPanelOpenListenable.value = false;
+      missionLogOpen.value = false;
+    }
   }
 
   Future<void> setReduceMotion(bool value) async {
@@ -474,6 +540,8 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
         _castMusic();
       case VillageToy.panDulce:
         _castPanDulce();
+      case VillageToy.lantern:
+        _castLantern();
     }
   }
 
@@ -566,6 +634,35 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       }
     }
     toyStatus.value = 'Pan dulce! Who will claim it?';
+  }
+
+  void _castLantern() {
+    audio.missionSfx();
+    if (!(backdrop?.isNight ?? isNight.value)) {
+      backdrop?.setNight(true);
+      isNight.value = true;
+      prefs.setNight(true);
+    }
+    add(LanternRipple(size: size.clone()));
+    final positions = atmosphere?.rippleLanternGlow() ?? const [];
+    var reports = 0;
+    for (final pos in positions) {
+      spawnPetals(pos.clone(), count: 5);
+      add(SparkleBurst(position: pos.clone(), count: 6));
+      if (reports >= 3) continue;
+      final done = mission.reportCandleLit();
+      reports++;
+      if (done) {
+        _onMissionComplete();
+        break;
+      }
+    }
+    if (reports > 0) {
+      _persistMission();
+    }
+    toyStatus.value = positions.isEmpty
+        ? 'Lantern glow ripples through the plaza'
+        : 'Lantern light wakes ${positions.length} candles!';
   }
 
   void _onBuildingTapped(PlazaBuilding building) {
@@ -662,6 +759,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       if (_missionCelebrateTimer <= 0) {
         mission.advanceAfterCelebration();
         _persistMission();
+        rewardToast.value = null;
         toyStatus.value = 'Next: ${mission.detail.value}';
       }
     }

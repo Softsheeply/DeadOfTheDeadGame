@@ -244,6 +244,26 @@ class VillageAtmosphere extends PositionComponent {
     return false;
   }
 
+  /// Lantern toy — ripple glow across every painted candle; returns world positions.
+  List<Vector2> rippleLanternGlow() {
+    final draw = backdrop.drawRect;
+    if (draw == Rect.zero) return const [];
+    final positions = <Vector2>[];
+    for (final uv in _paintedCandleUvs) {
+      positions.add(Vector2(
+        draw.left + draw.width * uv.dx,
+        draw.top + draw.height * uv.dy,
+      ));
+      for (final candle in _candles) {
+        if ((candle.uv - uv).distance < 0.025) {
+          candle.glowBoost = 1.35;
+          candle.playerLit = true;
+        }
+      }
+    }
+    return positions;
+  }
+
   /// Approximate UVs of candles already painted in the night plate
   /// (river path + ofrenda rim). Tuned to the art, not floating orbs.
   static const _paintedCandleUvs = <Offset>[

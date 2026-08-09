@@ -4,53 +4,83 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
+import '../data/location_config.dart';
 import 'village_backdrop.dart';
 
 /// Painted props sit in the backdrop; these soft caps sell depth so villagers
 /// can walk "behind" fountain / tree / bridge when their feet are north of
 /// the occluder's sort line.
 class PlazaOccluders extends PositionComponent {
-  PlazaOccluders({required this.backdrop})
-      : super(position: Vector2.zero(), priority: 0);
+  PlazaOccluders({required this.backdrop, List<LocationOccluderDef>? defs})
+      : _defs = List<LocationOccluderDef>.from(defs ?? _defaultDefs),
+        super(position: Vector2.zero(), priority: 0);
 
   final VillageBackdrop backdrop;
+  final List<LocationOccluderDef> _defs;
 
-  static const _defs = <_OccluderDef>[
-    _OccluderDef(
-      uv: Offset(0.575, 0.66),
+  static const _defaultColors = [
+    Color(0xFF6A8FA8),
+    Color(0xFF4A3A28),
+    Color(0xFF3D5028),
+    Color(0xFF7A6A58),
+  ];
+
+  static final _defaultDefs = [
+    LocationOccluderDef(
+      uv: const Offset(0.575, 0.66),
       sortUvY: 0.695,
       radiusX: 0.075,
       radiusY: 0.038,
-      color: Color(0xFF6A8FA8),
-      alpha: 0.24,
     ),
-    _OccluderDef(
-      uv: Offset(0.50, 0.615),
+    LocationOccluderDef(
+      uv: const Offset(0.50, 0.615),
       sortUvY: 0.725,
       radiusX: 0.048,
       radiusY: 0.052,
-      color: Color(0xFF4A3A28),
-      alpha: 0.30,
     ),
-    _OccluderDef(
-      uv: Offset(0.48, 0.705),
+    LocationOccluderDef(
+      uv: const Offset(0.48, 0.705),
       sortUvY: 0.745,
       radiusX: 0.035,
       radiusY: 0.04,
-      color: Color(0xFF3D5028),
-      alpha: 0.26,
     ),
-    _OccluderDef(
-      uv: Offset(0.16, 0.82),
+    LocationOccluderDef(
+      uv: const Offset(0.16, 0.82),
       sortUvY: 0.855,
       radiusX: 0.072,
       radiusY: 0.032,
-      color: Color(0xFF7A6A58),
-      alpha: 0.27,
     ),
   ];
 
-  /// Caps draw priority so feet north of a sort line tuck behind props.
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    size = backdrop.size.clone();
+    _rebuildSprites();
+  }
+
+  void applyDefs(List<LocationOccluderDef> defs) {
+    _defs
+      ..clear()
+      ..addAll(defs);
+    _rebuildSprites();
+  }
+
+  void _rebuildSprites() {
+    removeAll(children.toList());
+    for (var i = 0; i < _defs.length; i++) {
+      final def = _defs[i];
+      add(
+        _OccluderSprite(
+          backdrop: backdrop,
+          def: def,
+          color: _defaultColors[i % _defaultColors.length],
+          alpha: 0.24 + (i.isEven ? 0.04 : 0.0),
+        ),
+      );
+    }
+  }
+
   int depthPriorityForFeet(double feetY) {
     final draw = backdrop.drawRect;
     if (draw == Rect.zero) return (feetY * 10).round();
@@ -65,15 +95,6 @@ class PlazaOccluders extends PositionComponent {
     return priority;
   }
 
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    size = backdrop.size.clone();
-    for (final def in _defs) {
-      await add(_OccluderSprite(backdrop: backdrop, def: def));
-    }
-  }
-
   void resizeTo(Vector2 newSize) {
     size.setFrom(newSize);
     for (final child in children) {
@@ -82,30 +103,18 @@ class PlazaOccluders extends PositionComponent {
   }
 }
 
-class _OccluderDef {
-  const _OccluderDef({
-    required this.uv,
-    required this.sortUvY,
-    required this.radiusX,
-    required this.radiusY,
+class _OccluderSprite extends PositionComponent {
+  _OccluderSprite({
+    required this.backdrop,
+    required this.def,
     required this.color,
     required this.alpha,
-  });
-
-  final Offset uv;
-  final double sortUvY;
-  final double radiusX;
-  final double radiusY;
-  final Color color;
-  final double alpha;
-}
-
-class _OccluderSprite extends PositionComponent {
-  _OccluderSprite({required this.backdrop, required this.def})
-      : super(anchor: Anchor.center);
+  }) : super(anchor: Anchor.center);
 
   final VillageBackdrop backdrop;
-  final _OccluderDef def;
+  final LocationOccluderDef def;
+  final Color color;
+  final double alpha;
 
   @override
   Future<void> onLoad() async {
@@ -121,14 +130,13 @@ class _OccluderSprite extends PositionComponent {
       draw.top + draw.height * def.uv.dy,
     );
     size = Vector2(draw.width * def.radiusX * 2, draw.height * def.radiusY * 2);
-    // Feet-line sort: higher Y draws later (on top).
     priority = (draw.top + draw.height * def.sortUvY).round();
   }
 
   @override
   void render(Canvas canvas) {
     final paint = Paint()
-      ..color = def.color.withValues(alpha: def.alpha)
+      ..color = color.withValues(alpha: alpha)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: size.x, height: size.y),
@@ -136,7 +144,7 @@ class _OccluderSprite extends PositionComponent {
     );
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: size.x * 0.7, height: size.y * 0.55),
-      Paint()..color = def.color.withValues(alpha: def.alpha * 1.3),
+      Paint()..color = color.withValues(alpha: alpha * 1.3),
     );
   }
 }

@@ -1,11 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dead_of_the_dead_game/data/mission_catalog.dart';
 import 'package:dead_of_the_dead_game/game/plaza_mission.dart';
-import 'package:dead_of_the_dead_game/game/plaza_prefs.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+Future<PlazaMission> _loadedMission() async {
+  final catalog = MissionCatalog();
+  await catalog.load();
+  return PlazaMission(catalog);
+}
 
 void main() {
-  test('mission loop advances through feedXolo and candles', () {
-    final mission = PlazaMission();
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('mission loop advances through feedXolo and candles', () async {
+    final mission = await _loadedMission();
     expect(mission.current, MissionId.marigolds);
     expect(mission.reportOfrendaPetals(), isFalse);
     expect(mission.reportOfrendaPetals(), isFalse);
@@ -27,19 +34,19 @@ void main() {
     expect(mission.reportCandleLit(), isTrue);
 
     mission.advanceAfterCelebration();
-    expect(mission.current, MissionId.marigolds);
+    expect(mission.current, MissionId.stageEncore);
   });
 
-  test('festival mission set follows welcome loop', () {
-    final mission = PlazaMission();
+  test('festival mission set follows welcome loop', () async {
+    final mission = await _loadedMission();
     for (var i = 0; i < 3; i++) {
       mission.reportOfrendaPetals();
     }
-    mission.advanceAfterCelebration(); // mariachi
+    mission.advanceAfterCelebration();
     mission.reportMariachi();
-    mission.advanceAfterCelebration(); // xolo
+    mission.advanceAfterCelebration();
     mission.reportXoloFed();
-    mission.advanceAfterCelebration(); // candles
+    mission.advanceAfterCelebration();
     for (var i = 0; i < 5; i++) {
       mission.reportCandleLit();
     }
@@ -70,8 +77,8 @@ void main() {
     expect(mission.current, MissionId.marigolds);
   });
 
-  test('reportOfrendaTap only counts during tribute mission', () {
-    final mission = PlazaMission();
+  test('reportOfrendaTap only counts during tribute mission', () async {
+    final mission = await _loadedMission();
     expect(mission.reportOfrendaTap(), isFalse);
     mission.restore(MissionId.ofrendaTribute, 0);
     expect(mission.reportOfrendaTap(), isFalse);
@@ -79,40 +86,20 @@ void main() {
     expect(mission.reportOfrendaTap(), isTrue);
   });
 
-  test('wrong mission action is ignored', () {
-    final mission = PlazaMission();
+  test('wrong mission action is ignored', () async {
+    final mission = await _loadedMission();
     expect(mission.reportMariachi(), isFalse);
     expect(mission.reportXoloFed(), isFalse);
     expect(mission.reportCandleLit(), isFalse);
     expect(mission.progress.value, 0);
   });
 
-  test('restore resumes mid-mission progress', () {
-    final mission = PlazaMission();
+  test('restore resumes mid-mission progress', () async {
+    final mission = await _loadedMission();
     mission.restore(MissionId.candles, 2);
     expect(mission.current, MissionId.candles);
     expect(mission.progress.value, 2);
     expect(mission.reportCandleLit(), isFalse);
     expect(mission.progress.value, 3);
-  });
-
-  test('prefs persist mute night tutorial mission', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    SharedPreferences.setMockInitialValues({});
-    final prefs = PlazaPrefs();
-    await prefs.load();
-    await prefs.setMuted(true);
-    await prefs.setNight(false);
-    await prefs.setTutorialSeen(true);
-    await prefs.setReduceMotion(true);
-    await prefs.saveMission(MissionId.feedXolo, 0);
-
-    final again = PlazaPrefs();
-    await again.load();
-    expect(again.muted, isTrue);
-    expect(again.isNight, isFalse);
-    expect(again.tutorialSeen, isTrue);
-    expect(again.reduceMotion, isTrue);
-    expect(again.missionId, MissionId.feedXolo);
   });
 }

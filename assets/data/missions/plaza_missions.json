@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "locationId": "l1_festival_plaza",
+  "steps": [
+    {
+      "id": "marigolds",
+      "set": "welcome",
+      "title": "Marigolds for the ofrenda",
+      "detail": "Send marigold rain onto the tree ofrenda (×3)",
+      "goal": 3,
+      "triggers": ["ofrenda_petals"]
+    },
+    {
+      "id": "mariachi",
+      "set": "welcome",
+      "title": "Wake the mariachi",
+      "detail": "Play music so the plaza dances",
+      "goal": 1,
+      "triggers": ["mariachi"]
+    },
+    {
+      "id": "feedXolo",
+      "set": "welcome",
+      "title": "Treat for Xolo",
+      "detail": "Drop pan dulce and let Xolo claim it",
+      "goal": 1,
+      "triggers": ["xolo_fed"]
+    },
+    {
+      "id": "candles",
+      "set": "welcome",
+      "title": "Wake the candles",
+      "detail": "Tap night candles around the plaza (×5)",
+      "goal": 5,
+      "triggers": ["candle_lit"]
+    },
+    {
+      "id": "stageEncore",
+      "set": "festival",
+      "title": "Encore at the stage",
+      "detail": "Play music twice for the plaza (×2)",
+      "goal": 2,
+      "triggers": ["mariachi"]
+    },
+    {
+      "id": "candlePath",
+      "set": "festival",
+      "title": "Light the candle path",
+      "detail": "Tap candles until the whole rim glows (×8)",
+      "goal": 8,
+      "triggers": ["candle_lit"]
+    },
+    {
+      "id": "treatRound",
+      "set": "festival",
+      "title": "Treat round",
+      "detail": "Drop pan dulce twice — share the sweets (×2)",
+      "goal": 2,
+      "triggers": ["xolo_fed"]
+    },
+    {
+      "id": "ofrendaTribute",
+      "set": "festival",
+      "title": "Honor the ofrenda",
+      "detail": "Tap the tree ofrenda to leave marigolds (×3)",
+      "goal": 3,
+      "triggers": ["ofrenda_tap"]
+    }
+  ]
+}

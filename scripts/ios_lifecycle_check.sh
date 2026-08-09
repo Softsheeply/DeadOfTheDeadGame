@@ -37,6 +37,8 @@ assets = re.findall(r"^\s*-\s*(.+)$", text, re.M)
 required = [
     "assets/data/cast_bios.json",
     "assets/data/locations/l1_festival_plaza.json",
+    "assets/data/missions/plaza_missions.json",
+    "assets/data/world_map.json",
     "assets/images/village/decor_markers.json",
 ]
 missing = [a for a in required if a not in assets]

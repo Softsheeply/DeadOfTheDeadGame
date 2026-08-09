@@ -11,6 +11,9 @@ void main() {
     );
     expect(location.id, 'l1_festival_plaza');
     expect(location.hotspotUvs.length, 9);
+    expect(location.blockedEllipses.length, 7);
+    expect(location.fountainCenter.dx, closeTo(0.575, 0.001));
+    expect(location.fountainRadiusX, closeTo(0.05, 0.001));
     expect(location.occluders.length, 4);
     expect(location.defaultCastOnPlaza, contains('pepita'));
   });
