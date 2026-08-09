@@ -59,7 +59,6 @@
 - [ ] 2. Launch image (unique)
 - [x] 3. Settings sheet (mute, reduce motion, credits)
 - [x] 4. Save: missions + day/night + cast + mute
-- [ ] 5. Store listing copy + plaza screenshots
 - [x] 5. Store listing copy + plaza screenshots (copy draft in docs/store/)
 - [ ] 6. Soft-launch TestFlight / App Store build from polished plaza
 
