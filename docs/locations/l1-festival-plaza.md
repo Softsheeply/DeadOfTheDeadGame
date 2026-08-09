@@ -19,7 +19,7 @@
 | Pickup drag/fling | ✅ all 12 cast verified on device (#14–15) |
 | Doghouse blocker | ✅ enlarged (roof + door + Xolo stoop) |
 | Axis-slide anti-tunnel | ✅ |
-| `routeToward` skirt | ⚠️ single-hop — can wedge on long crossings |
+| `routeToward` skirt | ✅ multi-hop + graph fallback for long crossings |
 | Slight roof clip at doghouse | Accepted for now |
 
 **Code:** `lib/game/village_backdrop.dart` · `lib/game/resident.dart`

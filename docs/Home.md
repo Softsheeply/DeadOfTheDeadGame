@@ -18,9 +18,9 @@ Welcome to the Obsidian vault for **DeadOfTheDeadGame**. This note is your dashb
 ## Right now (Phase A)
 
 - **Branch:** `cursor/pocket-god-village-foundation-b7dc`
-- **Build:** `1.0.0+29`
+- **Build:** `1.0.0+30`
 - **PR:** #1 on GitHub
-- **Focus:** One plaza great — pickup ✅ verified (all 12), Pepita feet still weak, multi-hop routing TBD
+- **Focus:** One plaza great — pickup ✅ verified (all 12), Pepita feet still weak, routing ✅ multi-hop
 
 ### Your next actions
 
@@ -30,7 +30,7 @@ Welcome to the Obsidian vault for **DeadOfTheDeadGame**. This note is your dashb
 
 ### Agent next actions
 
-- [ ] Multi-hop `routeToward` (doghouse wedge fix)
+- [x] Multi-hop `routeToward` (doghouse wedge fix)
 - [ ] Re-slice/wire when new `_incoming` art lands
 - [ ] Update [[FINISH_PLAN]] in same PR as each chunk
 
