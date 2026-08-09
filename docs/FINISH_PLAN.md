@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+29` (plaza prototype on TestFlight)  
+**Current build target:** `1.0.0+30` (plaza prototype on TestFlight)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
@@ -32,6 +32,7 @@
 - [x] Soft circular building glows (no grey light slabs)
 - [x] Strip fake candle/window light orbs — painted night plate only
 - [x] River + doghouse walk blockers; taller Pocket God pickup
+- [x] Multi-hop + graph routing around doghouse / grave (cross-plaza paths)
 
 ---
 

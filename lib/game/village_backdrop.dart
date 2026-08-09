@@ -213,12 +213,14 @@ class VillageBackdrop extends PositionComponent {
     return false;
   }
 
-  /// First blocked ellipse the segment enters, in world space, or null.
-  (Vector2 center, double rx, double ry)? firstBlockerOnSegment(
+  /// Blocked ellipses the segment [from]→[to] crosses, in travel order.
+  List<(Vector2 center, double rx, double ry)> blockersOnSegment(
     Vector2 from,
     Vector2 to,
   ) {
-    if (drawRect == Rect.zero) return null;
+    if (drawRect == Rect.zero) return const [];
+    final seen = <String>{};
+    final hits = <(Vector2, double, double)>[];
     final dist = from.distanceTo(to);
     final steps = max(2, (dist / 8).ceil());
     for (var i = 1; i <= steps; i++) {
@@ -236,11 +238,23 @@ class VillageBackdrop extends PositionComponent {
         final nx = (p.x - cx) / rx;
         final ny = (p.y - cy) / ry;
         if (nx * nx + ny * ny < 1) {
-          return (Vector2(cx, cy), rx, ry);
+          final key = '${zone.$1.dx},${zone.$1.dy}';
+          if (seen.add(key)) {
+            hits.add((Vector2(cx, cy), rx, ry));
+          }
         }
       }
     }
-    return null;
+    return hits;
+  }
+
+  /// First blocked ellipse the segment enters, in world space, or null.
+  (Vector2 center, double rx, double ry)? firstBlockerOnSegment(
+    Vector2 from,
+    Vector2 to,
+  ) {
+    final hits = blockersOnSegment(from, to);
+    return hits.isEmpty ? null : hits.first;
   }
 
   /// Walkable points that skirt a blocker: N/S/E/W just outside the ellipse.
@@ -260,42 +274,198 @@ class VillageBackdrop extends PositionComponent {
     ];
   }
 
-  /// Path from [from] to [to]: direct if clear, else skirt then destination.
+  /// Max skirt hops when building a path around multiple blockers.
+  static const int maxRouteWaypoints = 8;
+
+  /// Path from [from] to [to]: direct if clear, else chained skirts; if that
+  /// cannot reach [to], fall back to a hotspot graph search.
   List<Vector2> routeToward(Vector2 from, Vector2 to) {
     final dest = clampToWalkable(to);
-    if (!segmentBlocked(from, dest)) return [dest];
+    if (!segmentBlocked(from, dest)) {
+      return from.distanceTo(dest) < 10 ? const [] : [dest];
+    }
 
-    final hit = firstBlockerOnSegment(from, dest);
-    if (hit == null) return [dest];
+    final skirtRoute = _skirtRoute(from, dest);
+    if (_routeReaches(from, skirtRoute, dest)) return skirtRoute;
 
-    final candidates = skirtCandidates(hit.$1, hit.$2, hit.$3);
+    final graphRoute = _routeViaGraph(from, dest);
+    if (graphRoute != null) return graphRoute;
+
+    if (skirtRoute.isNotEmpty) return skirtRoute;
+    return [dest];
+  }
+
+  /// Greedy skirt chain around blockers (fast local detours).
+  List<Vector2> _skirtRoute(Vector2 from, Vector2 dest) {
+    final waypoints = <Vector2>[];
+    var cursor = from;
+    for (var hop = 0; hop < maxRouteWaypoints; hop++) {
+      if (!segmentBlocked(cursor, dest)) break;
+
+      final blockers = blockersOnSegment(cursor, dest);
+      if (blockers.isEmpty) break;
+
+      Vector2? skirt;
+      for (final hit in blockers) {
+        skirt = _pickSkirt(
+          cursor,
+          dest,
+          hit.$1,
+          hit.$2,
+          hit.$3,
+          avoid: [from, ...waypoints],
+        );
+        if (skirt != null && cursor.distanceTo(skirt) >= 8) break;
+        skirt = null;
+      }
+      if (skirt == null) break;
+
+      waypoints.add(skirt);
+      cursor = skirt;
+    }
+
+    if (!segmentBlocked(cursor, dest) && cursor.distanceTo(dest) >= 10) {
+      waypoints.add(dest);
+    }
+    return waypoints;
+  }
+
+  bool _routeReaches(Vector2 from, List<Vector2> waypoints, Vector2 dest) {
+    if (waypoints.isEmpty) return false;
+    var legStart = from;
+    for (final point in waypoints) {
+      if (segmentBlocked(legStart, point)) return false;
+      legStart = point;
+    }
+    return legStart.distanceTo(dest) < 20 ||
+        !segmentBlocked(legStart, dest);
+  }
+
+  /// BFS over plaza hotspots when skirt chaining cannot reach [dest].
+  List<Vector2>? _routeViaGraph(Vector2 from, Vector2 dest) {
+    final nodes = <Vector2>[from, dest];
+    for (final point in [
+      ...hotspotWorldPoints(),
+      ...restSpotWorldPoints(),
+      ..._transitSamplePoints(),
+    ]) {
+      if (_nodeIndex(nodes, point) == null) {
+        nodes.add(point);
+      }
+    }
+
+    final goal = 1; // dest is always index 1
+    final prev = List<int>.filled(nodes.length, -1);
+    final queue = <int>[0];
+    prev[0] = 0;
+
+    while (queue.isNotEmpty) {
+      final u = queue.removeAt(0);
+      if (u == goal) break;
+      for (var v = 0; v < nodes.length; v++) {
+        if (prev[v] != -1) continue;
+        if (segmentBlocked(nodes[u], nodes[v])) continue;
+        prev[v] = u;
+        queue.add(v);
+      }
+    }
+
+    if (prev[goal] == -1) return null;
+
+    final indices = <int>[];
+    var cursor = goal;
+    while (cursor != 0) {
+      indices.add(cursor);
+      cursor = prev[cursor];
+    }
+    indices.reverse();
+    return [for (final i in indices) nodes[i]];
+  }
+
+  int? _nodeIndex(List<Vector2> nodes, Vector2 point) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].distanceTo(point) < 16) return i;
+    }
+    return null;
+  }
+
+  /// Coarse cobble samples for long cross-plaza paths (graph search only).
+  List<Vector2> _transitSamplePoints() {
+    if (drawRect == Rect.zero) return const [];
+    final samples = <Vector2>[];
+    for (var ux = 0.12; ux <= 0.92; ux += 0.04) {
+      for (var uy = 0.68; uy <= 0.87; uy += 0.03) {
+        final point = clampToWalkable(uvToWorld(Offset(ux, uy)));
+        if (!isWalkable(point)) continue;
+        if (samples.any((s) => s.distanceTo(point) < 12)) continue;
+        samples.add(point);
+      }
+    }
+    return samples;
+  }
+
+  /// Best walkable point to skirt [center]/[rx]/[ry] when walking toward [dest].
+  Vector2? _pickSkirt(
+    Vector2 from,
+    Vector2 dest,
+    Vector2 center,
+    double rx,
+    double ry, {
+    double minProgressPx = 8,
+    List<Vector2> avoid = const [],
+  }) {
+    final candidates = skirtCandidates(center, rx, ry);
+    if (candidates.isEmpty) return null;
+
+    bool tooCloseToAvoid(Vector2 skirt) {
+      for (final point in avoid) {
+        if (point.distanceTo(skirt) < 12) return true;
+      }
+      return false;
+    }
+
+    List<Vector2> filterPool(List<Vector2> source) {
+      final withProgress = [
+        for (final skirt in source)
+          if (from.distanceTo(skirt) >= minProgressPx) skirt,
+      ];
+      final base = withProgress.isNotEmpty ? withProgress : source;
+      final avoiding = [
+        for (final skirt in base)
+          if (!tooCloseToAvoid(skirt)) skirt,
+      ];
+      return avoiding.isNotEmpty ? avoiding : base;
+    }
+
+    final search = filterPool(candidates);
+
     Vector2? best;
     var bestScore = double.infinity;
-    for (final skirt in candidates) {
-      // Prefer skirts that clear both legs of the trip.
+    for (final skirt in search) {
       if (segmentBlocked(from, skirt)) continue;
       final viaBlocked = segmentBlocked(skirt, dest);
+      final progress = from.distanceTo(dest) - skirt.distanceTo(dest);
       final score = from.distanceTo(skirt) +
           skirt.distanceTo(dest) +
-          (viaBlocked ? 80 : 0);
+          (viaBlocked ? 80 : 0) -
+          (progress > 0 ? progress * 0.35 : 0);
       if (score < bestScore) {
         bestScore = score;
         best = skirt;
       }
     }
-    if (best == null) {
-      // No clean skirt — pick nearest walkable candidate anyway.
-      for (final skirt in candidates) {
-        final score = from.distanceTo(skirt);
-        if (score < bestScore) {
-          bestScore = score;
-          best = skirt;
-        }
+
+    if (best != null) return best;
+
+    bestScore = double.infinity;
+    for (final skirt in search) {
+      final score = from.distanceTo(skirt);
+      if (score < bestScore) {
+        bestScore = score;
+        best = skirt;
       }
     }
-    if (best == null) return [dest];
-    if (best.distanceTo(dest) < 10) return [best];
-    return [best, dest];
+    return best;
   }
 
   Vector2 randomRoadPoint(Random random) {

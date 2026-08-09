@@ -80,8 +80,36 @@ void main() {
     for (final point in route) {
       expect(backdrop.isWalkable(point), isTrue);
     }
-    // First hop should clear the doghouse approach.
-    expect(backdrop.segmentBlocked(west, route.first), isFalse);
+    // Every leg of the route must be clear (multi-hop past doghouse + grave).
+    var legStart = west;
+    for (final point in route) {
+      expect(
+        backdrop.segmentBlocked(legStart, point),
+        isFalse,
+        reason: 'blocked leg $legStart → $point',
+      );
+      legStart = point;
+    }
+    expect(route.last.distanceTo(east), lessThan(20));
+  });
+
+  test('routeToward clears florist to mercado across multiple blockers', () {
+    final backdrop = VillageBackdrop(size: Vector2(1280, 426))
+      ..drawRect = const Rect.fromLTWH(0, 0, 1280, 426);
+
+    final florist = Vector2(1280 * 0.14, 426 * 0.74);
+    final mercado = Vector2(1280 * 0.88, 426 * 0.76);
+    expect(backdrop.segmentBlocked(florist, mercado), isTrue);
+
+    final route = backdrop.routeToward(florist, mercado);
+    expect(route, isNotEmpty);
+    var legStart = florist;
+    for (final point in route) {
+      expect(backdrop.isWalkable(point), isTrue);
+      expect(backdrop.segmentBlocked(legStart, point), isFalse);
+      legStart = point;
+    }
+    expect(route.last.distanceTo(mercado), lessThan(24));
   });
 
   test('hotspotWorldPoints land on the walkable road', () {
