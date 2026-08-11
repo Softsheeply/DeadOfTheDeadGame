@@ -34,6 +34,13 @@ MAX_CHAR_H = 176
 # no real multi-frame idle_down breathe source; treating this file as a
 # single pose is the honest fix until one exists (FINISH_PLAN A5).
 SHEET_MAP: dict[str, tuple[str, str]] = {
+    # Friendly names (drop ChatGPT exports with these names):
+    "pepita_walk_down.png": ("walk_down", "grid"),
+    "pepita_walk_up.png": ("walk_up", "grid"),
+    "pepita_walk_left.png": ("walk_left", "grid"),
+    "pepita_walk_right.png": ("walk_right", "grid"),
+    "pepita_idle_down.png": ("idle_down", "single"),
+    # Legacy UUID filenames:
     "78c4f662-4ec7-4463-b43c-aeb11f85dd88.png": ("walk_down", "grid"),
     "2fe8206a-cf71-46ae-a024-e16fd6e9c805.png": ("walk_up", "grid"),
     # These two were swapped -- the FINISH_PLAN A3 "backwards walk" bug.
@@ -157,6 +164,23 @@ def animation_entry(paths: list[str], *, fps: float, loop: bool = True) -> dict[
     }
 
 
+def dedupe_grid_frames(frames: list[Image.Image]) -> list[Image.Image]:
+    """If row 2 duplicates row 1 (common ChatGPT output), keep first 4 only."""
+    if len(frames) != 8:
+        return frames
+    import hashlib
+
+    def digest(img: Image.Image) -> str:
+        return hashlib.md5(img.tobytes()).hexdigest()
+
+    top = [digest(f) for f in frames[:4]]
+    bottom = [digest(f) for f in frames[4:]]
+    if top == bottom:
+        print("  note: bottom row duplicates top — using 4 unique frames")
+        return frames[:4]
+    return frames
+
+
 def main() -> None:
     exports: dict[str, list[str]] = {}
 
@@ -170,7 +194,7 @@ def main() -> None:
         if mode == "single":
             normalized = [normalize_frame(sheet)]
         else:
-            raw_frames = grid_frames(sheet)
+            raw_frames = dedupe_grid_frames(grid_frames(sheet))
             normalized = []
             for index, frame in enumerate(raw_frames):
                 candidate = normalize_frame(frame)
@@ -214,6 +238,10 @@ def main() -> None:
 
     config = json.loads(CONFIG_PATH.read_text())
     animations: dict[str, object] = config["animations"]  # type: ignore[assignment]
+
+    if any(key.startswith("walk_") for key in exports):
+        movement = config.setdefault("movement", {})
+        movement["walkTwoFrameFallback"] = False
 
     for name, paths in exports.items():
         if name.startswith("walk_"):

@@ -8,7 +8,15 @@ Use this brief when asking ChatGPT for replacement walk sheets. David is **not**
 assets/images/pepita/_incoming/
 ```
 
-Push to git → tell Cloud Agent → agent re-slices into `walk/down|up|left|right/` and updates `character.json`.
+Save ChatGPT PNGs with friendly names:
+
+- `pepita_walk_down.png`
+- `pepita_walk_up.png`
+- `pepita_walk_left.png`
+
+Then: `python3 scripts/slice_pepita_incoming.py` (or tell Cloud Agent to re-slice).
+
+Push to git → agent updates `walk/` folders + `character.json`.
 
 ## Locked look (do not drift)
 
