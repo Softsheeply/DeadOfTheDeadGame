@@ -116,7 +116,7 @@
       "fps": 1,
       "loop": true,
       "paths": [
-        "idle/down/pepita_idle_down_01.png"
+        "idle/down/pepita_idle_down_00.png"
       ]
     },
     "idle_left": {

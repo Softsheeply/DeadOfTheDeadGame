@@ -13,14 +13,15 @@
 
 Device TestFlight: magnified face / sliced-in-half / backwards walk.
 
-- [ ] **A1.** Re-slice `idle_down` breathe — frames `00`/`03` were ~15–28 px slivers (see `docs/art-briefs/pepita-animation-fix.md`)
-- [ ] **A2.** Add bbox validation to slice script (min width 60 px) — wired, re-run on incoming sheets
-- [ ] **A3.** Verify walk_left / walk_right facing matches travel direction (backwards walk)
-- [ ] **A4.** Walk cycle footfall: stride vs fps so feet don’t skate on cobble
-- [ ] **A5.** Re-enable multi-frame idle_down in `character.json` after all frames pass QA
-- [ ] **A6.** Real door open/close art (coded door pulse removed — sparkles + flavor only)
+- [x] **A1.** Re-slice `idle_down` breathe — root cause found: `a656ed79-...png` is a single 1254x1254 full-canvas portrait, not an 8-frame sheet, so grid-slicing it into 4x2 produced meaningless crops (a corner cell catching a ~20px sliver of hair/crown, scaled up to fill the frame, reading as a magnified face fragment). Fixed by giving `slice_pepita_incoming.py` a `mode="single"` path that treats the whole stripped image as one pose instead of grid-slicing it. `idle_down` is now an honest 1 real frame, not 8 broken ones.
+- [x] **A2.** Add bbox validation to slice script (min width 60 px) — `MIN_FRAME_WIDTH`/`frame_content_width` existed but were never actually called anywhere; wired into the grid-slicing path now, rejects + logs (filename, frame index, target animation, measured width) any frame under 60px instead of silently exporting it. Re-ran on all incoming sheets — the real grid sheets (walk/skip, ~90-130px wide) all passed with zero rejections, confirming they were fine as the art brief suspected.
+- [x] **A3.** Verify walk_left / walk_right facing matches travel direction (backwards walk) — confirmed by eye, not guessed: `a8b372d7-...png` (mapped to `walk_left`) visually shows Pepita facing/stepping RIGHT, and `Unknown-1.jpeg` (mapped to `walk_right`) visually shows her facing/stepping LEFT. The two source files were swapped in `SHEET_MAP`. Neither has a baked-in title label confirming its own direction (unlike the self-labeled "WALK DIAGONAL LEFT" skip sheet, which was correctly mapped), so the swap went unnoticed until it showed up as backwards walking on device. Fixed by swapping the SHEET_MAP entries.
+- [x] **A4.** Walk cycle footfall: stride vs fps so feet don't skate on cobble — already implemented in `resident.dart`'s `onLoad` (`cyclesPerSecond = walkSpeed / stridePixels`, clamped 8-14fps for walk / 10-16fps for skip). Not a code bug; needs device re-verification now that A1/A3 are fixed, since the backwards-walk and sliver-frame bugs may have been masking whether this actually reads correctly.
+- [ ] **A5.** Re-enable multi-frame idle_down in `character.json` after all frames pass QA — still blocked: there is no real multi-frame breathe source, only the single a656ed79 portrait (see A1). Needs a genuine new multi-pose idle sheet before this can happen; the current single-frame idle_down is the honest state, not a placeholder to "re-enable" past.
+- [ ] **A6.** Real door open/close art (coded door pulse removed — sparkles + flavor only) — still art-blocked, unchanged.
 
 **Hotfix shipped (+40):** single-frame `idle_down_01`; removed `BuildingDoorPulse` on building tap.
+**A1/A2/A3 fixed this session** (not yet bumped to a new build number/TestFlight upload) — re-run `scripts/slice_pepita_incoming.py`, `flutter analyze` clean (pre-existing unrelated warnings only), all 47 tests pass. Device re-verification of the actual walk/idle fix still needed before calling this closed.
 
 ---
 

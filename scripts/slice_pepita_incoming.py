@@ -19,15 +19,36 @@ MAX_CHAR_W = 168
 MAX_CHAR_H = 176
 
 # Labeled source sheets → animation targets (4-dir + skip diagonals + idle breathe).
-SHEET_MAP: dict[str, str] = {
-    "78c4f662-4ec7-4463-b43c-aeb11f85dd88.png": "walk_down",
-    "2fe8206a-cf71-46ae-a024-e16fd6e9c805.png": "walk_up",
-    "a8b372d7-078e-43e0-9364-284443db83bc.png": "walk_left",
-    "Unknown-1.jpeg": "walk_right",
-    "a656ed79-379a-4c40-8fa2-884c22bc491c.png": "idle_down",
-    "4fdbd239-dbdb-4cff-921f-05cda0d6a4c1.png": "skip_down",
-    "c79052a7-a6bd-45e3-9e14-a9c05f479b1a.png": "skip_left",
-    "Unknown-2.jpeg": "skip_up",
+#
+# mode="grid": a real multi-pose sheet with a fixed columns x rows layout
+# (e.g. the walk_down sheet has a title bar + 8 labeled poses in a 4x2
+# grid). mode="single": the whole (stripped) image is one usable pose --
+# do NOT grid-slice it.
+#
+# a656ed79 was the root cause of the build-39 "giant face / sliced-in-half"
+# device bug (see docs/art-briefs/pepita-animation-fix.md): it's a single
+# 1254x1254 full-canvas portrait, not an 8-frame breathe sheet, so grid-
+# slicing it into a 4x2 grid produced 8 meaningless crops -- e.g. a corner
+# cell catching a ~20px sliver of hair/crown, then scaled up to fill a
+# 192x192 frame, reading as a magnified face fragment. There is currently
+# no real multi-frame idle_down breathe source; treating this file as a
+# single pose is the honest fix until one exists (FINISH_PLAN A5).
+SHEET_MAP: dict[str, tuple[str, str]] = {
+    "78c4f662-4ec7-4463-b43c-aeb11f85dd88.png": ("walk_down", "grid"),
+    "2fe8206a-cf71-46ae-a024-e16fd6e9c805.png": ("walk_up", "grid"),
+    # These two were swapped -- the FINISH_PLAN A3 "backwards walk" bug.
+    # a8b372d7 visually shows Pepita facing/stepping RIGHT (not left), and
+    # Unknown-1.jpeg visually shows her facing/stepping LEFT (not right).
+    # Neither source file has a baked-in title label (unlike e.g. the
+    # "WALK DIAGONAL LEFT" sheet, which self-confirms and was fine), so the
+    # mismatch went unnoticed until it showed up as backwards walking on
+    # device. Confirmed by eye before swapping, not guessed.
+    "a8b372d7-078e-43e0-9364-284443db83bc.png": ("walk_right", "grid"),
+    "Unknown-1.jpeg": ("walk_left", "grid"),
+    "a656ed79-379a-4c40-8fa2-884c22bc491c.png": ("idle_down", "single"),
+    "4fdbd239-dbdb-4cff-921f-05cda0d6a4c1.png": ("skip_down", "grid"),
+    "c79052a7-a6bd-45e3-9e14-a9c05f479b1a.png": ("skip_left", "grid"),
+    "Unknown-2.jpeg": ("skip_up", "grid"),
 }
 
 
@@ -139,14 +160,33 @@ def animation_entry(paths: list[str], *, fps: float, loop: bool = True) -> dict[
 def main() -> None:
     exports: dict[str, list[str]] = {}
 
-    for filename, animation in SHEET_MAP.items():
+    for filename, (animation, mode) in SHEET_MAP.items():
         source = INCOMING / filename
         if not source.exists():
             print(f"skip missing {filename}")
             continue
         sheet = strip_background(load_rgba(source))
-        raw_frames = grid_frames(sheet)
-        normalized = [normalize_frame(frame) for frame in raw_frames]
+
+        if mode == "single":
+            # Whole stripped image is one pose -- do not grid-slice it.
+            # (This is the a656ed79 fix: it was being cut into a 4x2 grid
+            # despite being a single full-canvas portrait.)
+            normalized = [normalize_frame(sheet)]
+        else:
+            raw_frames = grid_frames(sheet)
+            normalized = []
+            for index, frame in enumerate(raw_frames):
+                candidate = normalize_frame(frame)
+                width = frame_content_width(candidate)
+                if width < MIN_FRAME_WIDTH:
+                    print(
+                        f"REJECTED {filename} frame {index:02d} for {animation}: "
+                        f"content width {width}px < {MIN_FRAME_WIDTH}px minimum "
+                        "(likely a bad grid crop -- sliver/edge fragment, not a full pose)"
+                    )
+                    continue
+                normalized.append(candidate)
+
         target = animation.removesuffix("_alt")
         paths = export_animation(target, normalized)
         exports[target] = paths
