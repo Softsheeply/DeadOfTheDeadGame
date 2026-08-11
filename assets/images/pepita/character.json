@@ -24,8 +24,10 @@
     "bakedShadow": false
   },
   "movement": {
-    "walkSpeed": 54,
-    "skipSpeed": 72
+    "walkSpeed": 46,
+    "skipSpeed": 68,
+    "walkStridePixels": 28,
+    "walkTwoFrameFallback": true
   },
   "anchors": {
     "feet": [

@@ -168,9 +168,6 @@ def main() -> None:
         sheet = strip_background(load_rgba(source))
 
         if mode == "single":
-            # Whole stripped image is one pose -- do not grid-slice it.
-            # (This is the a656ed79 fix: it was being cut into a 4x2 grid
-            # despite being a single full-canvas portrait.)
             normalized = [normalize_frame(sheet)]
         else:
             raw_frames = grid_frames(sheet)
@@ -186,6 +183,10 @@ def main() -> None:
                     )
                     continue
                 normalized.append(candidate)
+
+        if not normalized:
+            print(f"FAIL {filename}: no valid frames after bbox check")
+            continue
 
         target = animation.removesuffix("_alt")
         paths = export_animation(target, normalized)

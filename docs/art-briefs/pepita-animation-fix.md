@@ -28,4 +28,10 @@ Grid slice produced **broken frames** in `idle/down/`:
 
 ## Walk / skip sheets
 
-Walk and skip bbox widths look consistent (~90–130 px). Backwards walk is likely facing mismatch on L/R sheets or direction hysteresis — verify on device after idle fix.
+Walk and skip bbox widths look consistent (~90–130 px). **Foot pose does not alternate** — all down-walk frames keep ~same lead foot; center X never shifts. Code hotfix: `walkTwoFrameFallback` + distance-synced frames + step bob (+41).
+
+## Code hotfix (+41)
+
+- `character.json`: `walkTwoFrameFallback`, `walkStridePixels`, slightly lower `walkSpeed`
+- `resident.dart`: distance-synced walk frames; 2-frame ping-pong (0 ↔ mid); stronger step bob/squash
+- Still need proper art — code only reduces glide, cannot invent opposite foot

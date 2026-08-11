@@ -27,15 +27,20 @@ Sprite sheet for a mobile game character walk cycle.
 
 Character: cheerful chibi Day of the Dead skeleton florist girl (Pepita).
 Flower crown, braids, purple dress with embroidery, flower basket in hand.
-Brown shoes MUST be clearly visible stepping — lift foot off ground on alternating frames.
-Long dress OK but do NOT hide feet completely.
+Brown shoes MUST alternate — **contact frame** (one foot flat ahead) then **passing frame** (other foot forward). Do NOT draw every frame with the same lead foot.
 
 Output: 8-frame horizontal walk cycle, 192x192 pixels per frame, transparent background.
 Direction: [down | up | left].
 Side view faces LEFT only (we mirror for right in code).
 
+Frame guide (down view):
+- Frames 0–1: right foot forward, left lifting
+- Frames 2–3: passing (feet under hips)
+- Frames 4–5: left foot forward, right lifting
+- Frames 6–7: passing back toward frame 0
+
 Style: clean game sprite, dark outline #3b2146, flat colors, no baked shadow under feet, no glow halo.
-Same character design as previous sheet — only improve visible shoe stride.
+Same character design as previous sheet — feet must READ as stepping, not sliding.
 ```
 
 ## After you get PNGs

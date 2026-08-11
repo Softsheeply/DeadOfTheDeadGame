@@ -21,7 +21,8 @@ Device TestFlight: magnified face / sliced-in-half / backwards walk.
 - [ ] **A6.** Real door open/close art (coded door pulse removed — sparkles + flavor only) — still art-blocked, unchanged.
 
 **Hotfix shipped (+40):** single-frame `idle_down_01`; removed `BuildingDoorPulse` on building tap.
-**A1/A2/A3 fixed this session** (not yet bumped to a new build number/TestFlight upload) — re-run `scripts/slice_pepita_incoming.py`, `flutter analyze` clean (pre-existing unrelated warnings only), all 47 tests pass. Device re-verification of the actual walk/idle fix still needed before calling this closed.
+**A1/A2/A3 fixed** — idle single-mode slice, bbox validation, walk L/R SHEET_MAP swap (see items above).
+**Hotfix shipped (+41):** distance-sync walk + 2-frame step bob while Pepita walk art lacks alternating feet. Device re-verify walk/idle after pull.
 
 ---
 
@@ -58,7 +59,7 @@ Device TestFlight: magnified face / sliced-in-half / backwards walk.
 - [x] Bench sit walks-to-spot and snaps on arrival
 - [x] anchors.feet from character.json drives foot alignment
 - [x] Photo mode (hide HUD for screenshots)
-- [x] Building door micro-animation on tap (#21)
+- [ ] Building door micro-animation on tap (#21 — coded pulse removed; real art later)
 - [x] Depth occluder tuning + feet-priority sort (#20)
 - [x] Cast journal bios in HUD (#58 partial)
 - [x] Location data format — L1 JSON + parser (#25 partial)
@@ -104,7 +105,7 @@ Device TestFlight: magnified face / sliced-in-half / backwards walk.
 
 ### Plaza feel
 - [x] 20. True depth cutouts (fountain rim, tree, bridge)
-- [x] 21. Building door open/close (florist, bakery, church, mercado)
+- [ ] 21. Building door open/close (real art — coded pulse removed from tap)
 - [x] 22. Tap building → richer status / micro beat
 - [x] 23. Bench sit looks correct
 - [x] 24. Ofrenda as clear tappable prop

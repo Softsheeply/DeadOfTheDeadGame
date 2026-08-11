@@ -246,14 +246,64 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     if (animation == null) return;
     // Don't reset the cycle when re-asserting the same walk/idle clip.
     if (_currentAnimationName == resolvedName && _visual?.animation == animation) {
+      if (_usesDistanceWalkSync(resolvedName)) {
+        _visual!.playing = false;
+      }
       return;
     }
     _currentAnimationName = resolvedName;
     final visual = _visual;
     if (visual == null) return;
     visual.animation = animation;
-    visual.playing = true;
-    visual.animationTicker?.reset();
+    if (_usesDistanceWalkSync(resolvedName)) {
+      visual.playing = false;
+      visual.animationTicker?.reset();
+    } else {
+      visual.playing = true;
+      visual.animationTicker?.reset();
+    }
+  }
+
+  bool _usesDistanceWalkSync(String name) {
+    if (!name.startsWith('walk_') && !name.startsWith('skip_')) return false;
+    return config.movement['walkTwoFrameFallback'] == true ||
+        config.movement['distanceWalkSync'] == true;
+  }
+
+  double get _walkStridePixels =>
+      (config.movement['walkStridePixels'] as num?)?.toDouble() ?? 32.0;
+
+  double get _skipStridePixels =>
+      (config.movement['skipStridePixels'] as num?)?.toDouble() ??
+      (_walkStridePixels * 0.85);
+
+  bool get _walkTwoFrameFallback => config.movement['walkTwoFrameFallback'] == true;
+
+  /// Advance walk/skip frames by distance traveled — avoids skating when art
+  /// lacks alternating foot contacts (Pepita ChatGPT sheets).
+  void _syncWalkAnimationToDistance() {
+    if (!_usesDistanceWalkSync(_currentAnimationName)) return;
+    final visual = _visual;
+    final ticker = visual?.animationTicker;
+    final anim = visual?.animation;
+    if (visual == null || ticker == null || anim == null || anim.frames.isEmpty) {
+      return;
+    }
+
+    final frameCount = anim.frames.length;
+    final stride = _skipping ? _skipStridePixels : _walkStridePixels;
+    int index;
+    if (_walkTwoFrameFallback && frameCount >= 2) {
+      final mid = frameCount ~/ 2;
+      index = ((_walkDistance / (stride / 2)).floor()) % 2 == 0 ? 0 : mid;
+    } else {
+      index = (_walkDistance / stride * frameCount).floor() % frameCount;
+    }
+
+    if (ticker.currentIndex == index) return;
+    ticker.currentIndex = index;
+    final stepTime = anim.frames[index].stepTime;
+    ticker.clock = index * stepTime;
   }
 
   String? _resolveAnimation(String name) {
@@ -626,6 +676,7 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
         return;
       }
     }
+    _syncWalkAnimationToDistance();
     _applyWalkBob();
   }
 
@@ -688,13 +739,19 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     return 0;
   }
 
-  /// Soft head bob only — footfall squash smears tiny shoes into a blob.
+  /// Step bob + squash — sells weight when walk sheets lack alternating feet.
   void _applyWalkBob() {
     final visual = _visual;
     if (visual == null || reduceMotion) return;
-    final phase = _walkDistance / 24 * pi;
-    final bob = sin(phase) * 1.6;
+    final stride = _skipping ? _skipStridePixels : _walkStridePixels;
+    final halfStride = max(stride / 2, 8.0);
+    final phase = (_walkDistance / halfStride) * pi;
+    final bob = sin(phase) * (_walkTwoFrameFallback ? 4.2 : 2.0);
     _setVisualOffset(Vector2(0, -bob));
+    if (_walkTwoFrameFallback && (_squash - 1).abs() < 0.02) {
+      final contact = cos(phase) > 0.65;
+      visual.scale = contact ? Vector2(1.05, 0.91) : Vector2(0.97, 1.04);
+    }
   }
 
   @override
