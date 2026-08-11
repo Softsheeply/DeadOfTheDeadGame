@@ -110,6 +110,9 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     backdrop!.applyLocation(location!);
     occluders!.applyDefs(location!.occluders);
 
+    // Decor loads markers; atmosphere reads fx for water/candles/smoke.
+    atmosphere!.configureFromDecor(decor!);
+
     await missionCatalog.load();
     mission = PlazaMission(missionCatalog);
     await worldMap.load();
@@ -169,11 +172,9 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       _onBuildingTapped(building);
       return;
     }
-    if (_tapNearFountain(event.localPosition)) {
-      atmosphere?.splashFountain(intensity: 1.15);
-      spawnPetals(event.localPosition.clone(), count: 8);
-      audio.petalsSfx();
-      toyStatus.value = 'The fountain burps marigold mist!';
+    final interactable = decor?.hitTestInteractable(event.localPosition);
+    if (interactable != null) {
+      _onInteractableTapped(interactable, event.localPosition.clone());
       return;
     }
     if (backdrop?.nearOfrenda(event.localPosition) ?? false) {
@@ -204,18 +205,6 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
         break;
       }
     }
-  }
-
-  bool _tapNearFountain(Vector2 worldPoint) {
-    final draw = backdrop?.drawRect;
-    if (draw == null || draw == Rect.zero) return false;
-    final fx = draw.left + draw.width * (backdrop?.fountainCenterUvEffective.dx ?? 0.575);
-    final fy = draw.top + draw.height * (backdrop?.fountainCenterUvEffective.dy ?? 0.62);
-    final rx = backdrop?.fountainRadiusXEffective ?? 0.05;
-    final ry = backdrop?.fountainRadiusYEffective ?? 0.07;
-    final nx = (worldPoint.x - fx) / (draw.width * rx * 1.8);
-    final ny = (worldPoint.y - fy) / (draw.height * ry * 1.8);
-    return nx * nx + ny * ny <= 1;
   }
 
   void toggleCastPanel() {
@@ -667,7 +656,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
   }
 
   void _onBuildingTapped(PlazaBuilding building) {
-    final center = decor?.worldCenterFor(building);
+    final center = decor?.worldCenterForBuilding(building);
     if (center != null) {
       add(SparkleBurst(position: center.clone(), count: 16));
       spawnPetals(center.clone()..y -= 10, count: 10);
@@ -681,15 +670,78 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       case 'mariachi_stage':
         add(MusicNotesBurst(size: size.clone()));
         audio.musicSfx();
+        if (!musicPlaying) useToy(VillageToy.music);
       case 'panaderia':
         audio.treatSfx();
+        atmosphere?.boostOvenSmoke(intensity: 1.2);
       case 'floristeria':
         audio.petalsSfx();
+        spawnPetals(center ?? eventFallbackCenter(), count: 14);
       case 'church':
+        audio.petalsSfx();
+        atmosphere?.rippleLanternGlow();
+      case 'mercado':
         audio.petalsSfx();
       default:
         audio.petalsSfx();
     }
+  }
+
+  Vector2 eventFallbackCenter() =>
+      backdrop?.ofrendaWorld ?? (size / 2);
+
+  void _onInteractableTapped(PlazaInteractable prop, Vector2 tapPoint) {
+    final center = decor?.worldCenterForInteractable(prop);
+    if (center != null) {
+      add(SparkleBurst(position: center.clone(), count: 12));
+    }
+    switch (prop.kind) {
+      case 'fountain':
+        atmosphere?.splashFountain(intensity: 1.15);
+        atmosphere?.rippleWaterAt(const Offset(0.575, 0.60), intensity: 1.1);
+        spawnPetals(center?.clone() ?? tapPoint.clone(), count: 10);
+        audio.petalsSfx();
+        toyStatus.value = 'The fountain burps marigold mist!';
+        for (final resident in residents) {
+          if (!resident.held &&
+              !resident.airborne &&
+              resident.position.distanceTo(center ?? Vector2.zero()) < 180) {
+            resident.glanceToward(center!);
+            break;
+          }
+        }
+      case 'water':
+        atmosphere?.rippleWaterAt(const Offset(0.13, 0.88), intensity: 1.3);
+        spawnPetals(center?.clone() ?? tapPoint.clone(), count: 6);
+        audio.petalsSfx();
+        toyStatus.value = 'River: ${prop.status}';
+      case 'bench':
+        audio.petalsSfx();
+        toyStatus.value = '${prop.label}: ${prop.status}';
+        _inviteSitAtBench(prop);
+      default:
+        toyStatus.value = '${prop.label}: ${prop.status}';
+        audio.petalsSfx();
+    }
+  }
+
+  void _inviteSitAtBench(PlazaInteractable bench) {
+    final rests = backdrop?.restSpotWorldPoints() ?? const <Vector2>[];
+    Vector2? spot;
+    final index = bench.restIndex;
+    if (index != null && index >= 0 && index < rests.length) {
+      spot = rests[index];
+    } else {
+      spot = decor?.worldCenterForInteractable(bench);
+    }
+    if (spot == null) return;
+
+    final candidates = residents.where((r) => !r.held && !r.airborne && !r.isSitting).toList();
+    if (candidates.isEmpty) return;
+    candidates.sort((a, b) => a.position.distanceTo(spot!).compareTo(b.position.distanceTo(spot!)));
+    final guest = candidates.first;
+    guest.inviteSitAt(spot);
+    spawnPetals(spot.clone()..y -= 8, count: 6);
   }
 
   void _reactCastToBuilding(String buildingId, Vector2 center) {

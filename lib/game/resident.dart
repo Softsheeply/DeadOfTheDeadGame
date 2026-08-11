@@ -1040,4 +1040,15 @@ class Resident extends PositionComponent with TapCallbacks, DragCallbacks {
     walkTo(destination);
     _squash = 0.9;
   }
+
+  /// Player tapped a bench — walk over and sit.
+  void inviteSitAt(Vector2 spot) {
+    if (_held || _airborne) return;
+    if (position.distanceTo(spot) < 36) {
+      _startSitAt(spot);
+    } else {
+      _pendingSitSpot = spot.clone();
+      walkTo(spot);
+    }
+  }
 }

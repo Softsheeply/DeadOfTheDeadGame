@@ -16,5 +16,9 @@ void main() {
     expect(fx.where((e) => (e as Map)['type'] == 'candle').length, greaterThanOrEqualTo(12));
     expect(fx.any((e) => (e as Map)['type'] == 'lantern'), true);
     expect(fx.any((e) => (e as Map)['type'] == 'oven'), true);
+    final interactables = json['interactables'] as List<dynamic>;
+    expect(interactables.length, greaterThanOrEqualTo(4));
+    expect(interactables.any((e) => (e as Map)['kind'] == 'fountain'), true);
+    expect(interactables.any((e) => (e as Map)['kind'] == 'bench'), true);
   });
 }

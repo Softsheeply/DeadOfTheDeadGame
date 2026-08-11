@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 import 'village_backdrop.dart';
 import 'village_decor.dart';
@@ -162,51 +160,147 @@ class VillageAtmosphere extends PositionComponent {
     );
   }
 
-  /// Candles / lanterns from decor_markers — only drawn when nightBlend > 0.
-  Future<List<_Candle>> _loadNightCandles() async {
-    try {
-      final raw = await rootBundle.loadString(VillageDecor.assetPath);
-      final json = jsonDecode(raw) as Map<String, dynamic>;
-      final fx = (json['fx'] as List<dynamic>);
-      final loaded = <_Candle>[];
-      var phase = 0.0;
-      for (final entry in fx) {
-        final map = entry as Map<String, dynamic>;
-        final type = map['type'] as String?;
-        if (type != 'candle' && type != 'lantern') continue;
-        final uv = (map['uv'] as List<dynamic>).cast<num>();
-        final strength = (map['strength'] as num?)?.toDouble() ?? 1;
-        var radius = type == 'lantern' ? 16.0 : 10.0;
-        if (map['radius'] is List) {
-          final r = (map['radius'] as List<dynamic>).cast<num>();
-          radius = r[0].toDouble();
-        }
-        loaded.add(
-          _Candle(
-            uv: Offset(uv[0].toDouble(), uv[1].toDouble()),
-            phase: phase,
-            strength: strength,
-            radius: radius,
-            isLantern: type == 'lantern',
-          ),
-        );
-        phase += 0.55;
+  /// Wire decor_markers fx into living overlays (water, candles, building glow).
+  void configureFromDecor(VillageDecor decor) {
+    _waters = [];
+    _jets = [];
+    _droplets = [];
+    _riverSparks = [];
+    _lights = [];
+    _candles = [];
+
+    DecorFxMarker? fountainWater;
+    DecorFxMarker? riverWater;
+    DecorFxMarker? smokeFx;
+    DecorFxMarker? ovenFx;
+
+    for (final marker in decor.fxMarkers) {
+      switch (marker.type) {
+        case 'water':
+          final rx = marker.radius?.dx ?? 0.05;
+          final ry = marker.radius?.dy ?? 0.045;
+          final body = _WaterBody(
+            center: marker.uv,
+            radiusX: rx,
+            radiusY: ry,
+            rippleCount: rx > 0.06 ? 4 : 3,
+            speed: rx > 0.06 ? 0.35 : 0.28,
+            kind: rx > 0.06 ? _WaterKind.river : _WaterKind.fountain,
+            flow: rx > 0.06 ? const Offset(1, 0.08) : Offset.zero,
+          );
+          _waters.add(body);
+          if (body.kind == _WaterKind.fountain) {
+            fountainWater = marker;
+          } else {
+            riverWater = marker;
+          }
+        case 'window':
+          _lights.add(
+            _BuildingLight(
+              uv: marker.uv,
+              size: marker.size ?? const Size(0.028, 0.035),
+              color: const Color(0xFFFFE8A8),
+              flicker: true,
+            ),
+          );
+        case 'oven':
+          ovenFx = marker;
+          _lights.add(
+            _BuildingLight(
+              uv: marker.uv,
+              size: marker.size ?? const Size(0.04, 0.05),
+              color: const Color(0xFFFF9A3C),
+              breathe: true,
+              dayVisible: true,
+            ),
+          );
+        case 'smoke':
+          smokeFx = marker;
+        default:
+          break;
       }
-      if (loaded.isNotEmpty) return loaded;
-    } catch (_) {
-      // Fall through to built-in night ofrenda layout.
     }
-    return [
-      for (var i = 0; i < 6; i++)
-        _Candle(
-          uv: Offset(0.06 + i * 0.035, 0.78 + (i.isEven ? 0.01 : -0.01)),
-          phase: i * 0.7,
-          strength: 0.9,
+
+    if (smokeFx != null) {
+      for (final puff in _smoke) {
+        puff.origin = smokeFx!.uv;
+      }
+    }
+    _ovenUv = ovenFx?.uv;
+    _fountainUv = fountainWater?.uv ?? const Offset(0.575, 0.60);
+    _riverUv = riverWater?.uv ?? const Offset(0.13, 0.88);
+
+    if (fountainWater != null) {
+      final origin = fountainWater!.uv;
+      _jets = [
+        _FountainJet(origin: origin, angle: pi * 0.42, height: 0.055, phase: 0),
+        _FountainJet(origin: origin, angle: pi * 0.58, height: 0.05, phase: 1.1),
+        _FountainJet(origin: origin, angle: pi * 0.50, height: 0.062, phase: 2.2),
+      ];
+      _droplets = List.generate(6, (i) => _spawnDroplet(seed: i / 6));
+    }
+
+    if (_waters.any((w) => w.kind == _WaterKind.river)) {
+      _riverSparks = List.generate(
+        10,
+        (i) => _RiverSpark(
+          bodyIndex: _waters.indexWhere((w) => w.kind == _WaterKind.river),
+          t: i / 10,
+          lateral: (_random.nextDouble() - 0.5) * 0.6,
+          size: 1.2 + _random.nextDouble() * 1.8,
+          speed: 0.16 + _random.nextDouble() * 0.18,
         ),
-      _Candle(uv: const Offset(0.46, 0.42), phase: 0.2, strength: 1.2, radius: 18, isLantern: true),
-      _Candle(uv: const Offset(0.50, 0.38), phase: 1.0, strength: 1.15, radius: 16, isLantern: true),
-      _Candle(uv: const Offset(0.54, 0.44), phase: 1.8, strength: 1.2, radius: 17, isLantern: true),
-    ];
+      );
+    }
+
+    _loadNightCandlesFromDecor(decor.fxMarkers);
+  }
+
+  Offset? _ovenUv;
+  Offset _fountainUv = const Offset(0.575, 0.60);
+  Offset _riverUv = const Offset(0.13, 0.88);
+  double _ovenBoost = 0;
+  double _waterRippleBoost = 0;
+
+  void boostOvenSmoke({double intensity = 1}) {
+    _ovenBoost = (_ovenBoost + intensity).clamp(0.0, 2.0);
+    for (final puff in _smoke) {
+      puff.drift = min(1.2, puff.drift + 0.25);
+    }
+  }
+
+  void rippleWaterAt(Offset uv, {double intensity = 1}) {
+    _waterRippleBoost = (_waterRippleBoost + intensity).clamp(0.0, 2.0);
+    for (final body in _waters) {
+      if ((body.center - uv).distance < 0.08) {
+        body.rippleBoost = min(2, body.rippleBoost + intensity);
+      }
+    }
+  }
+
+  void _loadNightCandlesFromDecor(List<DecorFxMarker> markers) {
+    final loaded = <_Candle>[];
+    var phase = 0.0;
+    for (final marker in markers) {
+      if (marker.type != 'candle' && marker.type != 'lantern') continue;
+      var radius = marker.type == 'lantern' ? 16.0 : 10.0;
+      if (marker.radius != null) {
+        radius = marker.radius!.dx;
+      }
+      loaded.add(
+        _Candle(
+          uv: marker.uv,
+          phase: phase,
+          strength: marker.strength,
+          radius: radius,
+          isLantern: marker.type == 'lantern',
+        ),
+      );
+      phase += 0.55;
+    }
+    if (loaded.isNotEmpty) {
+      _candles = loaded;
+    }
   }
 
   void resizeTo(Vector2 newSize) {
@@ -299,6 +393,17 @@ class VillageAtmosphere extends PositionComponent {
     }
     if (_fountainSplash > 0) {
       _fountainSplash = max(0, _fountainSplash - dt * 0.9);
+    }
+    if (_ovenBoost > 0) {
+      _ovenBoost = max(0, _ovenBoost - dt * 0.45);
+    }
+    if (_waterRippleBoost > 0) {
+      _waterRippleBoost = max(0, _waterRippleBoost - dt * 0.55);
+    }
+    for (final body in _waters) {
+      if (body.rippleBoost > 0) {
+        body.rippleBoost = max(0, body.rippleBoost - dt * 0.7);
+      }
     }
     for (final candle in _candles) {
       if (candle.glowBoost > 0) {
@@ -486,6 +591,7 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderSmoke(Canvas canvas, Rect draw) {
+    final boost = 1 + _ovenBoost * 0.65;
     for (final puff in _smoke) {
       final t = puff.age;
       final x = draw.left +
@@ -493,9 +599,9 @@ class VillageAtmosphere extends PositionComponent {
               (puff.origin.dx +
                   t * 0.03 * _windSign +
                   sin(_time + t * 8) * 0.008);
-      final y = draw.top + draw.height * (puff.origin.dy - t * 0.12);
-      final radius = draw.width * (0.012 + t * 0.02);
-      final alpha = (1 - t) * 0.22;
+      final y = draw.top + draw.height * (puff.origin.dy - t * 0.12 * boost);
+      final radius = draw.width * (0.012 + t * 0.02 * boost);
+      final alpha = (1 - t) * 0.22 * boost;
       canvas.drawCircle(
         Offset(x, y),
         radius,
@@ -569,7 +675,49 @@ class VillageAtmosphere extends PositionComponent {
   }
 
   void _renderWater(Canvas canvas, Rect draw) {
-    // Painted water only. Coded ripples/jets/splash mist were fake orbs on cobble.
+    if (_waters.isEmpty) return;
+
+    final ripplePaint = Paint()..style = PaintingStyle.stroke;
+    for (final body in _waters) {
+      final cx = draw.left + draw.width * body.center.dx;
+      final cy = draw.top + draw.height * body.center.dy;
+      final rx = draw.width * body.radiusX;
+      final ry = draw.height * body.radiusY;
+      if (rx <= 0 || ry <= 0) continue;
+
+      canvas.save();
+      canvas.clipPath(
+        Path()..addOval(Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2)),
+      );
+
+      final boost = 1 + body.rippleBoost * 0.5 + _waterRippleBoost * 0.35;
+      for (var i = 0; i < body.rippleCount; i++) {
+        final phase = (_time * body.speed + i / body.rippleCount) % 1.0;
+        final scale = 0.35 + phase * 0.65;
+        final alpha = (1 - phase) * 0.22 * boost;
+        ripplePaint
+          ..strokeWidth = 1.2 + boost * 0.4
+          ..color = const Color(0xFF9EDFFF).withValues(alpha: alpha);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(cx, cy),
+            width: rx * 2 * scale,
+            height: ry * 2 * scale,
+          ),
+          ripplePaint,
+        );
+      }
+
+      if (body.kind == _WaterKind.fountain && (_fountainSplash > 0.05 || _jets.isNotEmpty)) {
+        _renderFountainJets(canvas, draw);
+        _renderDroplets(canvas, draw);
+      }
+      if (body.kind == _WaterKind.river && _riverSparks.isNotEmpty) {
+        _renderRiverSparks(canvas, draw);
+      }
+
+      canvas.restore();
+    }
   }
 
   void _renderRiverSparks(Canvas canvas, Rect draw) {
@@ -791,6 +939,7 @@ class _WaterBody {
   final double speed;
   final _WaterKind kind;
   final Offset flow;
+  double rippleBoost = 0;
 }
 
 class _RiverSpark {

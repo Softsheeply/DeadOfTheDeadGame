@@ -75,5 +75,50 @@
     { "type": "window", "uv": [0.115, 0.46], "size": [0.028, 0.035] },
     { "type": "oven", "uv": [0.275, 0.50], "size": [0.04, 0.05] },
     { "type": "window", "uv": [0.74, 0.34], "size": [0.02, 0.025] }
+  ],
+  "interactables": [
+    {
+      "id": "fountain",
+      "label": "Fountain",
+      "kind": "fountain",
+      "center": [0.575, 0.60],
+      "hitSize": [0.11, 0.10],
+      "status": "Marigold petals swirl in the painted bowl."
+    },
+    {
+      "id": "river",
+      "label": "River",
+      "kind": "water",
+      "center": [0.13, 0.88],
+      "hitSize": [0.16, 0.06],
+      "status": "Candles flicker along the bridge — the water hums below."
+    },
+    {
+      "id": "bench_east",
+      "label": "Plaza bench",
+      "kind": "bench",
+      "center": [0.62, 0.78],
+      "hitSize": [0.07, 0.045],
+      "restIndex": 0,
+      "status": "A purple bench waits in the lamplight."
+    },
+    {
+      "id": "bench_west",
+      "label": "West bench",
+      "kind": "bench",
+      "center": [0.36, 0.80],
+      "hitSize": [0.07, 0.045],
+      "restIndex": 1,
+      "status": "Rest your feet — the plaza never sleeps."
+    },
+    {
+      "id": "bench_mercado",
+      "label": "Mercado bench",
+      "kind": "bench",
+      "center": [0.82, 0.78],
+      "hitSize": [0.06, 0.04],
+      "restIndex": 2,
+      "status": "Sugar-skull chatter drifts from the stalls."
+    }
   ]
 }

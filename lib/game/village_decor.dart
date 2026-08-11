@@ -38,6 +38,29 @@ class DecorFxMarker {
   final Size? size;
 }
 
+/// Tappable plaza props: fountain, river, benches (data-driven).
+class PlazaInteractable {
+  PlazaInteractable({
+    required this.id,
+    required this.label,
+    required this.kind,
+    required this.centerUv,
+    required this.hitSize,
+    required this.status,
+    this.restIndex,
+  });
+
+  final String id;
+  final String label;
+  final String kind;
+  final Offset centerUv;
+  final Size hitSize;
+  final String status;
+
+  /// Index into location restSpotUvs when [kind] is bench.
+  final int? restIndex;
+}
+
 /// Data-driven plaza buildings + FX markers loaded from decor_markers.json.
 class VillageDecor extends Component {
   VillageDecor({required this.backdrop});
@@ -45,6 +68,7 @@ class VillageDecor extends Component {
   final VillageBackdrop backdrop;
   final List<PlazaBuilding> buildings = [];
   final List<DecorFxMarker> fxMarkers = [];
+  final List<PlazaInteractable> interactables = [];
 
   static const assetPath = 'assets/images/village/decor_markers.json';
 
@@ -92,6 +116,26 @@ class VillageDecor extends Component {
         ),
       );
     }
+
+    final rawInteractables = json['interactables'];
+    if (rawInteractables is List<dynamic>) {
+      for (final entry in rawInteractables) {
+        final map = entry as Map<String, dynamic>;
+        final center = (map['center'] as List<dynamic>).cast<num>();
+        final hit = (map['hitSize'] as List<dynamic>).cast<num>();
+        interactables.add(
+          PlazaInteractable(
+            id: map['id'] as String,
+            label: map['label'] as String,
+            kind: map['kind'] as String,
+            centerUv: Offset(center[0].toDouble(), center[1].toDouble()),
+            hitSize: Size(hit[0].toDouble(), hit[1].toDouble()),
+            status: map['status'] as String,
+            restIndex: (map['restIndex'] as num?)?.toInt(),
+          ),
+        );
+      }
+    }
   }
 
   PlazaBuilding? hitTest(Vector2 worldPoint) {
@@ -99,29 +143,49 @@ class VillageDecor extends Component {
     if (draw == Rect.zero) return null;
 
     for (final building in buildings) {
-      if (_hitRect(building, draw).contains(Offset(worldPoint.x, worldPoint.y))) {
+      if (_hitRect(building.centerUv, building.hitSize, draw)
+          .contains(Offset(worldPoint.x, worldPoint.y))) {
         return building;
       }
     }
     return null;
   }
 
-  Vector2? worldCenterFor(PlazaBuilding building) {
+  PlazaInteractable? hitTestInteractable(Vector2 worldPoint) {
+    final draw = backdrop.drawRect;
+    if (draw == Rect.zero) return null;
+
+    for (final prop in interactables) {
+      if (_hitRect(prop.centerUv, prop.hitSize, draw)
+          .contains(Offset(worldPoint.x, worldPoint.y))) {
+        return prop;
+      }
+    }
+    return null;
+  }
+
+  Vector2? worldCenterForBuilding(PlazaBuilding building) =>
+      worldCenterFor(building.centerUv);
+
+  Vector2? worldCenterForInteractable(PlazaInteractable prop) =>
+      worldCenterFor(prop.centerUv);
+
+  Vector2? worldCenterFor(Offset centerUv) {
     final draw = backdrop.drawRect;
     if (draw == Rect.zero) return null;
     return Vector2(
-      draw.left + draw.width * building.centerUv.dx,
-      draw.top + draw.height * building.centerUv.dy,
+      draw.left + draw.width * centerUv.dx,
+      draw.top + draw.height * centerUv.dy,
     );
   }
 
-  Rect _hitRect(PlazaBuilding building, Rect draw) {
+  Rect _hitRect(Offset centerUv, Size hitSize, Rect draw) {
     final center = Offset(
-      draw.left + draw.width * building.centerUv.dx,
-      draw.top + draw.height * building.centerUv.dy,
+      draw.left + draw.width * centerUv.dx,
+      draw.top + draw.height * centerUv.dy,
     );
-    final halfW = draw.width * building.hitSize.width * 0.5;
-    final halfH = draw.height * building.hitSize.height * 0.5;
+    final halfW = draw.width * hitSize.width * 0.5;
+    final halfH = draw.height * hitSize.height * 0.5;
     return Rect.fromLTRB(
       center.dx - halfW,
       center.dy - halfH,

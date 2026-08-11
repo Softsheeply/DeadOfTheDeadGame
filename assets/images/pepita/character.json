@@ -147,7 +147,7 @@
     },
     "walk_down": {
       "frames": 8,
-      "fps": 10,
+      "fps": 10.0,
       "loop": true,
       "paths": [
         "walk/down/pepita_walk_down_00.png",
@@ -162,7 +162,7 @@
     },
     "walk_left": {
       "frames": 8,
-      "fps": 10,
+      "fps": 10.0,
       "loop": true,
       "paths": [
         "walk/left/pepita_walk_left_00.png",
@@ -177,7 +177,7 @@
     },
     "walk_right": {
       "frames": 8,
-      "fps": 10,
+      "fps": 10.0,
       "loop": true,
       "paths": [
         "walk/right/pepita_walk_right_00.png",
@@ -192,7 +192,7 @@
     },
     "walk_up": {
       "frames": 8,
-      "fps": 10,
+      "fps": 10.0,
       "loop": true,
       "paths": [
         "walk/up/pepita_walk_up_00.png",
@@ -207,7 +207,7 @@
     },
     "skip_down": {
       "frames": 8,
-      "fps": 12,
+      "fps": 12.0,
       "loop": true,
       "paths": [
         "skip/down/pepita_skip_down_00.png",
@@ -222,7 +222,7 @@
     },
     "skip_left": {
       "frames": 8,
-      "fps": 12,
+      "fps": 12.0,
       "loop": true,
       "paths": [
         "skip/left/pepita_skip_left_00.png",
@@ -237,7 +237,7 @@
     },
     "skip_up": {
       "frames": 8,
-      "fps": 12,
+      "fps": 12.0,
       "loop": true,
       "paths": [
         "skip/up/pepita_skip_up_00.png",
@@ -252,7 +252,7 @@
     },
     "skip_right": {
       "frames": 8,
-      "fps": 12,
+      "fps": 12.0,
       "loop": true,
       "paths": [
         "skip/right/pepita_skip_right_00.png",

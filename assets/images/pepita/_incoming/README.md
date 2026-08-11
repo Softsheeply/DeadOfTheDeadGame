@@ -10,7 +10,10 @@ Install Pillow once, then slice:
 
 ```bash
 pip3 install -r scripts/requirements-slice.txt
+python3 scripts/slice_character_incoming.py --character pepita
+# or legacy wrapper:
 python3 scripts/slice_pepita_incoming.py
+python3 scripts/slice_character_incoming.py --all
 ```
 
 ## Friendly filenames (preferred)
