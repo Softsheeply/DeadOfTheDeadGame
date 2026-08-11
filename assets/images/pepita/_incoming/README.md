@@ -1,12 +1,16 @@
 # Pepita incoming art
 
-Save ChatGPT PNG exports here, then from repo root:
+Save ChatGPT PNGs with friendly names **or** drop UUID-named exports — agent maps:
+
+- `24edaf07-...` / `pepita_walk_down.png` → walk down (front)
+- `79c5fa2b-...` / `pepita_walk_up.png` → walk up (back)
+- `33e2e64d-...` / `pepita_walk_left.png` → walk left (+ mirrored right)
+
+Install Pillow once, then slice:
 
 ```bash
+pip3 install -r scripts/requirements-slice.txt
 python3 scripts/slice_pepita_incoming.py
-git add assets/images/pepita/
-git commit -m "Re-slice Pepita walks"
-git push
 ```
 
 ## Friendly filenames (preferred)

@@ -40,18 +40,16 @@ SHEET_MAP: dict[str, tuple[str, str]] = {
     "pepita_walk_left.png": ("walk_left", "grid"),
     "pepita_walk_right.png": ("walk_right", "grid"),
     "pepita_idle_down.png": ("idle_down", "single"),
-    # Legacy UUID filenames:
-    "78c4f662-4ec7-4463-b43c-aeb11f85dd88.png": ("walk_down", "grid"),
-    "2fe8206a-cf71-46ae-a024-e16fd6e9c805.png": ("walk_up", "grid"),
+    # David's ChatGPT sheets (Aug 2026) — front / left / back
+    "24edaf07-f1a7-4e01-8820-1842ead695cd.png": ("walk_down", "grid"),
+    "33e2e64d-db2e-4062-ae09-916ddcaab5a2.png": ("walk_left", "grid"),
+    "79c5fa2b-2017-422c-b7ad-b26096927c35.png": ("walk_up", "grid"),
+    # Legacy walk sheets superseded by Aug 2026 ChatGPT exports above.
+    # "78c4f662-4ec7-4463-b43c-aeb11f85dd88.png": ("walk_down", "grid"),
+    # "2fe8206a-cf71-46ae-a024-e16fd6e9c805.png": ("walk_up", "grid"),
     # These two were swapped -- the FINISH_PLAN A3 "backwards walk" bug.
-    # a8b372d7 visually shows Pepita facing/stepping RIGHT (not left), and
-    # Unknown-1.jpeg visually shows her facing/stepping LEFT (not right).
-    # Neither source file has a baked-in title label (unlike e.g. the
-    # "WALK DIAGONAL LEFT" sheet, which self-confirms and was fine), so the
-    # mismatch went unnoticed until it showed up as backwards walking on
-    # device. Confirmed by eye before swapping, not guessed.
-    "a8b372d7-078e-43e0-9364-284443db83bc.png": ("walk_right", "grid"),
-    "Unknown-1.jpeg": ("walk_left", "grid"),
+    # "a8b372d7-078e-43e0-9364-284443db83bc.png": ("walk_right", "grid"),
+    # "Unknown-1.jpeg": ("walk_left", "grid"),
     "a656ed79-379a-4c40-8fa2-884c22bc491c.png": ("idle_down", "single"),
     "4fdbd239-dbdb-4cff-921f-05cda0d6a4c1.png": ("skip_down", "grid"),
     "c79052a7-a6bd-45e3-9e14-a9c05f479b1a.png": ("skip_left", "grid"),
@@ -76,6 +74,10 @@ def strip_background(image: Image.Image) -> Image.Image:
             low_chroma = max(red, green, blue) - min(red, green, blue) <= 28
             if high and low_chroma:
                 pixels[x, y] = (red, green, blue, 0)
+                continue
+            # ChatGPT exports often use solid black backgrounds.
+            if max(red, green, blue) <= 28 and low_chroma:
+                pixels[x, y] = (0, 0, 0, 0)
     return rgba
 
 

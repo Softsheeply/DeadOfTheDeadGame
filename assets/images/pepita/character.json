@@ -27,7 +27,7 @@
     "walkSpeed": 46,
     "skipSpeed": 68,
     "walkStridePixels": 28,
-    "walkTwoFrameFallback": true
+    "walkTwoFrameFallback": false
   },
   "anchors": {
     "feet": [
