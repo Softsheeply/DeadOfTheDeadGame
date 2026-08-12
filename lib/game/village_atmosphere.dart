@@ -1086,7 +1086,7 @@ class _SmokePuff {
     required this.drift,
   });
 
-  final Offset origin;
+  Offset origin;
   double age;
   double drift;
 }
