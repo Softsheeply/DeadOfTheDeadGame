@@ -18,10 +18,16 @@ class VillageAtmosphere extends PositionComponent {
   final VillageBackdrop backdrop;
   final Random _random = Random(7);
 
-  late final List<_WaterBody> _waters;
-  late final List<_FountainJet> _jets;
-  late final List<_WaterDroplet> _droplets;
-  late final List<_RiverSpark> _riverSparks;
+  // Not `late final`: onLoad() sets a disabled (empty) default, then
+  // configureFromDecor() -- called unconditionally right after this
+  // component finishes loading, see spirit_village_game.dart -- reassigns
+  // these from the location's real decor 'water' fx markers. `late final`
+  // here was the crash: "LateInitializationError: Field '_waters' has
+  // already been initialized" the moment configureFromDecor ran.
+  late List<_WaterBody> _waters;
+  late List<_FountainJet> _jets;
+  late List<_WaterDroplet> _droplets;
+  late List<_RiverSpark> _riverSparks;
   List<_Candle> _candles = const [];
   List<_BuildingLight> _lights = const [];
   late final List<_PapelFlag> _papel;
@@ -49,9 +55,17 @@ class VillageAtmosphere extends PositionComponent {
     await super.onLoad();
     size = backdrop.size.clone();
 
-    // Painted plaza already has river + fountain water. Coded ripples/jets were
-    // landing on cobble (yellow bridge puddles + red plaza spray) — disable
-    // until FX can be clipped to a real water mask.
+    // Painted plaza already has river + fountain water. Coded ripples/jets
+    // were landing on cobble (yellow bridge puddles + red plaza spray) --
+    // disabled by default until FX can be clipped to a real water mask.
+    // configureFromDecor() (called unconditionally right after this
+    // component finishes loading, see spirit_village_game.dart) may
+    // reassign these from the location's decor 'water' fx markers --
+    // that's why they're `late` and not `late final` above: a real frame
+    // could conceivably render/update between this default assignment and
+    // configureFromDecor's call, so these need a safe empty default to read
+    // rather than risking a "not yet initialized" crash, while still
+    // allowing the later legitimate reassignment.
     _waters = const [];
 
     // Night art already paints candles, lanterns, and window glow. Coded
@@ -114,7 +128,7 @@ class VillageAtmosphere extends PositionComponent {
       );
     });
 
-    // Fountain/river particle FX disabled (see _waters note above).
+    // Fountain/river particle FX disabled by default (see _waters note above).
     _jets = const [];
     _droplets = const [];
     _riverSparks = const [];
