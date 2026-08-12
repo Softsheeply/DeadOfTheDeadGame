@@ -184,9 +184,7 @@ class VillageAtmosphere extends PositionComponent {
     _candles = [];
 
     DecorFxMarker? fountainWater;
-    DecorFxMarker? riverWater;
     DecorFxMarker? smokeFx;
-    DecorFxMarker? ovenFx;
 
     for (final marker in decor.fxMarkers) {
       switch (marker.type) {
@@ -205,8 +203,6 @@ class VillageAtmosphere extends PositionComponent {
           _waters.add(body);
           if (body.kind == _WaterKind.fountain) {
             fountainWater = marker;
-          } else {
-            riverWater = marker;
           }
         case 'window':
           _lights.add(
@@ -218,7 +214,6 @@ class VillageAtmosphere extends PositionComponent {
             ),
           );
         case 'oven':
-          ovenFx = marker;
           _lights.add(
             _BuildingLight(
               uv: marker.uv,
@@ -237,15 +232,11 @@ class VillageAtmosphere extends PositionComponent {
 
     if (smokeFx != null) {
       for (final puff in _smoke) {
-        puff.origin = smokeFx!.uv;
+        puff.origin = smokeFx.uv;
       }
     }
-    _ovenUv = ovenFx?.uv;
-    _fountainUv = fountainWater?.uv ?? const Offset(0.575, 0.60);
-    _riverUv = riverWater?.uv ?? const Offset(0.13, 0.88);
-
     if (fountainWater != null) {
-      final origin = fountainWater!.uv;
+      final origin = fountainWater.uv;
       _jets = [
         _FountainJet(origin: origin, angle: pi * 0.42, height: 0.055, phase: 0),
         _FountainJet(origin: origin, angle: pi * 0.58, height: 0.05, phase: 1.1),
@@ -270,9 +261,6 @@ class VillageAtmosphere extends PositionComponent {
     _loadNightCandlesFromDecor(decor.fxMarkers);
   }
 
-  Offset? _ovenUv;
-  Offset _fountainUv = const Offset(0.575, 0.60);
-  Offset _riverUv = const Offset(0.13, 0.88);
   double _ovenBoost = 0;
   double _waterRippleBoost = 0;
 

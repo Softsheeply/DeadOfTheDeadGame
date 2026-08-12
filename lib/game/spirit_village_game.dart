@@ -734,14 +734,15 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     } else {
       spot = decor?.worldCenterForInteractable(bench);
     }
-    if (spot == null) return;
+    final target = spot;
+    if (target == null) return;
 
     final candidates = residents.where((r) => !r.held && !r.airborne && !r.isSitting).toList();
     if (candidates.isEmpty) return;
-    candidates.sort((a, b) => a.position.distanceTo(spot!).compareTo(b.position.distanceTo(spot!)));
+    candidates.sort((a, b) => a.position.distanceTo(target).compareTo(b.position.distanceTo(target)));
     final guest = candidates.first;
-    guest.inviteSitAt(spot);
-    spawnPetals(spot.clone()..y -= 8, count: 6);
+    guest.inviteSitAt(target);
+    spawnPetals(target.clone()..y -= 8, count: 6);
   }
 
   void _reactCastToBuilding(String buildingId, Vector2 center) {

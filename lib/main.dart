@@ -6,7 +6,6 @@ import 'game/cast_roster.dart';
 import 'game/plaza_mission.dart';
 import 'game/plaza_tutorial.dart';
 import 'game/spirit_village_game.dart';
-import 'data/cast_journal.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
