@@ -116,10 +116,32 @@ def strip_background(image: Image.Image) -> Image.Image:
             high = min(red, green, blue) >= 200
             low_chroma = max(red, green, blue) - min(red, green, blue) <= 28
             if high and low_chroma:
-                pixels[x, y] = (red, green, blue, 0)
+                # Zero the RGB too, not just alpha. Downstream normalize_frame()
+                # LANCZOS-resizes this crop; PIL resizes RGBA channels
+                # independently (non-premultiplied), so a "transparent" pixel
+                # that still carries white RGB bleeds a faint white halo into
+                # opaque neighbors (most visible under her shoes/feet). Fully
+                # zeroing the pixel removes that bleed source.
+                pixels[x, y] = (0, 0, 0, 0)
                 continue
             if max(red, green, blue) <= 28 and low_chroma:
                 pixels[x, y] = (0, 0, 0, 0)
+    return rgba
+
+
+def choke_alpha(image: Image.Image, *, threshold: int = 40) -> Image.Image:
+    """Matte away the faint translucent rim left by anti-aliasing against the
+    stripped background. Those pixels sit at low alpha (a soft blend toward
+    the old white/dark backdrop) and read as a pale halo once composited over
+    a darker in-game background — most noticeable under light-colored parts
+    like Pepita's socks/shoes. Hard-cut anything below the threshold instead
+    of letting it fade in; keeps the visible AA band (which is why this stays
+    a small threshold, not a wholesale re-strip).
+    """
+    rgba = image.convert("RGBA")
+    r, g, b, a = rgba.split()
+    a = a.point(lambda value: 0 if value < threshold else value)
+    rgba.putalpha(a)
     return rgba
 
 
@@ -161,6 +183,7 @@ def normalize_frame(
     max_h = int(profile["max_char_h"])
 
     crop = strip_background(image)
+    crop = choke_alpha(crop)
     bbox = alpha_bbox(crop)
     if bbox is None:
         raise ValueError("empty frame after background strip")
