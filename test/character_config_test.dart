@@ -81,4 +81,28 @@ void main() {
     expect(config.feetAnchorX, 96);
     expect(config.feetAnchorY, 188);
   });
+
+  test('CharacterConfig movement accepts boolean flags', () {
+    final config = CharacterConfig.fromJson({
+      'id': 'pepita',
+      'displayName': 'Pepita',
+      'role': 'florist',
+      'defaultDirection': 'down',
+      'movement': {
+        'walkSpeed': 46,
+        'walkTwoFrameFallback': false,
+      },
+      'animations': {
+        'idle_down': {
+          'frames': 1,
+          'fps': 1,
+          'loop': true,
+          'paths': ['idle/down/pepita_idle_down_00.png'],
+        },
+      },
+    });
+
+    expect(config.movement['walkSpeed'], 46);
+    expect(config.movement['walkTwoFrameFallback'], false);
+  });
 }

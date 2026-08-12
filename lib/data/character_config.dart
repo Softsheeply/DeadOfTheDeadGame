@@ -78,7 +78,8 @@ class CharacterConfig {
   final String displayName;
   final String role;
   final String defaultDirection;
-  final Map<String, double> movement;
+  /// Speeds (double) plus optional flags like [walkTwoFrameFallback] (bool).
+  final Map<String, dynamic> movement;
   final Map<String, AnimationDef> animations;
   final PersonalityDef personality;
   final double frameHeight;
@@ -125,8 +126,7 @@ class CharacterConfig {
       displayName: json['displayName'] as String,
       role: json['role'] as String,
       defaultDirection: json['defaultDirection'] as String,
-      movement: (json['movement'] as Map<String, dynamic>)
-          .map((key, value) => MapEntry(key, (value as num).toDouble())),
+      movement: Map<String, dynamic>.from(json['movement'] as Map),
       animations: animationsJson.map(
         (key, value) =>
             MapEntry(key, AnimationDef.fromJson(value as Map<String, dynamic>)),
