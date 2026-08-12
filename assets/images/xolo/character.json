@@ -84,6 +84,21 @@
         "walk/up/xolo_walk_up_06.png",
         "walk/up/xolo_walk_up_07.png"
       ]
+    },
+    "walk_down": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": true,
+      "paths": [
+        "walk/down/xolo_walk_down_00.png",
+        "walk/down/xolo_walk_down_01.png",
+        "walk/down/xolo_walk_down_02.png",
+        "walk/down/xolo_walk_down_03.png",
+        "walk/down/xolo_walk_down_04.png",
+        "walk/down/xolo_walk_down_05.png",
+        "walk/down/xolo_walk_down_06.png",
+        "walk/down/xolo_walk_down_07.png"
+      ]
     }
   },
   "visualReference": {

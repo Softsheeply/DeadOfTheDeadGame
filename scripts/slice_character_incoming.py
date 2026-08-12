@@ -195,6 +195,13 @@ def grid_frames(image: Image.Image, *, columns: int = 4, rows: int = 2) -> list[
     return frames
 
 
+def _opaque_count(image: Image.Image, *, threshold: int = 200) -> int:
+    alpha = image.convert("RGBA").getchannel("A")
+    mask = alpha.point(lambda value: 255 if value > threshold else 0)
+    histogram = mask.histogram()
+    return histogram[255]
+
+
 def frame_content_width(frame: Image.Image) -> int:
     bbox = alpha_bbox(frame)
     if bbox is None:
@@ -215,6 +222,21 @@ def normalize_frame(
 
     crop = strip_background(image)
     crop = choke_alpha(crop)
+
+    # Safety net for already-matted sources (e.g. run through a remove.bg-style
+    # tool before being dropped in _incoming): strip_background()'s flood fill
+    # can still tunnel through a dark-furred character via soft near-black
+    # anti-aliased edge pixels left by the external matting tool, punching
+    # holes through legitimate opaque body art it should have left alone
+    # (confirmed on Xolo, whose fur is itself near-black). If stripping wiped
+    # out most of the source's own already-opaque pixels instead of just the
+    # backdrop, that's a strong signal it over-stripped -- fall back to the
+    # source's own alpha untouched rather than trust the flood fill.
+    source_opaque = _opaque_count(image)
+    stripped_opaque = _opaque_count(crop)
+    if source_opaque > 0 and stripped_opaque < source_opaque * 0.6:
+        crop = image.convert("RGBA")
+
     bbox = alpha_bbox(crop)
     if bbox is None:
         raise ValueError("empty frame after background strip")
