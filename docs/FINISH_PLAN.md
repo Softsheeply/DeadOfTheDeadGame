@@ -26,6 +26,45 @@ Device TestFlight: magnified face / sliced-in-half / backwards walk.
 **Hotfix shipped (+41):** distance-sync walk + 2-frame step bob while Pepita walk art lacks alternating feet. Device re-verify walk/idle after pull.
 **A4/A7 fixed** — distance-synced real 8-frame walk cycle, background-strip flood-fill fix for see-through eyes + foot halo (see items above).
 
+### Same session, continued — Xolo art, cast personalities, cleanup
+
+- [x] Xolo now has all 4 walk directions (down/up/left/right). `walk_up` and
+  `walk_down` added from new ChatGPT sheets. Two `walk_down` attempts were
+  discarded first: both generated on a black canvas, which broke the
+  color-based background stripper since Xolo's fur is also black (ate real
+  holes through his body — confirmed via magenta-composite checks, not
+  guessed). A third attempt via an external background-removal tool arrived
+  pre-matted but *still* broke the stripper (soft anti-aliased near-black
+  edge pixels gave the flood fill a path to tunnel through). Fixed at the
+  pipeline level in `scripts/slice_character_incoming.py`: `normalize_frame()`
+  now compares opaque-pixel count before/after `strip_background()` and
+  falls back to the source's own native alpha if stripping wiped out >40% of
+  already-opaque pixels. Confirmed this doesn't regress the good `walk_up`
+  slice.
+- [x] Gave Miguel and Xolo real personalities (were flat `{idle, walk}`
+  placeholders) and gave the other 7 flat-personality cast members
+  (Gato, Tito, Doña Luz, Alebrije, Chavo, Don Mateo, Pinto, Señor Cuervo —
+  all shared one copy-pasted default) distinct behavior matching their role.
+  No new art needed; reused existing generic `wave`/`sit` actions.
+- [x] Fixed the flaky `wander prefers hotspots when provided` test —
+  probed 500 seeded trials, found a genuine ~10% failure rate (not a
+  fluke). Bug was in the test's assertion (checked final resting position
+  instead of max position reached during the run), not the game logic.
+- [x] Cleaned up all 8 pre-existing `flutter analyze` warnings (dead
+  fields, unnecessary imports/null-assertions). 0 issues now.
+- [x] **Caught and fixed a real crash** the day after committing Xolo's new
+  walk frames: `pubspec.yaml` never had `assets/images/xolo/walk/down/` and
+  `walk/up/` added alongside the new folders, so the plaza crashed on load
+  ("Unable to load asset ... does not exist"). `flutter analyze`/`flutter
+  test` don't catch missing pubspec asset declarations — only actually
+  running the built app surfaces it, which is why the full build+launch+
+  screenshot verification pass matters, not just green analyze/test.
+  Audited every other asset folder against `pubspec.yaml` afterward:
+  nothing else missing.
+- [ ] Xolo's dog+bone toy interaction still needs a bone sprite (new art).
+- [ ] Gato is next in the walk-art build order (down/up sheets), then Tito,
+  Miguel, Doña Luz, Chavo, Don Mateo, Pinto, Alebrije, Cuervo.
+
 ---
 
 ## Already done (baseline)
