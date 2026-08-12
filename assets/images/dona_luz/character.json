@@ -12,17 +12,21 @@
   },
   "personality": {
     "decisionIntervalMs": [
-      1200,
-      3800
+      2500,
+      6000
     ],
     "autonomousBehaviours": [
       {
         "action": "idle",
+        "weight": 0.45
+      },
+      {
+        "action": "sit",
         "weight": 0.3
       },
       {
         "action": "walk",
-        "weight": 0.7
+        "weight": 0.25
       }
     ]
   },
