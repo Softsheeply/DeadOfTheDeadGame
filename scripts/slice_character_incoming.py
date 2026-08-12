@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import deque
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -104,28 +105,58 @@ def load_rgba(path: Path) -> Image.Image:
     return Image.open(path).convert("RGBA")
 
 
+def _is_background_color(red: int, green: int, blue: int) -> bool:
+    low_chroma = max(red, green, blue) - min(red, green, blue) <= 28
+    near_white = min(red, green, blue) >= 200 and low_chroma
+    near_black = max(red, green, blue) <= 28 and low_chroma
+    return near_white or near_black
+
+
 def strip_background(image: Image.Image) -> Image.Image:
+    """Strip the sheet's backdrop (near-white or near-black/vignette) to
+    transparent.
+
+    Only removes background-colored pixels that are reachable from the image
+    border by flood fill -- NOT every pixel matching the color test anywhere
+    in the image. A naive global color match also zeroed out Pepita's
+    genuinely black facial paint (eye sockets, nose cross), which sits fully
+    surrounded by opaque skin art: that punched real transparent holes clear
+    through her face, letting whatever's behind her on-screen (fountain,
+    cobble) show through her eyes. Flood-filling from the border only touches
+    background that's actually connected to the edge of the sheet, leaving
+    interior black/white character detail alone.
+    """
     rgba = image.convert("RGBA")
     pixels = rgba.load()
     width, height = rgba.size
+
+    visited = bytearray(width * height)
+    queue: deque[tuple[int, int]] = deque()
+
+    def maybe_seed(x: int, y: int) -> None:
+        idx = y * width + x
+        if visited[idx]:
+            return
+        red, green, blue, alpha = pixels[x, y]
+        if alpha != 0 and not _is_background_color(red, green, blue):
+            return
+        visited[idx] = 1
+        queue.append((x, y))
+
+    for x in range(width):
+        maybe_seed(x, 0)
+        maybe_seed(x, height - 1)
     for y in range(height):
-        for x in range(width):
-            red, green, blue, alpha = pixels[x, y]
-            if alpha == 0:
-                continue
-            high = min(red, green, blue) >= 200
-            low_chroma = max(red, green, blue) - min(red, green, blue) <= 28
-            if high and low_chroma:
-                # Zero the RGB too, not just alpha. Downstream normalize_frame()
-                # LANCZOS-resizes this crop; PIL resizes RGBA channels
-                # independently (non-premultiplied), so a "transparent" pixel
-                # that still carries white RGB bleeds a faint white halo into
-                # opaque neighbors (most visible under her shoes/feet). Fully
-                # zeroing the pixel removes that bleed source.
-                pixels[x, y] = (0, 0, 0, 0)
-                continue
-            if max(red, green, blue) <= 28 and low_chroma:
-                pixels[x, y] = (0, 0, 0, 0)
+        maybe_seed(0, y)
+        maybe_seed(width - 1, y)
+
+    while queue:
+        x, y = queue.popleft()
+        pixels[x, y] = (0, 0, 0, 0)
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= nx < width and 0 <= ny < height:
+                maybe_seed(nx, ny)
+
     return rgba
 
 
