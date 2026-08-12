@@ -101,8 +101,10 @@ flutter:
     - assets/images/abuela_rosa/walk/up/
     - assets/images/abuela_rosa/character.json
     - assets/images/xolo/idle/down/
+    - assets/images/xolo/walk/down/
     - assets/images/xolo/walk/left/
     - assets/images/xolo/walk/right/
+    - assets/images/xolo/walk/up/
     - assets/images/xolo/character.json
     - assets/images/gato/idle/down/
     - assets/images/gato/walk/left/
