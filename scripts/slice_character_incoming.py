@@ -57,7 +57,6 @@ ALL_CHARACTERS = [
     "senor_cuervo",
 ]
 
-# Pepita-specific legacy UUID mappings (other cast use {id}_walk_*.png only).
 PEPITA_LEGACY_MAP: dict[str, tuple[str, str]] = {
     "24edaf07-f1a7-4e01-8820-1842ead695cd.png": ("walk_down", "grid"),
     "33e2e64d-db2e-4062-ae09-916ddcaab5a2.png": ("walk_left", "grid"),
@@ -67,6 +66,18 @@ PEPITA_LEGACY_MAP: dict[str, tuple[str, str]] = {
     "c79052a7-a6bd-45e3-9e14-a9c05f479b1a.png": ("skip_left", "grid"),
     "Unknown-2.jpeg": ("skip_up", "grid"),
 }
+
+# ChatGPT UUID filename prefixes → animation (drop raw exports without renaming).
+CHARACTER_UUID_HINTS: dict[str, dict[str, str]] = {
+    "tito": {
+        "74c1112f": "walk_down",
+        "5bbd4ef1": "walk_up",
+    },
+}
+
+# If strip_background removes more than this fraction of opaque pixels, trust the
+# source alpha instead (pre-matted exports / dark fur / black mariachi suits).
+STRIP_RETAIN_THRESHOLD = 0.70
 
 
 def profile_for(character_id: str) -> dict[str, int | float]:
@@ -99,6 +110,36 @@ def sheet_map_for(character_id: str) -> dict[str, tuple[str, str]]:
             }
         )
     return mapping
+
+
+def resolve_sheet_map(character_id: str, incoming: Path) -> dict[str, tuple[str, str]]:
+    """Friendly names + legacy UUIDs + prefix hints for files already in _incoming."""
+    mapping = dict(sheet_map_for(character_id))
+    if not incoming.is_dir():
+        return mapping
+    hints = CHARACTER_UUID_HINTS.get(character_id, {})
+    for path in sorted(incoming.glob("*.png")):
+        if path.name in mapping:
+            continue
+        for prefix, animation in hints.items():
+            if path.name.lower().startswith(prefix.lower()):
+                mapping[path.name] = (animation, "grid")
+                print(f"  discovered {path.name} -> {animation} (uuid hint)")
+                break
+    return mapping
+
+
+def zero_rgb_on_transparent(image: Image.Image, *, alpha_cutoff: int = 8) -> Image.Image:
+    """Clear RGB on near-transparent pixels so resize does not bleed backdrop color."""
+    rgba = image.convert("RGBA")
+    pixels = rgba.load()
+    width, height = rgba.size
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha <= alpha_cutoff:
+                pixels[x, y] = (0, 0, 0, 0)
+    return rgba
 
 
 def load_rgba(path: Path) -> Image.Image:
@@ -234,8 +275,14 @@ def normalize_frame(
     # source's own alpha untouched rather than trust the flood fill.
     source_opaque = _opaque_count(image)
     stripped_opaque = _opaque_count(crop)
-    if source_opaque > 0 and stripped_opaque < source_opaque * 0.6:
-        crop = image.convert("RGBA")
+    if source_opaque > 0 and stripped_opaque < source_opaque * STRIP_RETAIN_THRESHOLD:
+        retained_pct = 100.0 * stripped_opaque / source_opaque
+        print(
+            f"  note: strip retained {retained_pct:.0f}% opaque "
+            f"(<{STRIP_RETAIN_THRESHOLD:.0%} threshold) — using source alpha"
+        )
+        crop = zero_rgb_on_transparent(image.convert("RGBA"))
+        crop = choke_alpha(crop)
 
     bbox = alpha_bbox(crop)
     if bbox is None:
@@ -324,7 +371,7 @@ def slice_character(character_id: str) -> dict[str, list[str]]:
     profile = profile_for(character_id)
     incoming = IMAGES / character_id / "_incoming"
     config_path = IMAGES / character_id / "character.json"
-    sheet_map = sheet_map_for(character_id)
+    sheet_map = resolve_sheet_map(character_id, incoming)
     min_width = int(profile["min_frame_width"])
     exports: dict[str, list[str]] = {}
 
