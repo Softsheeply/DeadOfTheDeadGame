@@ -63,9 +63,17 @@ Manifest: `assets/data/locations/l1_plaza_layers.json` (wired in code).
 
 ---
 
-## ChatGPT prompt (one layer at a time)
+## ChatGPT prompts (from scratch)
 
-Attach the **current full day plate** as design lock.
+**Full copy-paste prompts:** [[plaza-layer-prompts]]
+
+Workflow: generate **master reference** first → one layer PNG per prompt → drop in `assets/images/village/layers/`.
+
+---
+
+## ChatGPT prompt (extract layer from existing art)
+
+If you already have a full day plate, attach it and use:
 
 > Export ONE layer for my 1280×426 festival plaza game.  
 > Canvas: exactly 1280×426 px PNG with transparency.  
