@@ -4,7 +4,7 @@
 > Soft launch = Phase A. Full game ≈ through Phase H.  
 > Check boxes as you go. Keep this file the source of truth in git.
 
-**Current build target:** `1.0.0+43` (cast slice pipeline + plaza interactables)  
+**Current build target:** `1.0.0+46` (Tito walk down/up shipped)  
 **Branch:** `cursor/pocket-god-village-foundation-b7dc`
 
 ---
