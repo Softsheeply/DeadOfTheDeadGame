@@ -107,6 +107,7 @@ flutter:
     - assets/images/xolo/walk/up/
     - assets/images/xolo/character.json
     - assets/images/gato/idle/down/
+    - assets/images/gato/walk/down/
     - assets/images/gato/walk/left/
     - assets/images/gato/walk/right/
     - assets/images/gato/walk/up/

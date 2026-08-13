@@ -8,7 +8,8 @@
   "defaultDirection": "down",
   "movement": {
     "walkSpeed": 78,
-    "skipSpeed": 93
+    "skipSpeed": 93,
+    "walkTwoFrameFallback": false
   },
   "personality": {
     "decisionIntervalMs": [
@@ -79,6 +80,25 @@
         "walk/up/gato_walk_up_04.png",
         "walk/up/gato_walk_up_05.png"
       ]
+    },
+    "walk_down": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": true,
+      "paths": [
+        "walk/down/gato_walk_down_00.png",
+        "walk/down/gato_walk_down_01.png",
+        "walk/down/gato_walk_down_02.png",
+        "walk/down/gato_walk_down_03.png",
+        "walk/down/gato_walk_down_04.png",
+        "walk/down/gato_walk_down_05.png",
+        "walk/down/gato_walk_down_06.png",
+        "walk/down/gato_walk_down_07.png"
+      ]
     }
+  },
+  "visualReference": {
+    "baselineY": 119,
+    "status": "incoming-sheets-v2"
   }
 }
