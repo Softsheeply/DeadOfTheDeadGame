@@ -153,6 +153,10 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
+    if (backdrop?.hitTestCelestialTap(event.localPosition) ?? false) {
+      toggleDayNight();
+      return;
+    }
     if (atmosphere?.tryLightCandle(event.localPosition) ?? false) {
       spawnPetals(event.localPosition.clone(), count: 6);
       audio.petalsSfx();
@@ -540,6 +544,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     add(WindGust(size: size.clone()));
     final sign = _random.nextBool() ? 1.0 : -1.0;
     atmosphere?.applyGust(directionSign: sign);
+    backdrop?.applyGust(directionSign: sign);
     for (final resident in residents) {
       resident.applyWind(directionSign: sign);
     }
@@ -580,6 +585,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
       }
     }
     atmosphere?.splashFountain(intensity: 0.4);
+    backdrop?.splashFountainLayer(intensity: 0.4);
     toyStatus.value = 'Marigold rain!';
   }
 
@@ -698,6 +704,7 @@ class SpiritVillageGame extends FlameGame with TapCallbacks {
     switch (prop.kind) {
       case 'fountain':
         atmosphere?.splashFountain(intensity: 1.15);
+        backdrop?.splashFountainLayer(intensity: 1.15);
         atmosphere?.rippleWaterAt(const Offset(0.575, 0.60), intensity: 1.1);
         spawnPetals(center?.clone() ?? tapPoint.clone(), count: 10);
         audio.petalsSfx();

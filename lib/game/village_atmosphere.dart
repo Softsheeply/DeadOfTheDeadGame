@@ -500,7 +500,9 @@ class VillageAtmosphere extends PositionComponent {
     _renderLeaves(canvas, draw);
 
     if (night > 0.02) {
-      _renderCandles(canvas, draw, night);
+      if (!backdrop.hasNightLightsLayer) {
+        _renderCandles(canvas, draw, night);
+      }
       _renderBuildingLights(canvas, draw, night);
       _renderFireflies(canvas, draw, night);
     } else {

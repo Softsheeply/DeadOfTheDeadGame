@@ -19,6 +19,8 @@ class VillageLayerStack extends PositionComponent {
   Sprite? _legacyDay;
   Sprite? _legacyNight;
   bool _useLayers = false;
+  bool get usesLayerArt => _useLayers;
+  bool get hasLightsLayer => _sprites.containsKey('lights');
   bool isNight = true;
   double nightBlend = 1;
   double celestialRoll = 0;

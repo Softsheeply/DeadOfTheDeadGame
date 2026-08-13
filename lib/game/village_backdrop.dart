@@ -91,6 +91,8 @@ class VillageBackdrop extends PositionComponent {
   Sprite? _day;
   Sprite? _night;
   VillageLayerStack? _layerStack;
+  Offset _sunUv = const Offset(0.78, 0.12);
+  Offset _moonUv = const Offset(0.22, 0.14);
   double _celestialRoll = 0;
   double _celestialTarget = 0;
   double _rollDuration = 1.4;
@@ -108,6 +110,8 @@ class VillageBackdrop extends PositionComponent {
     try {
       final layerConfig = await PlazaLayersConfig.load();
       _rollDuration = layerConfig.rollDurationSeconds;
+      _sunUv = layerConfig.sunUv;
+      _moonUv = layerConfig.moonUv;
       _layerStack = VillageLayerStack(config: layerConfig, gameSize: size.clone());
       await add(_layerStack!);
     } catch (_) {
@@ -135,6 +139,36 @@ class VillageBackdrop extends PositionComponent {
   }
 
   void toggleDayNight() => setNight(!isNight);
+
+  /// True when composited layer PNGs are active (not legacy day/night plates).
+  bool get usesLayerArt => _layerStack?.usesLayerArt ?? false;
+
+  /// True when [plaza_lights.png] loaded — coded candle glow is skipped to avoid doubling.
+  bool get hasNightLightsLayer => _layerStack?.hasLightsLayer ?? false;
+
+  /// Tap the sun (day) or moon (night) to flip time — rolls across the sky.
+  bool hitTestCelestialTap(Vector2 point) {
+    if (drawRect == Rect.zero) return false;
+    final radius = drawRect.width * 0.055;
+    final center = celestialWorldCenter(isSun: !isNight);
+    return point.distanceTo(Vector2(center.dx, center.dy)) <= radius;
+  }
+
+  /// Current world position of sun or moon, including roll animation offset.
+  Offset celestialWorldCenter({required bool isSun}) {
+    final uv = isSun ? _sunUv : _moonUv;
+    final base = Offset(
+      drawRect.left + drawRect.width * uv.dx,
+      drawRect.top + drawRect.height * uv.dy,
+    );
+    final goingNight = _blendTarget >= 0.5;
+    final dx = isSun
+        ? (goingNight ? -drawRect.width * _celestialRoll : 0.0)
+        : (goingNight
+            ? drawRect.width * (1 - _celestialRoll)
+            : drawRect.width * _celestialRoll);
+    return base.translate(dx, 0);
+  }
 
   void applyGust({required double directionSign}) {
     _layerStack?.applyGust(directionSign: directionSign);
@@ -652,32 +686,21 @@ class VillageBackdrop extends PositionComponent {
 
   void _renderLegacyCelestial(Canvas canvas) {
     if (drawRect == Rect.zero) return;
-    final goingNight = _blendTarget >= 0.5;
-    final sunUv = const Offset(0.78, 0.12);
-    final moonUv = const Offset(0.22, 0.14);
     final r = drawRect.width * 0.035;
-    final sunCenter = Offset(
-      drawRect.left + drawRect.width * sunUv.dx,
-      drawRect.top + drawRect.height * sunUv.dy,
-    );
-    final moonCenter = Offset(
-      drawRect.left + drawRect.width * moonUv.dx,
-      drawRect.top + drawRect.height * moonUv.dy,
-    );
     if (_blend < 0.98) {
       final sunAlpha = (1 - _blend).clamp(0.0, 1.0);
-      final sunDx = goingNight ? -drawRect.width * _celestialRoll : 0.0;
+      final sunCenter = celestialWorldCenter(isSun: true);
       canvas.drawCircle(
-        sunCenter.translate(sunDx, 0),
+        sunCenter,
         r,
         Paint()..color = Color.fromRGBO(255, 220, 100, sunAlpha * 0.95),
       );
     }
     if (_blend > 0.02) {
       final moonAlpha = _blend.clamp(0.0, 1.0);
-      final moonDx = goingNight ? drawRect.width * (1 - _celestialRoll) : drawRect.width * _celestialRoll;
+      final moonCenter = celestialWorldCenter(isSun: false);
       canvas.drawCircle(
-        moonCenter.translate(moonDx, 0),
+        moonCenter,
         r * 0.9,
         Paint()..color = Color.fromRGBO(230, 240, 255, moonAlpha * 0.95),
       );

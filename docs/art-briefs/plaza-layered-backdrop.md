@@ -82,7 +82,7 @@ Repeat per layer. **Do not** ask for all layers in one grid — one file per lay
 
 - `VillageLayerStack` — compositor + animation hooks (`assets/data/locations/l1_plaza_layers.json`)
 - Falls back to legacy `spirit_village_plaza_day/night.png` until layer files exist
-- Sun/moon roll on day/night toggle (HUD button or tap sky)
+- Sun/moon roll on day/night toggle — **tap the sun (day) or moon (night)**, or use the HUD moon button
 - `decor_markers.json` UVs still drive taps + light flicker positions
 
 ---
