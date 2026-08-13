@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Fix "local changes would be overwritten" then push your Tito (or other) commit.
-# Run from repo root on Mac — no Pillow needed if frames are already sliced.
+# Push local commits (e.g. Tito art) when branch diverged from remote.
+# Stashes unstaged work, rebases onto origin, pushes, restores stash.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+BRANCH="${1:-cursor/pocket-god-village-foundation-b7dc}"
 
-echo "==> Discard local slice-script edits (cloud has the canonical version)"
+echo "==> Fetch $BRANCH"
+git fetch origin "$BRANCH"
+
+echo "==> Stash unstaged changes (if any)"
+git stash push -u -m "mac_sync_branch autostash $(date +%Y%m%d-%H%M%S)" || true
+
+echo "==> Discard local slice-script edits (remote is canonical)"
 git checkout -- scripts/slice_character_incoming.py 2>/dev/null || true
 
-echo "==> Rebase onto remote branch"
-git pull --rebase origin cursor/pocket-god-village-foundation-b7dc
+echo "==> Rebase local commits onto origin/$BRANCH"
+git rebase "origin/$BRANCH"
 
 echo "==> Push"
-git push origin cursor/pocket-god-village-foundation-b7dc
+git push origin "$BRANCH"
 
-echo "OK — remote is up to date."
+if git stash list | grep -q "mac_sync_branch autostash"; then
+  echo "==> Restore stashed changes"
+  git stash pop || echo "Note: stash pop had conflicts — run 'git stash list' and resolve manually"
+fi
+
+echo "OK — pushed to origin/$BRANCH"
