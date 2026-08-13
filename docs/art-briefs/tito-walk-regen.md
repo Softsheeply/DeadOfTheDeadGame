@@ -18,8 +18,17 @@ Put PNGs in `assets/images/tito/_incoming/` as either:
 - `tito_walk_down.png` / `tito_walk_up.png`, **or**
 - raw UUID names (`74c1112f-….png`, `5bbd4ef1-….png`) — slice script auto-detects prefixes
 
+**Slice on cloud agent or any machine with Pillow** (Mac PEP 668 often blocks `pip3 install` globally):
+
 ```bash
+pip3 install -r scripts/requirements-slice.txt   # or use a venv
 python3 scripts/slice_character_incoming.py --character tito
+```
+
+If frames are already in `walk/down/` and `walk/up/`, skip slice — just sync git:
+
+```bash
+./scripts/mac_sync_branch.sh
 ```
 
 Then add to `pubspec.yaml` under tito assets:

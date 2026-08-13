@@ -113,6 +113,8 @@ flutter:
     - assets/images/gato/walk/up/
     - assets/images/gato/character.json
     - assets/images/tito/idle/down/
+    - assets/images/tito/walk/down/
+    - assets/images/tito/walk/up/
     - assets/images/tito/walk/left/
     - assets/images/tito/walk/right/
     - assets/images/tito/character.json
