@@ -41,27 +41,33 @@
       ]
     },
     "walk_left": {
-      "frames": 5,
-      "fps": 9,
+      "frames": 8,
+      "fps": 9.0,
       "loop": true,
       "paths": [
         "walk/left/tito_walk_left_00.png",
         "walk/left/tito_walk_left_01.png",
         "walk/left/tito_walk_left_02.png",
         "walk/left/tito_walk_left_03.png",
-        "walk/left/tito_walk_left_04.png"
+        "walk/left/tito_walk_left_04.png",
+        "walk/left/tito_walk_left_05.png",
+        "walk/left/tito_walk_left_06.png",
+        "walk/left/tito_walk_left_07.png"
       ]
     },
     "walk_right": {
-      "frames": 5,
-      "fps": 9,
+      "frames": 8,
+      "fps": 9.0,
       "loop": true,
       "paths": [
         "walk/right/tito_walk_right_00.png",
         "walk/right/tito_walk_right_01.png",
         "walk/right/tito_walk_right_02.png",
         "walk/right/tito_walk_right_03.png",
-        "walk/right/tito_walk_right_04.png"
+        "walk/right/tito_walk_right_04.png",
+        "walk/right/tito_walk_right_05.png",
+        "walk/right/tito_walk_right_06.png",
+        "walk/right/tito_walk_right_07.png"
       ]
     },
     "walk_down": {
