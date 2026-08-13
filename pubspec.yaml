@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+48
 
 environment:
   sdk: ^3.12.0
@@ -49,6 +49,17 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Generate iOS/Android icons from assets/branding/app_icon_1024.png:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_icon_1024.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#2A1040"
+  adaptive_icon_foreground: assets/branding/app_icon_1024.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -62,6 +73,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/data/cast_bios.json
+    - assets/data/locations/l1_festival_plaza.json
+    - assets/data/locations/l1_plaza_layers.json
+    - assets/data/missions/plaza_missions.json
+    - assets/data/world_map.json
+    - assets/images/village/decor_markers.json
     - assets/images/pepita/idle/down/
     - assets/images/pepita/idle/left/
     - assets/images/pepita/idle/right/
@@ -70,7 +87,68 @@ flutter:
     - assets/images/pepita/walk/left/
     - assets/images/pepita/walk/right/
     - assets/images/pepita/walk/up/
+    - assets/images/pepita/skip/down/
+    - assets/images/pepita/skip/left/
+    - assets/images/pepita/skip/right/
+    - assets/images/pepita/skip/up/
     - assets/images/pepita/character.json
+    - assets/images/abuela_rosa/idle/down/
+    - assets/images/abuela_rosa/idle/left/
+    - assets/images/abuela_rosa/idle/right/
+    - assets/images/abuela_rosa/idle/up/
+    - assets/images/abuela_rosa/walk/down/
+    - assets/images/abuela_rosa/walk/left/
+    - assets/images/abuela_rosa/walk/right/
+    - assets/images/abuela_rosa/walk/up/
+    - assets/images/abuela_rosa/character.json
+    - assets/images/xolo/idle/down/
+    - assets/images/xolo/walk/down/
+    - assets/images/xolo/walk/left/
+    - assets/images/xolo/walk/right/
+    - assets/images/xolo/walk/up/
+    - assets/images/xolo/character.json
+    - assets/images/gato/idle/down/
+    - assets/images/gato/walk/down/
+    - assets/images/gato/walk/left/
+    - assets/images/gato/walk/right/
+    - assets/images/gato/walk/up/
+    - assets/images/gato/character.json
+    - assets/images/tito/idle/down/
+    - assets/images/tito/walk/down/
+    - assets/images/tito/walk/up/
+    - assets/images/tito/walk/left/
+    - assets/images/tito/walk/right/
+    - assets/images/tito/character.json
+    - assets/images/miguel/idle/down/
+    - assets/images/miguel/walk/left/
+    - assets/images/miguel/walk/right/
+    - assets/images/miguel/character.json
+    - assets/images/dona_luz/idle/down/
+    - assets/images/dona_luz/walk/left/
+    - assets/images/dona_luz/walk/right/
+    - assets/images/dona_luz/character.json
+    - assets/images/alebrije/idle/down/
+    - assets/images/alebrije/walk/left/
+    - assets/images/alebrije/walk/right/
+    - assets/images/alebrije/character.json
+    - assets/images/chavo/idle/down/
+    - assets/images/chavo/walk/left/
+    - assets/images/chavo/walk/right/
+    - assets/images/chavo/character.json
+    - assets/images/don_mateo/idle/down/
+    - assets/images/don_mateo/walk/left/
+    - assets/images/don_mateo/walk/right/
+    - assets/images/don_mateo/character.json
+    - assets/images/pinto/idle/down/
+    - assets/images/pinto/walk/left/
+    - assets/images/pinto/walk/right/
+    - assets/images/pinto/character.json
+    - assets/images/senor_cuervo/idle/down/
+    - assets/images/senor_cuervo/walk/left/
+    - assets/images/senor_cuervo/walk/right/
+    - assets/images/senor_cuervo/character.json
+    - assets/images/village/
+    - assets/audio/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

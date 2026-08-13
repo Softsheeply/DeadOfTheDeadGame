@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "l1_festival_plaza",
+  "displayName": "Festival Plaza",
+  "unlockedByDefault": true,
+  "backdrops": {
+    "day": "assets/images/village/spirit_village_plaza_day.png",
+    "night": "assets/images/village/spirit_village_plaza_night.png"
+  },
+  "road": {
+    "left": 0.08,
+    "right": 0.94,
+    "top": 0.66,
+    "bottom": 0.88
+  },
+  "ofrendaUv": [0.50, 0.72],
+  "hotspotUvs": [
+    [0.14, 0.74],
+    [0.28, 0.75],
+    [0.40, 0.78],
+    [0.58, 0.80],
+    [0.66, 0.74],
+    [0.76, 0.76],
+    [0.88, 0.76],
+    [0.22, 0.82],
+    [0.48, 0.84]
+  ],
+  "restSpotUvs": [
+    [0.62, 0.78],
+    [0.36, 0.80],
+    [0.82, 0.78]
+  ],
+  "blockedEllipses": [
+    { "center": [0.575, 0.62], "rx": 0.05, "ry": 0.07 },
+    { "center": [0.48, 0.72], "rx": 0.045, "ry": 0.045 },
+    { "center": [0.11, 0.89], "rx": 0.12, "ry": 0.065 },
+    { "center": [0.19, 0.92], "rx": 0.09, "ry": 0.05 },
+    { "center": [0.07, 0.86], "rx": 0.06, "ry": 0.05 },
+    { "center": [0.682, 0.770], "rx": 0.070, "ry": 0.090 },
+    { "center": [0.78, 0.82], "rx": 0.085, "ry": 0.07 }
+  ],
+  "occluders": [
+    { "uv": [0.575, 0.66], "sortUvY": 0.695, "radiusX": 0.075, "radiusY": 0.038 },
+    { "uv": [0.50, 0.615], "sortUvY": 0.725, "radiusX": 0.048, "radiusY": 0.052 },
+    { "uv": [0.16, 0.82], "sortUvY": 0.855, "radiusX": 0.072, "radiusY": 0.032 },
+    { "uv": [0.48, 0.705], "sortUvY": 0.745, "radiusX": 0.035, "radiusY": 0.04 }
+  ],
+  "decorMarkers": "assets/images/village/decor_markers.json",
+  "defaultCastOnPlaza": ["pepita", "abuela_rosa", "xolo", "gato"]
+}

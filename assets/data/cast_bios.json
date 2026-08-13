@@ -1,0 +1,74 @@
+{
+  "pepita": {
+    "displayName": "Pepita",
+    "role": "Florist",
+    "bio": "Pepita tends the floristería with marigold crowns and braids full of petals. She skips when she thinks nobody is watching.",
+    "likes": "Fresh marigolds, arranging bouquets, waving at visitors"
+  },
+  "abuela_rosa": {
+    "displayName": "Abuela Rosa",
+    "role": "Marigold keeper",
+    "bio": "Abuela Rosa remembers every ofrenda and every name on the wind. She moves slowly but never misses a candle.",
+    "likes": "Quiet benches, marigold paths, telling stories at dusk"
+  },
+  "xolo": {
+    "displayName": "Xolo",
+    "role": "Loyal dog",
+    "bio": "Xolo guards the plaza stoop and claims any pan dulce within nose range. Faithful, bouncy, always hungry.",
+    "likes": "Pan dulce, chasing treats, napping in sun patches"
+  },
+  "gato": {
+    "displayName": "Gato",
+    "role": "Plaza cat",
+    "bio": "Gato pretends to be above festival fuss but always appears when music plays. Expert at looking unimpressed.",
+    "likes": "Warm bakery steps, judging passersby, secret naps"
+  },
+  "tito": {
+    "displayName": "Tito",
+    "role": "Mariachi",
+    "bio": "Tito lives for the stage guitar hook. Give him music and the whole plaza finds its rhythm.",
+    "likes": "The mariachi stage, encore nights, dancing crowds"
+  },
+  "miguel": {
+    "displayName": "Miguel",
+    "role": "Festival helper",
+    "bio": "Miguel runs errands between stalls with a grin and a basket. Always headed somewhere with purpose.",
+    "likes": "Mercado finds, helping Pepita, festival gossip"
+  },
+  "dona_luz": {
+    "displayName": "Doña Luz",
+    "role": "Candle keeper",
+    "bio": "Doña Luz tends the church steps and keeps the candle path lit. Her quiet presence settles the plaza.",
+    "likes": "Lighting candles, peaceful sits, night vigils"
+  },
+  "alebrije": {
+    "displayName": "Alebrije",
+    "role": "Spirit creature",
+    "bio": "Alebrije drifts between worlds with impossible colors. Children swear it winks when fireworks are near.",
+    "likes": "Parade teases, bright toys, star-gazing"
+  },
+  "chavo": {
+    "displayName": "Chavo",
+    "role": "Bakery runner",
+    "bio": "Chavo carries pan dulce warm from the oven and knows every shortcut across the cobble.",
+    "likes": "Panadería smells, racing Xolo, sweet samples"
+  },
+  "don_mateo": {
+    "displayName": "Don Mateo",
+    "role": "Mercado elder",
+    "bio": "Don Mateo watches the mercado stalls with a trader's eye and a storyteller's pause.",
+    "likes": "Sugar skull displays, fair deals, afternoon shade"
+  },
+  "pinto": {
+    "displayName": "Pinto",
+    "role": "Flower seller",
+    "bio": "Pinto helps Pepita when the festival rush hits. Quick feet, faster jokes.",
+    "likes": "Flower buckets, plaza crossings, mariachi nights"
+  },
+  "senor_cuervo": {
+    "displayName": "Señor Cuervo",
+    "role": "Mercado watcher",
+    "bio": "Señor Cuervo perches near the mercado with a knowing caw. Nothing slips past him.",
+    "likes": "High vantage points, shiny trinkets, dramatic entrances"
+  }
+}

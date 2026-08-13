@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "alebrije",
+  "displayName": "Alebrije",
+  "role": "spirit_creature",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "defaultDirection": "down",
+  "movement": {
+    "walkSpeed": 70,
+    "skipSpeed": 85
+  },
+  "personality": {
+    "decisionIntervalMs": [
+      700,
+      2000
+    ],
+    "autonomousBehaviours": [
+      {
+        "action": "idle",
+        "weight": 0.15
+      },
+      {
+        "action": "walk",
+        "weight": 0.65
+      },
+      {
+        "action": "wave",
+        "weight": 0.2
+      }
+    ]
+  },
+  "animations": {
+    "idle_down": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/down/alebrije_idle_down_00.png"
+      ]
+    },
+    "walk_left": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/left/alebrije_walk_left_00.png",
+        "walk/left/alebrije_walk_left_01.png",
+        "walk/left/alebrije_walk_left_02.png",
+        "walk/left/alebrije_walk_left_03.png",
+        "walk/left/alebrije_walk_left_04.png",
+        "walk/left/alebrije_walk_left_05.png"
+      ]
+    },
+    "walk_right": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/right/alebrije_walk_right_00.png",
+        "walk/right/alebrije_walk_right_01.png",
+        "walk/right/alebrije_walk_right_02.png",
+        "walk/right/alebrije_walk_right_03.png",
+        "walk/right/alebrije_walk_right_04.png",
+        "walk/right/alebrije_walk_right_05.png"
+      ]
+    }
+  }
+}

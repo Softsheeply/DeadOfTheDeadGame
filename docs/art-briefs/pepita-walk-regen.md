@@ -1,0 +1,66 @@
+# Pepita walk regen (ChatGPT)
+
+Use this brief when asking ChatGPT for replacement walk sheets. David is **not** using Aseprite — full PNG sheets only.
+
+## Drop zone
+
+```
+assets/images/pepita/_incoming/
+```
+
+Save ChatGPT PNGs with friendly names:
+
+- `pepita_walk_down.png`
+- `pepita_walk_up.png`
+- `pepita_walk_left.png`
+
+Then: `python3 scripts/slice_pepita_incoming.py` (or tell Cloud Agent to re-slice).
+
+Push to git → agent updates `walk/` folders + `character.json`.
+
+## Locked look (do not drift)
+
+- Chibi Día de los Muertos skeleton florist
+- Flower crown, braids, purple embroidered dress, flower basket
+- Brown shoes — **must read clearly while walking**
+- Palette: see `character.json` → `visualReference.palette`
+- Frame size: **192×192**, **8 frames** per direction
+- 4 directions only: down, up, left, right (game ignores diagonals)
+- Side sheet faces **left**; agent mirrors for right
+
+## Prompt starter (copy/paste)
+
+```
+Sprite sheet for a mobile game character walk cycle.
+
+Character: cheerful chibi Day of the Dead skeleton florist girl (Pepita).
+Flower crown, braids, purple dress with embroidery, flower basket in hand.
+Brown shoes MUST alternate — **contact frame** (one foot flat ahead) then **passing frame** (other foot forward). Do NOT draw every frame with the same lead foot.
+
+Output: 8-frame horizontal walk cycle, 192x192 pixels per frame, transparent background.
+Direction: [down | up | left].
+Side view faces LEFT only (we mirror for right in code).
+
+Frame guide (down view):
+- Frames 0–1: right foot forward, left lifting
+- Frames 2–3: passing (feet under hips)
+- Frames 4–5: left foot forward, right lifting
+- Frames 6–7: passing back toward frame 0
+
+Style: clean game sprite, dark outline #3b2146, flat colors, no baked shadow under feet, no glow halo.
+Same character design as previous sheet — feet must READ as stepping, not sliding.
+```
+
+## After you get PNGs
+
+- [ ] One PNG per direction (or labeled clearly)
+- [ ] Drop in `_incoming/`
+- [ ] Commit + push
+- [ ] Message agent: "Pepita walks in _incoming, please re-slice"
+
+## Related
+
+- [[pepita]]
+- [[FINISH_PLAN#Character art (locked walks — Aseprite, not ChatGPT sheets)|Finish plan #7–8]]
+
+#pepita #art-brief #phase-a

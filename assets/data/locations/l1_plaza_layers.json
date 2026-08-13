@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "locationId": "l1_festival_plaza",
+  "canvasSize": [1280, 426],
+  "legacyFallback": {
+    "day": "assets/images/village/spirit_village_plaza_day.png",
+    "night": "assets/images/village/spirit_village_plaza_night.png"
+  },
+  "celestial": {
+    "sunUv": [0.78, 0.12],
+    "moonUv": [0.22, 0.14],
+    "rollDurationSeconds": 1.4
+  },
+  "layers": [
+    {
+      "id": "sky_day",
+      "asset": "assets/images/village/layers/plaza_sky_day.png",
+      "zIndex": 0,
+      "visibility": "day"
+    },
+    {
+      "id": "sky_night",
+      "asset": "assets/images/village/layers/plaza_sky_night.png",
+      "zIndex": 0,
+      "visibility": "night"
+    },
+    {
+      "id": "base",
+      "asset": "assets/images/village/layers/plaza_base.png",
+      "zIndex": 10,
+      "visibility": "always"
+    },
+    {
+      "id": "river",
+      "asset": "assets/images/village/layers/plaza_river.png",
+      "zIndex": 20,
+      "visibility": "always",
+      "animation": "river_flow"
+    },
+    {
+      "id": "fountain",
+      "asset": "assets/images/village/layers/plaza_fountain.png",
+      "zIndex": 30,
+      "visibility": "always",
+      "animation": "fountain_flow"
+    },
+    {
+      "id": "tree",
+      "asset": "assets/images/village/layers/plaza_tree.png",
+      "zIndex": 40,
+      "visibility": "always",
+      "animation": "tree_sway"
+    },
+    {
+      "id": "flags",
+      "asset": "assets/images/village/layers/plaza_flags.png",
+      "zIndex": 50,
+      "visibility": "always",
+      "animation": "flags_sway"
+    },
+    {
+      "id": "lights",
+      "asset": "assets/images/village/layers/plaza_lights.png",
+      "zIndex": 60,
+      "visibility": "night",
+      "animation": "lights_flicker"
+    },
+    {
+      "id": "sun",
+      "asset": "assets/images/village/layers/plaza_sun.png",
+      "zIndex": 70,
+      "visibility": "day",
+      "animation": "celestial_roll"
+    },
+    {
+      "id": "moon",
+      "asset": "assets/images/village/layers/plaza_moon.png",
+      "zIndex": 70,
+      "visibility": "night",
+      "animation": "celestial_roll"
+    }
+  ]
+}

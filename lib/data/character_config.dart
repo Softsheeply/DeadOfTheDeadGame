@@ -1,8 +1,3 @@
-/// Dart mirror of the JS prototype's `character.json` shape
-/// (Softsheeply/DayoftheDead, `assets/characters/{id}/character.json`).
-/// Kept intentionally close to the original field names so the JSON files
-/// themselves can be reused as-is -- no reformatting needed to port a
-/// character's data over, only the code that reads it.
 class AnimationDef {
   final int frames;
   final double fps;
@@ -31,13 +26,65 @@ class AnimationDef {
   }
 }
 
+class BehaviourWeight {
+  final String action;
+  final double weight;
+
+  const BehaviourWeight({required this.action, required this.weight});
+
+  factory BehaviourWeight.fromJson(Map<String, dynamic> json) {
+    return BehaviourWeight(
+      action: json['action'] as String,
+      weight: (json['weight'] as num).toDouble(),
+    );
+  }
+}
+
+class PersonalityDef {
+  final List<int> decisionIntervalMs;
+  final List<BehaviourWeight> autonomousBehaviours;
+
+  const PersonalityDef({
+    required this.decisionIntervalMs,
+    required this.autonomousBehaviours,
+  });
+
+  /// Matches legacy hardcoded rolls when JSON omits personality.
+  static const fallback = PersonalityDef(
+    decisionIntervalMs: [600, 2400],
+    autonomousBehaviours: [
+      BehaviourWeight(action: 'idle', weight: 0.22),
+      BehaviourWeight(action: 'wave', weight: 0.055),
+      BehaviourWeight(action: 'smell_flowers', weight: 0.053),
+      BehaviourWeight(action: 'sit', weight: 0.052),
+      BehaviourWeight(action: 'walk', weight: 0.62),
+    ],
+  );
+
+  factory PersonalityDef.fromJson(Map<String, dynamic> json) {
+    return PersonalityDef(
+      decisionIntervalMs: (json['decisionIntervalMs'] as List)
+          .map((value) => (value as num).toInt())
+          .toList(),
+      autonomousBehaviours: (json['autonomousBehaviours'] as List)
+          .map((entry) => BehaviourWeight.fromJson(entry as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
 class CharacterConfig {
   final String id;
   final String displayName;
   final String role;
   final String defaultDirection;
-  final Map<String, double> movement;
+  /// Speeds (double) plus optional flags like [walkTwoFrameFallback] (bool).
+  final Map<String, dynamic> movement;
   final Map<String, AnimationDef> animations;
+  final PersonalityDef personality;
+  final double frameHeight;
+  final double feetAnchorX;
+  final double feetAnchorY;
 
   const CharacterConfig({
     required this.id,
@@ -46,6 +93,10 @@ class CharacterConfig {
     required this.defaultDirection,
     required this.movement,
     required this.animations,
+    this.personality = PersonalityDef.fallback,
+    this.frameHeight = 128,
+    this.feetAnchorX = 64,
+    this.feetAnchorY = 124,
   });
 
   /// Mirrors resident.js's playAction fallback: `${action}_down` if the
@@ -58,17 +109,34 @@ class CharacterConfig {
 
   factory CharacterConfig.fromJson(Map<String, dynamic> json) {
     final animationsJson = json['animations'] as Map<String, dynamic>;
+    final personalityJson = json['personality'] as Map<String, dynamic>?;
+    final frameHeight = (json['frameHeight'] as num?)?.toDouble() ?? 128.0;
+    final anchorsJson = json['anchors'] as Map<String, dynamic>?;
+    var feetAnchorX = frameHeight / 2;
+    var feetAnchorY = frameHeight - 4;
+    if (anchorsJson != null && anchorsJson['feet'] is List) {
+      final feet = (anchorsJson['feet'] as List).cast<num>();
+      if (feet.length >= 2) {
+        feetAnchorX = feet[0].toDouble();
+        feetAnchorY = feet[1].toDouble();
+      }
+    }
     return CharacterConfig(
       id: json['id'] as String,
       displayName: json['displayName'] as String,
       role: json['role'] as String,
       defaultDirection: json['defaultDirection'] as String,
-      movement: (json['movement'] as Map<String, dynamic>)
-          .map((key, value) => MapEntry(key, (value as num).toDouble())),
+      movement: Map<String, dynamic>.from(json['movement'] as Map),
       animations: animationsJson.map(
         (key, value) =>
             MapEntry(key, AnimationDef.fromJson(value as Map<String, dynamic>)),
       ),
+      personality: personalityJson == null
+          ? PersonalityDef.fallback
+          : PersonalityDef.fromJson(personalityJson),
+      frameHeight: frameHeight,
+      feetAnchorX: feetAnchorX,
+      feetAnchorY: feetAnchorY,
     );
   }
 }

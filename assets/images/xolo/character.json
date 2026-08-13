@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "xolo",
+  "displayName": "Xolo",
+  "role": "loyal_dog",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "defaultDirection": "down",
+  "movement": {
+    "walkSpeed": 82,
+    "skipSpeed": 100,
+    "walkTwoFrameFallback": false
+  },
+  "personality": {
+    "decisionIntervalMs": [
+      900,
+      2600
+    ],
+    "autonomousBehaviours": [
+      {
+        "action": "idle",
+        "weight": 0.3
+      },
+      {
+        "action": "walk",
+        "weight": 0.45
+      },
+      {
+        "action": "sit",
+        "weight": 0.25
+      }
+    ]
+  },
+  "animations": {
+    "idle_down": {
+      "frames": 1,
+      "fps": 1,
+      "loop": true,
+      "paths": [
+        "idle/down/xolo_idle_down_00.png"
+      ]
+    },
+    "walk_left": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/left/xolo_walk_left_00.png",
+        "walk/left/xolo_walk_left_01.png",
+        "walk/left/xolo_walk_left_02.png",
+        "walk/left/xolo_walk_left_03.png",
+        "walk/left/xolo_walk_left_04.png",
+        "walk/left/xolo_walk_left_05.png",
+        "walk/left/xolo_walk_left_06.png",
+        "walk/left/xolo_walk_left_07.png"
+      ]
+    },
+    "walk_right": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "paths": [
+        "walk/right/xolo_walk_right_00.png",
+        "walk/right/xolo_walk_right_01.png",
+        "walk/right/xolo_walk_right_02.png",
+        "walk/right/xolo_walk_right_03.png",
+        "walk/right/xolo_walk_right_04.png",
+        "walk/right/xolo_walk_right_05.png",
+        "walk/right/xolo_walk_right_06.png",
+        "walk/right/xolo_walk_right_07.png"
+      ]
+    },
+    "walk_up": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": true,
+      "paths": [
+        "walk/up/xolo_walk_up_00.png",
+        "walk/up/xolo_walk_up_01.png",
+        "walk/up/xolo_walk_up_02.png",
+        "walk/up/xolo_walk_up_03.png",
+        "walk/up/xolo_walk_up_04.png",
+        "walk/up/xolo_walk_up_05.png",
+        "walk/up/xolo_walk_up_06.png",
+        "walk/up/xolo_walk_up_07.png"
+      ]
+    },
+    "walk_down": {
+      "frames": 8,
+      "fps": 9.0,
+      "loop": true,
+      "paths": [
+        "walk/down/xolo_walk_down_00.png",
+        "walk/down/xolo_walk_down_01.png",
+        "walk/down/xolo_walk_down_02.png",
+        "walk/down/xolo_walk_down_03.png",
+        "walk/down/xolo_walk_down_04.png",
+        "walk/down/xolo_walk_down_05.png",
+        "walk/down/xolo_walk_down_06.png",
+        "walk/down/xolo_walk_down_07.png"
+      ]
+    }
+  },
+  "visualReference": {
+    "baselineY": 119,
+    "status": "incoming-sheets-v2"
+  }
+}

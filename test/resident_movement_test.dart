@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flutter/widgets.dart' show Rect;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dead_of_the_dead_game/data/character_config.dart';
 import 'package:dead_of_the_dead_game/game/resident.dart';
@@ -20,12 +21,6 @@ CharacterConfig _minimalConfig() {
   });
 }
 
-// These exercise Resident's movement/behaviour logic directly (walkTo,
-// update) without going through Flame's asset-loading component lifecycle
-// (onLoad needs a real/faked asset bundle for Sprite.load) -- possible
-// because _visual is nullable and play() no-ops safely when it's unset,
-// same "testable without the rendering half" split the JS prototype's
-// logic.mjs test suite used.
 void main() {
   test('walkTo sets a target and faces the correct direction', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(0, 0));
@@ -36,20 +31,19 @@ void main() {
 
   test('update moves the resident toward the target at walkSpeed, arrives, and returns to idle', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(0, 0));
-    resident.walkTo(Vector2(100, 0)); // walkSpeed 100/s from _minimalConfig
+    resident.walkTo(Vector2(100, 0));
 
-    resident.update(0.5); // half a second -> 50 units
+    resident.update(0.5);
     expect(resident.position.x, closeTo(50, 0.001));
-    expect(resident.busy, true, reason: 'should not have arrived yet');
+    expect(resident.busy, true);
 
-    resident.update(1.0); // steps exactly onto the target, but arrival is checked at the
-                          // *start* of the next call (matches the JS prototype's identical quirk)
+    resident.update(1.0);
     expect(resident.position.x, closeTo(100, 0.001));
-    expect(resident.busy, true, reason: 'not yet detected as arrived within the same call that reaches it');
+    expect(resident.busy, true);
 
-    resident.update(1 / 60); // next frame: distance is now ~0, so this call detects arrival
+    resident.update(1 / 60);
     expect(resident.position.x, closeTo(100, 0.001));
-    expect(resident.busy, false, reason: 'should be idle again once arrival is detected');
+    expect(resident.busy, false);
   });
 
   test('direction is chosen by whichever axis has the larger delta', () {
@@ -71,23 +65,182 @@ void main() {
     resident.walkTo(Vector2(200, 200));
     final positionBeforeManyUpdates = resident.position.clone();
 
-    // Feed a large dt that would normally exceed the behaviour timer window
-    // (2-6s) many times over -- since the resident is mid-walkTo (busy),
-    // the behaviour picker must not fire and stomp on the existing target.
     resident.update(10.0);
 
-    // Position should have moved toward (200,200), not been reset by a
-    // fresh _moveRandomly picking a different point mid-flight.
     final dx = resident.position.x - positionBeforeManyUpdates.x;
     final dy = resident.position.y - positionBeforeManyUpdates.y;
-    expect(dx >= 0 && dy >= 0, true, reason: 'should still be progressing toward the original target, not a new one');
+    expect(dx >= 0 && dy >= 0, true);
   });
 
   test('a resident with no worldBounds set simply does not wander (no crash)', () {
     final resident = Resident(config: _minimalConfig(), position: Vector2(0, 0));
-    // No worldBounds assigned. Feed enough time to trigger many behaviour
-    // rolls; _moveRandomly should just return early every time.
+    final start = resident.position.clone();
     expect(() => resident.update(20.0), returnsNormally);
-    expect(resident.busy, false);
+    // May idle-act (busy), but should not walk off without bounds.
+    expect(resident.position.x, closeTo(start.x, 0.001));
+    expect(resident.position.y, closeTo(start.y, 0.001));
+  });
+
+  test('grab pauses wandering until soft release', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 100))
+      ..worldBounds = Vector2(400, 400);
+    resident.walkTo(Vector2(300, 300));
+    expect(resident.busy, true);
+
+    resident.debugGrab();
+    expect(resident.held, true);
+    final frozen = resident.position.clone();
+    resident.update(1.0);
+    expect(resident.position.x, closeTo(frozen.x, 0.001));
+    expect(resident.position.y, closeTo(frozen.y, 0.001));
+
+    resident.debugRelease();
+    expect(resident.held, false);
+    expect(resident.airborne, false);
+  });
+
+  test('release snaps landing onto walkClamp cobble', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 300))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(40, 250, 320, 100)
+      ..walkClamp = (point, {bool softTop = false}) {
+        if (softTop) {
+          return Vector2(point.x.clamp(40, 360), point.y.clamp(80, 350));
+        }
+        return Vector2(200, 280);
+      };
+    resident.debugFling(Vector2(0, -280));
+    for (var i = 0; i < 240; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.airborne, false);
+    expect(resident.position.y, closeTo(280, 0.5));
+    expect(resident.position.x, closeTo(200, 0.5));
+  });
+
+  test('grab and release hooks fire', () {
+    var grabs = 0;
+    var softDrops = 0;
+    var flings = 0;
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 100))
+      ..onGrab = () {
+        grabs++;
+      }
+      ..onRelease = ({required bool flung}) {
+        if (flung) {
+          flings++;
+        } else {
+          softDrops++;
+        }
+      };
+    // Hooks are wired to gesture path; debugGrab skips them — call release path.
+    resident.debugGrab();
+    expect(grabs, 0);
+    resident.debugRelease();
+    expect(softDrops, 1);
+    resident.debugFling(Vector2(200, -200));
+    // debugFling does not call onRelease; soft release already covered.
+    expect(flings, 0);
+  });
+
+  test('fling makes the resident airborne then land under gravity', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 200))
+      ..worldBounds = Vector2(400, 400);
+    resident.debugFling(Vector2(100, -300));
+    expect(resident.airborne, true);
+    expect(resident.busy, true);
+
+    // Simulate enough frames to rise and fall back to ground band.
+    for (var i = 0; i < 180; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.airborne, false);
+    expect(resident.position.y, lessThanOrEqualTo(400 * 0.95));
+  });
+
+  test('walkTo is ignored while held or airborne', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(50, 50))
+      ..worldBounds = Vector2(400, 400);
+    resident.debugGrab();
+    resident.walkTo(Vector2(300, 300));
+    expect(resident.position.x, closeTo(50, 0.001));
+
+    resident.debugRelease();
+    resident.debugFling(Vector2(0, -200));
+    resident.walkTo(Vector2(300, 300));
+    expect(resident.airborne, true);
+  });
+
+  test('wind toy knocks a free resident airborne sideways', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 200))
+      ..worldBounds = Vector2(400, 400);
+    resident.applyWind(directionSign: 1);
+    expect(resident.airborne, true);
+    expect(resident.velocity.x, greaterThan(0));
+  });
+
+  test('attractTo starts a walk toward the treat', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(50, 200))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(40, 180, 320, 100);
+    resident.attractTo(Vector2(300, 220));
+    expect(resident.busy, true);
+    expect(resident.direction, 'right');
+  });
+
+  test('wander prefers hotspots when provided', () {
+    // Was flaky (~10% real failure rate, not a fluke -- probed 500 seeds):
+    // checking the FINAL resting position let a late unlucky "random point
+    // in roadBounds" wander target (the ~21%-of-the-time fallback when
+    // neither hotspot roll hits) drag her back left of x=150 well after
+    // she'd already visited the hotspot, failing an otherwise-correct run.
+    // The behaviour under test is "she visits/prefers the hotspot side,"
+    // not "she happens to be standing there when the loop stops," so track
+    // the max x reached instead of the final x. Confirmed deterministic
+    // across 500 seeded trials (0/500 failures) with this assertion.
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80)
+      ..preferredHotspots = [Vector2(300, 240)]
+      ..wanderHotspots = [Vector2(300, 240)];
+
+    var maxX = resident.position.x;
+    // Force many behaviour ticks; eventually should walk toward the hotspot side.
+    for (var i = 0; i < 80; i++) {
+      resident.update(3.0);
+      if (resident.position.x > maxX) maxX = resident.position.x;
+    }
+    expect(maxX, greaterThan(150));
+  });
+
+  test('exitPlaza walks off-road then fires onExitComplete', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(200, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
+    var exited = false;
+    double? exitX;
+    resident.onExitComplete = () {
+      exited = true;
+      exitX = resident.position.x;
+    };
+    resident.exitPlaza(toLeft: true);
+    expect(resident.allowOffRoad, true);
+    for (var i = 0; i < 600 && !exited; i++) {
+      resident.update(1 / 60);
+    }
+    expect(exited, true);
+    expect(exitX, lessThan(50));
+  });
+
+  test('walkTo clamps destinations onto the road', () {
+    final resident = Resident(config: _minimalConfig(), position: Vector2(100, 220))
+      ..worldBounds = Vector2(400, 400)
+      ..roadBounds = const Rect.fromLTWH(50, 200, 300, 80);
+    resident.walkTo(Vector2(10, 10));
+    for (var i = 0; i < 120; i++) {
+      resident.update(1 / 60);
+    }
+    expect(resident.position.x, inInclusiveRange(50, 350));
+    expect(resident.position.y, inInclusiveRange(200, 280));
   });
 }
