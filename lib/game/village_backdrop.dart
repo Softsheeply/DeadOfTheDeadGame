@@ -6,6 +6,8 @@ import 'package:flame/flame.dart';
 import 'package:flutter/painting.dart';
 
 import '../data/location_config.dart';
+import '../data/plaza_layers_config.dart';
+import 'village_layer_stack.dart';
 
 /// Full-bleed Spirit Village backdrop with day/night painted variants.
 ///
@@ -88,6 +90,10 @@ class VillageBackdrop extends PositionComponent {
 
   Sprite? _day;
   Sprite? _night;
+  VillageLayerStack? _layerStack;
+  double _celestialRoll = 0;
+  double _celestialTarget = 0;
+  double _rollDuration = 1.4;
   bool isNight = true;
   double _blend = 1;
   double _blendTarget = 1;
@@ -99,22 +105,44 @@ class VillageBackdrop extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _day = Sprite(await Flame.images.load(dayAsset));
-    _night = Sprite(await Flame.images.load(nightAsset));
+    try {
+      final layerConfig = await PlazaLayersConfig.load();
+      _rollDuration = layerConfig.rollDurationSeconds;
+      _layerStack = VillageLayerStack(config: layerConfig, gameSize: size.clone());
+      await add(_layerStack!);
+    } catch (_) {
+      _layerStack = null;
+    }
+    if (_layerStack == null) {
+      _day = Sprite(await Flame.images.load(dayAsset));
+      _night = Sprite(await Flame.images.load(nightAsset));
+    }
+    _celestialRoll = isNight ? 1 : 0;
+    _celestialTarget = _celestialRoll;
     _recomputeDrawRect();
   }
 
   void resizeTo(Vector2 newSize) {
     size.setFrom(newSize);
+    _layerStack?.resizeTo(newSize);
     _recomputeDrawRect();
   }
 
   void setNight(bool night) {
     isNight = night;
     _blendTarget = night ? 1 : 0;
+    _celestialTarget = night ? 1 : 0;
   }
 
   void toggleDayNight() => setNight(!isNight);
+
+  void applyGust({required double directionSign}) {
+    _layerStack?.applyGust(directionSign: directionSign);
+  }
+
+  void splashFountainLayer({double intensity = 1}) {
+    _layerStack?.splashFountain(intensity: intensity);
+  }
 
   /// Apply layout UVs from location JSON (Phase B data-driven maps).
   void applyLocation(LocationConfig config) {
@@ -561,6 +589,13 @@ class VillageBackdrop extends PositionComponent {
   double get dogDisplaySize => (personDisplaySize * 0.78).clamp(36.0, 52.0);
 
   void _recomputeDrawRect() {
+    if (_layerStack != null) {
+      _layerStack!.resizeTo(size);
+      if (_layerStack!.drawRect != Rect.zero) {
+        drawRect = _layerStack!.drawRect;
+        return;
+      }
+    }
     final sprite = _night ?? _day;
     if (sprite == null || size.x <= 0 || size.y <= 0) {
       drawRect = Rect.zero;
@@ -568,44 +603,84 @@ class VillageBackdrop extends PositionComponent {
     }
     final imgW = sprite.srcSize.x;
     final imgH = sprite.srcSize.y;
-    // Contain = see the whole town (zoom out vs cover).
     final scale = min(size.x / imgW, size.y / imgH);
-    final drawW = imgW * scale;
-    final drawH = imgH * scale;
     drawRect = Rect.fromCenter(
       center: Offset(size.x / 2, size.y / 2),
-      width: drawW,
-      height: drawH,
+      width: imgW * scale,
+      height: imgH * scale,
     );
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    if ((_blend - _blendTarget).abs() < 0.001) {
+    if ((_blend - _blendTarget).abs() >= 0.001) {
+      final dir = _blendTarget > _blend ? 1.0 : -1.0;
+      _blend = (_blend + dir * dt / 1.2).clamp(0.0, 1.0);
+    } else {
       _blend = _blendTarget;
-      return;
     }
-    final dir = _blendTarget > _blend ? 1.0 : -1.0;
-    _blend = (_blend + dir * dt / 1.2).clamp(0.0, 1.0);
+    if ((_celestialRoll - _celestialTarget).abs() >= 0.001) {
+      final rollDir = _celestialTarget > _celestialRoll ? 1.0 : -1.0;
+      _celestialRoll = (_celestialRoll + rollDir * dt / _rollDuration).clamp(0.0, 1.0);
+    } else {
+      _celestialRoll = _celestialTarget;
+    }
+    _layerStack?.setNightBlend(_blend);
+    _layerStack?.setCelestialRoll(_celestialRoll);
   }
 
   @override
   void render(Canvas canvas) {
-    // Letterbox fill behind the contained plaza.
+    if (_layerStack != null) {
+      return;
+    }
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.x, size.y),
       Paint()..color = const Color(0xFF120A24),
     );
-
     if (drawRect == Rect.zero) return;
-
     if (_blend < 1 && _day != null) {
       _day!.renderRect(canvas, drawRect);
     }
     if (_blend > 0 && _night != null) {
       final paint = Paint()..color = Color.fromRGBO(255, 255, 255, _blend);
       _night!.renderRect(canvas, drawRect, overridePaint: paint);
+    }
+    _renderLegacyCelestial(canvas);
+  }
+
+  void _renderLegacyCelestial(Canvas canvas) {
+    if (drawRect == Rect.zero) return;
+    final goingNight = _blendTarget >= 0.5;
+    final sunUv = const Offset(0.78, 0.12);
+    final moonUv = const Offset(0.22, 0.14);
+    final r = drawRect.width * 0.035;
+    final sunCenter = Offset(
+      drawRect.left + drawRect.width * sunUv.dx,
+      drawRect.top + drawRect.height * sunUv.dy,
+    );
+    final moonCenter = Offset(
+      drawRect.left + drawRect.width * moonUv.dx,
+      drawRect.top + drawRect.height * moonUv.dy,
+    );
+    if (_blend < 0.98) {
+      final sunAlpha = (1 - _blend).clamp(0.0, 1.0);
+      final sunDx = goingNight ? -drawRect.width * _celestialRoll : 0.0;
+      canvas.drawCircle(
+        sunCenter.translate(sunDx, 0),
+        r,
+        Paint()..color = Color.fromRGBO(255, 220, 100, sunAlpha * 0.95),
+      );
+    }
+    if (_blend > 0.02) {
+      final moonAlpha = _blend.clamp(0.0, 1.0);
+      final moonDx = goingNight ? drawRect.width * (1 - _celestialRoll) : drawRect.width * _celestialRoll;
+      canvas.drawCircle(
+        moonCenter.translate(moonDx, 0),
+        r * 0.9,
+        Paint()..color = Color.fromRGBO(230, 240, 255, moonAlpha * 0.95),
+      );
     }
   }
 }
